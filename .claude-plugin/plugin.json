@@ -1,0 +1,18 @@
+{
+  "name": "amp",
+  "version": "1.0.0",
+  "description": "amp: a grill-first, autonomous Claude Code workflow. Interview once, then spec, plan, subagent build with per-task reviews, PR, CI and merge, with the model of each task type configurable.",
+  "author": { "name": "Mark Paroczi" },
+  "homepage": "https://github.com/MParoczi/amp",
+  "repository": "https://github.com/MParoczi/amp",
+  "license": "MIT",
+  "keywords": ["workflow", "tdd", "subagents", "code-review", "planning"],
+  "userConfig": {
+    "reviewer": { "type": "string", "title": "Reviewer model", "description": "Spec, plan, roadmap, task and whole-branch reviews (amp:reviewer).", "default": "opus", "options": ["inherit", "fable", "opus", "sonnet", "haiku"] },
+    "implementer": { "type": "string", "title": "Implementer model", "description": "Tasks, fix rounds 1-3, final-review and CI fixes (amp:implementer).", "default": "opus", "options": ["inherit", "fable", "opus", "sonnet", "haiku"] },
+    "checker": { "type": "string", "title": "Checker model", "description": "Scoped re-review of each fix round (amp:checker).", "default": "sonnet", "options": ["inherit", "fable", "opus", "sonnet", "haiku"] },
+    "scout": { "type": "string", "title": "Scout model", "description": "Fact-finding during grill, design and roadmap (amp:scout).", "default": "sonnet", "options": ["inherit", "fable", "opus", "sonnet", "haiku"] },
+    "escalation": { "type": "string", "title": "Escalation model", "description": "Fresh implementer for fix rounds 4-5 and a BLOCKED retry. inherit = the session model.", "default": "inherit", "options": ["inherit", "fable", "opus", "sonnet", "haiku"] },
+    "fallback": { "type": "string", "title": "Fallback model", "description": "Re-dispatch target when a dispatch's model is unavailable (rate or usage limit, overload).", "default": "sonnet", "options": ["inherit", "fable", "opus", "sonnet", "haiku"] }
+  }
+}
