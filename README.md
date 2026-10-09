@@ -75,7 +75,7 @@ or `haiku`:
 The **orchestrator** runs the grill, spec, plan, rulings and shipping. It is your session itself,
 so it runs on whatever `/model` you choose. Put your strongest model there.
 
-You can change the settings in three places:
+You can change the settings in four places:
 
 1. **The amp models pane.** Run `/amp-models` to open a pane with one picker per task type. Move
    with Tab and the arrow keys, confirm with Enter, close with Esc. A change applies to the next
@@ -91,6 +91,13 @@ You can change the settings in three places:
        }
      }
    }
+   ```
+
+4. **The plugin's options.** `/plugin configure amp@amp` in a session, or from a shell (takes
+   effect after a restart):
+
+   ```
+   echo '{"reviewer":"fable","escalation":"fable","fallback":"opus"}' | claude plugin configure amp@amp --values-stdin
    ```
 
 Each alias resolves through Claude Code's usual model settings. To point `opus` at a particular
