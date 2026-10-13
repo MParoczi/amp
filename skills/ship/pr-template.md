@@ -11,6 +11,7 @@ component tree, a shallow file tree, a diff-sketch or a small mermaid diagram.>
 
 <Grouped by area, one bullet per task, each naming its commit(s):>
 - **<area>**: <what changed> (`<sha>`)
+- **Deleted**: <dead code removed, and the evidence nothing referenced or claimed it; omit if none>
 
 ## Evidence
 

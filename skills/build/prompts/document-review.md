@@ -15,8 +15,10 @@ Flag only what would cause real problems downstream:
 - Clarity: any requirement readable two ways
 - Scope and lean: unrequested features, over-engineering (amp:lean ladder), scope creep
 - Mode spec: interfaces exact? states and errors covered? testing seams named? docs impact listed?
-- Mode plan: every spec requirement → a task; step granularity (no gaps, no transcribed bodies);
-  names and signatures consistent across tasks; each task one atomic commit; docs steps present
+  every "new" component justified against what exists? deletions listed with their evidence?
+- Mode plan: every spec requirement and Deletion → a task; step granularity (no gaps, no
+  transcribed bodies); names and signatures consistent across tasks; no two tasks build the same
+  thing; each task one atomic commit; docs steps present
 - Mode roadmap: covers the whole vision A→Z; phases are vertical, shippable, one-session-sized;
   dependencies and order sound (risk early); each prompt self-contained and runnable by
   /amp:phase in a fresh session; branch types correct; verification gates concrete

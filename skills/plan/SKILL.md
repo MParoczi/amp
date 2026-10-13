@@ -37,9 +37,9 @@ naming, copy, platform rules, safety rules. Every task implicitly includes this 
 
 ## File map first
 
-Before drawing tasks, list every file to create or modify and its one responsibility. Files that
-change together live together. Follow the existing structure, and split a file only where the
-plan's work would otherwise make it unwieldy.
+Before drawing tasks, list every file to create, modify or delete and its one responsibility.
+Files that change together live together. Follow the existing structure, and split a file only
+where the plan's work would otherwise make it unwieldy.
 
 ## Tasks
 
@@ -51,7 +51,8 @@ first, then tracer-bullet vertical slices. Each task ends green and committable.
 ````markdown
 ### Task N: <component or behavior>
 
-**Files:** Create `path` · Modify `path:lines` · Test `path`
+**Files:** Create `path` · Modify `path:lines` · Delete `path` · Test `path`
+**Reuse:** <existing code this task reuses or extends, from the spec's Components; or "none: <why>">
 **Interfaces:** Consumes <exact names/signatures from earlier tasks> · Produces <exact names, params, return types later tasks rely on>
 **Docs:** <docs this task updates, or "none">
 **Commit:** `<type>(<scope>): <imperative summary>`
@@ -81,6 +82,8 @@ every file.
 4. **Proportion:** if code blocks are most of the document, replace bodies with signatures and
    assertions.
 5. **Lean:** no task builds what the spec doesn't require (`amp:lean` ladder).
+6. **DRY:** no two tasks create the same thing, every spec Deletion has a task, and each Reuse
+   line names what the task builds on or says why nothing fits.
 
 ## Review and commit
 

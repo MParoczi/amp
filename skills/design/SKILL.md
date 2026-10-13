@@ -1,6 +1,6 @@
 ---
 name: design
-description: The amp design stage (Superpowers-derived). It turns a confirmed grill into a binding written spec. First a reuse-first survey (reuse / extend / new-because for every component), then the project's own design process for UX-bearing work, then the spec with interfaces, states, testing seams, docs impact and Review Focus, then a self-review and one independent amp:reviewer pass. Run by amp:phase after the grill gate. Use it directly only when a confirmed set of decisions needs to become a spec.
+description: The amp design stage (Superpowers-derived). It turns a confirmed grill into a binding written spec. First a reuse-first survey (reuse / extend / new-because for every component, plus the dead code to delete), then the project's own design process for UX-bearing work, then the spec with interfaces, states, testing seams, docs impact and Review Focus, then a self-review and one independent amp:reviewer pass. Run by amp:phase after the grill gate. Use it directly only when a confirmed set of decisions needs to become a spec.
 effort: high
 ---
 
@@ -18,9 +18,14 @@ For each component the work needs, find what already exists: components, utiliti
 patterns, installed dependencies. For a large surface, dispatch `amp:scout`s in parallel, each
 with one area and a findings path. Record one verdict per component:
 
-- **reuse `X`**, **extend `Y`**, or **new, because `<why nothing existing fits>`**.
+- **reuse `X`**, **extend `Y`** (reuse with a small change: name the change), or **new, because
+  `<why nothing existing fits, even with a small change>`**.
 
 A "new" without a reason that survives a search is a design smell.
+
+- **Deletions:** code in the touched modules that nothing references and no document claims
+  (`amp:lean`, Dead code), including what this work will orphan. Each becomes a deletion in the
+  spec, scheduled with the enabling refactor or inside the task that replaces it.
 
 - **Enabling refactor:** if existing structure makes this work awkward or risky, fold the
   *minimal* refactor that de-risks it into scope as an early task.
@@ -45,7 +50,8 @@ it). Sections, each scaled to the work (a sentence is fine where a sentence suff
    workspace is ephemeral, the spec is permanent).
 3. **Architecture**: components, boundaries and data flow. Include a small diagram only if it
    earns its place.
-4. **Components**: one entry each, with its reuse/extend/new verdict and responsibility.
+4. **Components**: one entry each, with its reuse/extend/new verdict and responsibility. Then
+   **Deletions**: one line per dead item, with the search that showed no reference and no claim.
 5. **Interfaces**: exact names, signatures, commands, events, schemas and file formats others
    depend on.
 6. **States and errors**: empty, loading, offline, partial and failure; what the user sees; what is

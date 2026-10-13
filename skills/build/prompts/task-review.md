@@ -28,7 +28,9 @@ Return, in this order, with file:line evidence for every finding:
 Strengths (brief, specific), then Critical / Important / Minor.
 Include: correctness, error and empty states (never silent failure), tests that prove behavior
 (not mocks, not tautologies; noisy test output is a finding), naming, structure, security,
-and docs drift (a doc the change made stale that the task didn't update is Important).
+reuse (new code an existing helper does or nearly does), dead code (unreferenced code added, or
+left behind by the change), and docs drift (a doc the change made stale that the task didn't
+update is Important).
 
 ### Lean
 amp:lean review-tag lines (`file:Lline: tag what. replacement.`), then `net: -N lines possible`
@@ -38,7 +40,5 @@ or `Lean already.` Anything tagged that removes required behavior is not lean: d
 Task quality: Approved | Needs fixes — one or two sentences.
 ```
 
-Severity: Important means the task can't be trusted until it is fixed (a missed requirement, fragile
-or incorrect behavior, swallowed errors, tests asserting nothing, verbatim duplicated logic, stale
-docs). A plan-mandated defect is Important and labelled `plan-mandated`. Lean findings are Minor
-unless they add a dependency, an abstraction layer or dead code of real size (Important).
+Severity: the agent's calibration applies. Lean findings are Minor unless they add a dependency, an
+abstraction layer, a duplicate of an existing helper or dead code (Important).

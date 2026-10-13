@@ -141,7 +141,9 @@ phases later.
    answer, and ends with one summary. **Your confirmation of that summary is the only approval in
    the run.**
 2. **Autonomous from there.** amp cuts a `feature|bugfix|hotfix|framework/<NN>-<slug>` branch from
-   the default branch, then writes the spec and the plan (each reviewed independently). It builds
+   the default branch, then writes the spec and the plan (each reviewed independently). The spec
+   starts from a survey: existing code is reused or extended before anything new is written, and
+   code nothing references and no doc or roadmap phase claims is scheduled for deletion. It builds
    the plan task by task, with one atomic commit and one review per task, then runs a final review.
    Finally it updates the docs, verifies, pushes, opens the PR, waits for green CI, merges with a
    merge commit, tags if your project says to, and syncs your local default branch.
@@ -170,7 +172,7 @@ Each stage is also a skill you can call on its own:
 | `/amp:build` | execute a plan with implementer and reviewer subagents |
 | `/amp:ship` | land a finished branch: docs, verify, PR, CI, merge |
 | `/amp:debug` | find a bug's root cause: reproduce, trace, pin it with a test, fix once |
-| `/amp:lean` | apply the economy doctrine: the laziness ladder, the never-cut list, lean review tags |
+| `/amp:lean` | apply the economy doctrine (DRY, YAGNI, KISS): the laziness ladder, the dead-code rule, the never-cut list, lean review tags |
 
 ### Resuming
 

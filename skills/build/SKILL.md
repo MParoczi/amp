@@ -23,7 +23,8 @@ Dispatch templates: `${CLAUDE_SKILL_DIR}/prompts/`.
    Otherwise create it with the first line `# amp ledger — plan: <plan path> — branch: <branch>`.
 3. Read the plan once (and the spec sections it leans on). Create one todo per task.
 4. **Preflight conflict scan**, written to the ledger as a table: one row per pair of tasks
-   sharing a file or interface (what one produces vs what the other consumes), and one row per task
+   sharing a file or interface (what one produces vs what the other consumes, or both producing the
+   same thing), and one row per task
    (do its tests match its code, and its created files match its later touches). Rule on every
    conflict, with the spec as the authority: `Ruling: <decision> — <why> — <cost if wrong>`.
 

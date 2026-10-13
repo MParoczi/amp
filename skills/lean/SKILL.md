@@ -1,6 +1,6 @@
 ---
 name: lean
-description: The amp economy doctrine (Ponytail-derived) for code AND context. The laziness ladder (need it? → reuse → stdlib → native → installed dep → one line → minimum), the never-cut list (trust-boundary validation, data-loss handling, security, accessibility, anything requested), `lean:` markers for deliberate shortcuts, the over-engineering review tags (delete/stdlib/native/yagni/shrink), and the agent context economy (paths not payloads, short contracts, no narration). Load before designing, planning, implementing or reviewing in any amp workflow, and whenever the user asks for the simplest or minimal solution or complains about bloat, boilerplate or token waste.
+description: The amp economy doctrine (Ponytail-derived) for code AND context, in three words DRY, YAGNI, KISS. The laziness ladder (need it? → reuse or extend → stdlib → native → installed dep → one line → minimum), the dead-code rule (unreferenced and unclaimed by the docs or roadmap → delete), the never-cut list (trust-boundary validation, data-loss handling, security, accessibility, anything requested), `lean:` markers for deliberate shortcuts, the over-engineering review tags (delete/reuse/stdlib/native/yagni/shrink), and the agent context economy (paths not payloads, short contracts, no narration). Load before designing, planning, implementing or reviewing in any amp workflow, and whenever the user asks for the simplest or minimal solution or complains about bloat, boilerplate or token waste.
 effort: high
 ---
 
@@ -12,6 +12,9 @@ never skipped to save tokens.
 
 ## 1. Code economy: the ladder
 
+Three names for one reflex: **DRY** (one place for each behavior), **YAGNI** (only what is asked
+for), **KISS** (the simplest thing that is correct).
+
 **Understand first.** Read the task and every file the change touches, and trace the real flow end
 to end. The ladder shortens the solution, never the reading. The smallest diff in the wrong place
 is not lean, it is a second bug.
@@ -19,7 +22,9 @@ is not lean, it is a second bug.
 Then stop at the first rung that holds:
 
 1. **Does this need to exist?** Speculative need → skip it, and say so in one line (YAGNI).
-2. **Already in this codebase?** Reuse the helper, type, component or pattern a few files over.
+2. **Already in this codebase, or nearly?** Reuse the helper, type, component or pattern a few
+   files over. If one does most of it, extend it (a parameter, a branch, a wider type) instead of
+   writing a sibling. Search by name, by shape and by behavior before creating anything.
    Re-implementing what already exists is the most common slop.
 3. **Stdlib does it?** Use it.
 4. **Native platform feature?** `<input type="date">` over a picker lib, CSS over JS, a DB
@@ -34,6 +39,16 @@ correct on edge cases.
 **Bug fix = root cause.** A report names a symptom. Before editing, grep every caller of the
 function you are about to touch. One guard in the shared function is a smaller diff than one guard
 per caller, and a fix on the reported path alone leaves the sibling callers broken.
+
+### Dead code
+
+Code nothing references is deleted in the phase that finds it: no caller, import, route, test,
+config or template uses it, and no document claims it (the roadmap, a later phase prompt, the
+spec, user docs). A "for later" comment is not a claim, and neither is a test that exercises only
+the dead thing. Check every name with grep, including string and dynamic references, then delete
+the code with its tests, exports and doc mentions in one commit. A change that leaves its
+predecessor unreferenced deletes the predecessor. Scope per phase: the modules the work touches,
+what the work orphans, and whatever the project's dead-code tool reports when it has one.
 
 ### Rules
 
@@ -66,7 +81,10 @@ that proves the logic.
 
 One line per finding: `<file>:L<line>: <tag> <what>. <replacement>.`
 
-- `delete:` dead code, unused flexibility, speculative feature. Replacement: nothing.
+- `delete:` dead code (unreferenced and unclaimed), unused flexibility, speculative feature.
+  Replacement: nothing.
+- `reuse:` new code an existing helper does, or would with a small change. Name the helper and
+  the change.
 - `stdlib:` hand-rolled thing the standard library ships. Name the function.
 - `native:` dependency or code doing what the platform does. Name the feature.
 - `yagni:` abstraction with one implementation, config nobody sets, layer with one caller.

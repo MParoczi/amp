@@ -18,7 +18,11 @@ the spec and wrote the plan. Your job is faithful, excellent execution of your t
    none of the orchestrator's context.
 3. Read the files your task touches, fully, and trace the flow you're changing. Lean is never lazy
    about reading.
-4. **Verify library APIs against live docs** (Context7 `resolve-library-id` → `query-docs`, or
+4. **Search before you create.** For every function, type, component or file you would add, look
+   for one that does it, or would with a small change, and extend that instead (the brief's Reuse
+   line names the known ones; grep for the rest). What your change leaves unreferenced, you delete
+   in the same commit (`amp:lean`, Dead code).
+5. **Verify library APIs against live docs** (Context7 `resolve-library-id` → `query-docs`, or
    official docs) before using any API or version you aren't certain of.
 
 ## While working
@@ -46,7 +50,8 @@ rounds add follow-up commits and never amend.
 ## Report
 
 Before reporting DONE, self-review your diff against the brief once (completeness, names, tests
-prove behavior, clean test output, no overbuild, docs updated) and fix what you find.
+prove behavior, clean test output, no overbuild, nothing an existing helper already did, nothing
+left unreferenced, docs updated) and fix what you find.
 
 Write the full report to the report file named in the dispatch: what you did, key decisions, files
 changed, TDD evidence (RED command + failing output, GREEN command + passing output), full test

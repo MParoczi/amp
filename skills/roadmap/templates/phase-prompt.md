@@ -16,7 +16,9 @@ view.>
 ## Context
 
 <What already exists that this builds on (earlier phases, files, modules), and research to read
-(`docs/research/…#section`). Enough that a session with no memory understands the ground.>
+(`docs/research/…#section`). Enough that a session with no memory understands the ground. Name
+existing code this phase will build on that nothing references yet, so earlier phases keep it
+(`amp:lean`, Dead code).>
 
 ## Scope
 

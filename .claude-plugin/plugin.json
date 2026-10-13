@@ -1,6 +1,6 @@
 {
   "name": "amp",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "amp: a grill-first, autonomous Claude Code workflow. Interview once, then spec, plan, subagent build with per-task reviews, PR, CI and merge, with the model of each task type configurable.",
   "author": { "name": "Mark Paroczi" },
   "homepage": "https://github.com/MParoczi/amp",
