@@ -14,7 +14,7 @@ CI and merges. You choose which model runs each kind of task.
 amp combines three ideas: the relentless *Grill me* interview, the *Superpowers*
 design → plan → subagent-build discipline, and a strict economy doctrine for code and context. It
 works for any language or stack. Everything specific to a project lives in that project's
-`CLAUDE.md` (on Codex, `AGENTS.md`).
+`CLAUDE.md` (on Codex, `AGENTS.md`, else `CLAUDE.md`).
 
 On Codex the skills are invoked with `$` instead of `/`: `$amp:phase 04`, `$amp:roadmap` and so on.
 Everything else in this README applies to both tools unless a section says otherwise.
@@ -77,16 +77,16 @@ and then `claude plugin install amp@amp`.
 3. Install amp's agents. Codex plugins can't ship custom agents, so a bundled installer copies the
    four amp roles (`amp-reviewer`, `amp-implementer`, `amp-checker`, `amp-scout`) into Codex's
    agents folder. Run it from the installed plugin, which Codex keeps under
-   `~/.codex/plugins/cache/<marketplace>/amp/<version>/`, or from a clone of this repository:
+   `~/.codex/plugins/cache/amp/amp/<version>/`, or from a clone of this repository:
 
    ```
-   bash ~/.codex/plugins/cache/<marketplace>/amp/<version>/codex/install [--project] [--reviewer M] [--implementer M] [--checker M] [--scout M]
+   bash ~/.codex/plugins/cache/amp/amp/<version>/codex/install [--project] [--reviewer M] [--implementer M] [--checker M] [--scout M]
    ```
 
    Without `--project` the agents go to `~/.codex/agents` (or `$CODEX_HOME/agents`), and their
-   model pins apply to **every** project. With `--project` they go to the repository's
-   `.codex/agents`, which you can commit so collaborators get them too. The model flags are
-   described in the next section.
+   model pins apply to every project without its own `--project` install. With `--project` they go
+   to the repository's `.codex/agents`, which you can commit so collaborators get them too. The
+   model flags are described in the next section.
 4. Start a new Codex session, so it loads the agents.
 
 Every amp skill that spawns agents (`$amp:phase`, `$amp:roadmap`, and `$amp:grill`, `$amp:design`,
@@ -96,7 +96,8 @@ version differs from the plugin's.
 
 ## Choosing the models
 
-This part is about Claude Code. Codex works differently: see [Models on Codex](#models-on-codex).
+The settings below are Claude Code's. Codex pins models through its agent installer instead: see
+[Models on Codex](#models-on-codex) at the end of this section.
 
 amp has six task types. Each can run on `inherit` (the session's model), `fable`, `opus`, `sonnet`
 or `haiku`:
@@ -297,6 +298,8 @@ task from the plan. `review-package` writes a commit range as one diff file for 
 
 ## Updating and removing
 
+On Claude Code:
+
 ```
 /plugin marketplace update amp
 /plugin update amp@amp
@@ -305,18 +308,22 @@ task from the plan. `review-package` writes a commit range as one diff file for 
 
 Run `/reload-plugins` (or restart) after an update.
 
-On Codex:
+On Codex, to update:
 
 ```
 codex plugin marketplace upgrade                        # then update amp from /plugins
 bash <plugin dir>/codex/install [same flags as before]  # after every upgrade
-bash <plugin dir>/codex/install [--project] --uninstall # removes the amp agents and amp-install.json
-codex plugin marketplace remove amp
 ```
 
-Start a new Codex session after re-running the installer. `--uninstall` takes `--project` to
-remove a repository's agents instead of the global ones. Uninstall the plugin itself from
-`/plugins`.
+Start a new Codex session after re-running the installer. To remove amp from Codex, remove the
+agents first, then uninstall the plugin from `/plugins`, then remove the marketplace:
+
+```
+bash <plugin dir>/codex/install [--project] --uninstall # removes the amp agents and amp-install.json
+codex plugin marketplace remove amp                     # after uninstalling amp from /plugins
+```
+
+`--uninstall` takes `--project` to remove a repository's agents instead of the global ones.
 
 ## Developing the plugin
 
