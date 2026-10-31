@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # amp's tests for scripts/render: fixtures in a temp root (its path has a space),
-# then the real repo. One "ok: <case>" line per case; the first failure prints
+# then the real repo; then codex/install in temp CODEX_HOMEs and the manifests. One "ok: <case>" line per case; the first failure prints
 # "FAIL: <case>: <detail>" and exits 1. Runs from anywhere.
 #
 # Usage: scripts/test
@@ -191,4 +191,90 @@ ok
 
 case=drift
 bash "$ROOT/scripts/render" --check > "$tmp/out" 2>&1 || fail "$(cat "$tmp/out")"
+ok
+
+# inst [ARGS]: run codex/install in a fresh temp CODEX_HOME ($home, agents in $dir);
+# sets $rc and $out (stdout and stderr). CWD=DIR runs it from DIR.
+inst() {
+  home=$(mktemp -d "$tmp/home.XXXXXX"); dir=$home/agents
+  rc=0
+  (cd "${CWD:-$ROOT}" && CODEX_HOME="$home" bash "$ROOT/codex/install" "$@") > "$tmp/out" 2>&1 || rc=$?
+  out=$(cat "$tmp/out")
+}
+# has TEXT: the installer output contains TEXT
+has() { case $out in *"$1"*) ;; *) fail "output lacks '$1': $out" ;; esac; }
+# count PREFIX N: the installer output has N lines starting with PREFIX
+count() { [ "$(printf '%s\n' "$out" | grep -c "^$1" || true)" -eq "$2" ] || fail "want $2 '$1' lines: $out"; }
+roles="reviewer implementer checker scout"
+
+case=install-default
+inst
+[ "$rc" -eq 0 ] || fail "exit $rc: $out"
+for r in $roles; do [ -f "$dir/amp-$r.toml" ] || fail "amp-$r.toml missing"; done
+[ "$(ls "$dir" | wc -l)" -eq 5 ] || fail "files: $(ls "$dir")"
+grep -qF '"version": "1.2.0"' "$dir/amp-install.json" || fail "json: $(cat "$dir/amp-install.json")"
+[ "$(grep -oF ': null' "$dir/amp-install.json" | wc -l)" -eq 4 ] || fail "json: $(cat "$dir/amp-install.json")"
+count 'installed: ' 4
+has "wrote: $dir/amp-install.json"
+ok
+
+case=install-pin
+inst --reviewer gpt-x
+[ "$rc" -eq 0 ] || fail "exit $rc: $out"
+grep -qF '"reviewer": "gpt-x"' "$dir/amp-install.json" || fail "json: $(cat "$dir/amp-install.json")"
+[ "$(grep -oF ': null' "$dir/amp-install.json" | wc -l)" -eq 3 ] || fail "json: $(cat "$dir/amp-install.json")"
+has "amp-reviewer.toml (model: gpt-x)"
+for r in $roles; do cmp -s "$ROOT/codex/agents/amp-$r.toml" "$dir/amp-$r.toml" || fail "amp-$r.toml differs"; done
+ok
+
+case=install-uninstall-flags
+inst --uninstall --scout gpt-x
+[ "$rc" -eq 2 ] || fail "exit $rc, want 2"
+has usage:
+ok
+
+case=install-invalid
+inst --scout 'a b'
+[ "$rc" -eq 2 ] || fail "exit $rc, want 2"
+has "install: invalid model 'a b'"
+[ -z "$(ls -A "$home")" ] || fail "wrote: $(ls -A "$home")"
+for a in --bogus --scout '--scout --reviewer'; do
+  # shellcheck disable=SC2086 # $a splits into flags on purpose
+  inst $a
+  [ "$rc" -eq 2 ] || fail "$a: exit $rc, want 2"
+  has usage:
+done
+ok
+
+case=install-project
+repo=$tmp/repo; mkdir -p "$repo" "$tmp/norepo"
+git -C "$repo" init -q
+CWD=$repo inst --project
+[ "$rc" -eq 0 ] || fail "exit $rc: $out"
+for r in $roles; do [ -f "$repo/.codex/agents/amp-$r.toml" ] || fail ".codex/agents/amp-$r.toml missing"; done
+[ -f "$repo/.codex/agents/amp-install.json" ] || fail "amp-install.json missing"
+[ ! -e "$dir" ] || fail "wrote CODEX_HOME too"
+GIT_CEILING_DIRECTORIES=$tmp CWD=$tmp/norepo inst --project
+[ "$rc" -eq 1 ] || fail "outside a repo: exit $rc, want 1"
+ok
+
+case=uninstall
+inst
+printf 'x\n' > "$dir/other.toml"
+CODEX_HOME=$home bash "$ROOT/codex/install" --uninstall > "$tmp/out" 2>&1 || fail "exit $?"
+out=$(cat "$tmp/out")
+count 'removed: ' 5
+[ "$(ls "$dir")" = other.toml ] || fail "left: $(ls "$dir")"
+CODEX_HOME=$home bash "$ROOT/codex/install" --uninstall > "$tmp/out" 2>&1 || fail "second run: exit $?"
+out=$(cat "$tmp/out")
+has "not installed: $dir"
+ok
+
+case=manifests
+cx=$ROOT/.codex-plugin/plugin.json
+grep -qF '"skills": "./codex/skills"' "$cx" || fail "no skills path"
+grep -qF '"hooks": {}' "$cx" || fail "no empty hooks"
+for m in "$ROOT/.claude-plugin/plugin.json" "$cx"; do
+  grep -qF '"version": "1.2.0"' "$m" || fail "$m: version is not 1.2.0"
+done
 ok
