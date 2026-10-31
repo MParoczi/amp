@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Write a review package (commit list + stat + full diff with context) for a
+# commit range to <workspace>/review-<base7>..<head7>.diff. The reviewer reads
+# it in one call; it never enters the orchestrator's context. Always pass the
+# BASE recorded before the task started -- never HEAD~1, which silently drops
+# all but the last commit of a multi-commit task.
+#
+# Usage: review-package WORKSPACE BASE HEAD
+set -euo pipefail
+
+[ $# -eq 3 ] || { echo "usage: review-package WORKSPACE BASE HEAD" >&2; exit 2; }
+ws=$1; base=$2; head=$3
+[ -d "$ws" ] || { echo "no such workspace: $ws" >&2; exit 2; }
+git rev-parse --verify --quiet "$base" >/dev/null || { echo "bad BASE: $base" >&2; exit 2; }
+git rev-parse --verify --quiet "$head" >/dev/null || { echo "bad HEAD: $head" >&2; exit 2; }
+git merge-base --is-ancestor "$base" "$head" || { echo "HEAD is not a descendant of BASE" >&2; exit 3; }
+[ "$(git rev-list --count "${base}..${head}")" -gt 0 ] || { echo "empty range ${base}..${head}" >&2; exit 3; }
+
+out="$ws/review-$(git rev-parse --short "$base")..$(git rev-parse --short "$head").diff"
+{
+  echo "# Review package: ${base}..${head}"
+  echo; echo "## Commits"; git log --oneline "${base}..${head}"
+  echo; echo "## Files changed"; git diff --stat "${base}..${head}"
+  echo; echo "## Diff"; git diff -U10 "${base}..${head}"
+} > "$out"
+echo "wrote ${out}: $(git rev-list --count "${base}..${head}") commit(s), $(wc -c < "$out" | tr -d ' ') bytes"

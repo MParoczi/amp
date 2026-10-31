@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Resolve (and create) the git-ignored workspace for one amp run and print its
+# absolute path: <repo-root>/.amp/<key>/. It holds the run's ephemeral
+# artifacts: decisions, ledger, task briefs, implementer reports, review
+# packages, CI logs, PR body. A self-ignoring .amp/.gitignore keeps all of it
+# out of `git status` without touching any tracked file.
+#
+# Usage: amp-workspace KEY        (KEY = "<NN>-<slug>", e.g. 04-domain-persistence)
+set -euo pipefail
+
+[ $# -eq 1 ] || { echo "usage: amp-workspace KEY" >&2; exit 2; }
+key=$1
+case "$key" in ''|.|..|*/*) echo "bad workspace key: $key" >&2; exit 2 ;; esac
+
+root=$(git rev-parse --show-toplevel)
+mkdir -p "$root/.amp/$key"
+printf '*\n' > "$root/.amp/.gitignore"
+cd -- "$root/.amp/$key"
+# Git Bash/MSYS on Windows: print the native drive-letter path file tools can open.
+if pwd -W >/dev/null 2>&1; then pwd -W; else pwd; fi
