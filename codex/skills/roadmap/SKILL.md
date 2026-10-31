@@ -11,6 +11,13 @@ memory of this one, so they must stand on their own.
 
 `<skills>` is the folder that holds this skill's folder (the parent of this SKILL.md's directory); use its absolute path.
 
+**Agents first.** Before the grill (it spawns scouts), run amp:phase's Agents preflight: read
+`amp-install.json` from `.codex/agents`, else `${CODEX_HOME:-~/.codex}/agents`. Missing → **stop**:
+tell the user to run `bash <skills>/../install` and start a new Codex session. Its `version`
+differs from `<skills>/../../.codex-plugin/plugin.json`'s → **stop**: the agents are stale, so tell
+the user to re-run the installer and start a new session. Every spawn follows amp:phase, Model
+routing, with `model` only where `amp-install.json` pins the role.
+
 ## Mode
 
 - **New:** the folder has no roadmap and little or no code. Proceed below.
@@ -25,8 +32,8 @@ Let the user's opening prompt and first answers shape it. The tree to cover:
 
 - vision, users, the problem, what "done" means for v1, explicit non-goals
 - platform(s), distribution, offline or online, data and integrations, privacy and secrets
-- stack: the user's preference, or 2–3 researched options with a recommendation (dispatch
-  `amp-scout`s for current versions and trade-offs; verify library facts via Context7/web, never
+- stack: the user's preference, or 2–3 researched options with a recommendation (spawn
+  `amp-scout`s as in amp:phase for current versions and trade-offs; verify library facts via the Context7 MCP when configured, else the official docs, never
   from memory)
 - quality bar: test doctrine (TDD? coverage floors? e2e?), lint/format, accessibility, i18n,
   performance budgets
@@ -37,8 +44,9 @@ Let the user's opening prompt and first answers shape it. The tree to cover:
 - project-specific safety or stop rules (e.g. "never touch production hardware before phase X")
 - models: the session model for the orchestrator (written to `.codex/config.toml`), and whether
   to pin a model per amp role (reviewer, implementer, checker, scout; the installer's flags,
-  otherwise each runs on the session model), all high effort. Keep the user's current settings
-  unless they want otherwise
+  otherwise each runs on the session model), all high effort, and whether to install the agents
+  into this repo for collaborators (`--project`). Keep the user's current settings (the
+  `amp-install.json` the preflight read) unless they want otherwise
 
 **Last grill round: the phase outline.** Propose the phase table (id, type, title, one-line
 deliverable, depends-on, milestone) and ask whether the granularity, order and cut lines are right.
@@ -92,6 +100,9 @@ issues and run one confirmation pass. Record residual rulings in the final repor
   confirmed in the grill, so it is pre-authorized. `gh` not authenticated → stop and ask for
   `! gh auth login`.
 - Report: the phase table, where the files are, residual rulings, and the next steps: "run
-  `bash <skills>/../install` to install amp's agents (add `--project` to install them into this
-  repo, so collaborators get them too), then open a fresh Codex session here and run
-  `$amp:phase 00`".
+  `bash <skills>/../install <flags>` to install amp's agents with the models chosen in the grill,
+  then open a fresh Codex session here and run `$amp:phase 00`". `<flags>` holds
+  `--reviewer|--implementer|--checker|--scout <model>` for each role the grill pinned, and
+  `--project` if the grill chose to install the agents into this repo for collaborators (commit
+  the `.codex/agents` it writes). If the grill kept the installed agents as they are, drop the
+  install step.

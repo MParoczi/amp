@@ -289,6 +289,7 @@ case=leaks
 # leak TEXT DIR...: no file under the repo DIRs contains TEXT
 leak() {
   txt=$1; shift
+  for d in "$@"; do [ -d "$ROOT/$d" ] || fail "$d missing"; done
   hit=$( (cd "$ROOT" && grep -rnF -- "$txt" "$@") | head -n 1 || true)
   [ -z "$hit" ] || fail "'$txt' in $hit"
 }
@@ -340,4 +341,5 @@ t=codex/skills/roadmap/templates
 for f in AGENTS.md config.toml; do [ -f "$ROOT/$t/$f" ] || fail "$t/$f missing"; done
 for f in CLAUDE.md settings.json; do [ ! -e "$ROOT/$t/$f" ] || fail "$t/$f should not exist"; done
 holds "$t/config.toml" 'model_reasoning_effort = "high"'
+holds codex/skills/roadmap/SKILL.md amp-install.json 'the agents are stale' '<skills>/../install <flags>' --project
 ok

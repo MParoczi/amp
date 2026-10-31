@@ -103,7 +103,7 @@ built before it.
 | Thought | Reality |
 |---|---|
 | "The prompt is detailed, skip the grill" | Grill what is open, even if that is one round. Zero rounds only if nothing is open, and the summary and confirmation still happen. |
-| "I'll ask the user where X lives" | That is a fact. Dispatch a scout. |
+| "I'll ask the user where X lives" | That is a fact. Spawn an `amp-scout`. |
 | "I'll ask this now and fix it later if the other answer changes it" | A dependent question waits for its prerequisite's round. |
 | "Close enough, I can infer the rest" | Unasked decisions become rulings the user never saw. Ask. |
 | "The user already approved the idea, so I'll start" | Only the confirmed summary opens the gate. |
