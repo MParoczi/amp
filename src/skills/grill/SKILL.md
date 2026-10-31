@@ -21,7 +21,7 @@ Create `<workspace>/decisions.md` (the workspace comes from amp:phase; standalon
 `.amp/grill-<slug>/`). This file is the interview's memory and survives compaction.
 <!-- codex -->
 
-Before the first spawn, run amp:phase's agent preflight (Preflight, step 4) unless it already ran in this session.
+Before the first spawn, run only the **Agents:** check of amp:phase's Preflight (step 4), not its git steps, unless it already ran in this session.
 <!-- /codex -->
 
 ## 1. Map the decision tree

@@ -313,7 +313,7 @@ case=codex-preflight
 # every Codex skill that spawns amp agents runs the agent preflight first (amp:phase defines it)
 for f in "$ROOT"/codex/skills/*/SKILL.md; do
   [ "$f" = "$ROOT/codex/skills/phase/SKILL.md" ] && continue
-  ! grep -qE 'spawn_agent|amp-<role>|[Ss]pawn[^.]*`amp-' "$f" || grep -qiE 'agents? preflight' "$f" \
+  ! grep -qE 'spawn_agent|amp-<role>|[Ss]pawn[^.]*`amp-' "$f" || grep -qiE 'agents? preflight|[*]{2}Agents:[*]{2} check' "$f" \
     || fail "${f#"$ROOT/"} spawns agents without the agent preflight"
 done
 ok
