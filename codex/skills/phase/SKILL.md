@@ -105,7 +105,8 @@ of them. Codex has two multi-agent versions; follow the one whose tools you have
   `fork_turns: "none"`. A name uses only lowercase letters, digits and `_` (task `3a` stays `3a`)
   and never repeats: add `_r<R>` in fix round R and `_retry<k>` for the k-th BLOCKED retry. For
   example `implementer_3`, `reviewer_3`, `checker_3_r2`, `implementer_3_r4`, `scout_<short_slug>`,
-  `reviewer_final`, `implementer_final`, `checker_final`. Without `fork_turns: "none"` the spawn
+  `reviewer_spec`, `reviewer_plan`, `reviewer_roadmap`, `reviewer_final`, `implementer_final`,
+  `checker_final`, `implementer_ci_<k>` (the k-th CI fix). Without `fork_turns: "none"` the spawn
   forks your whole history into the agent, which breaks reviewer independence and multiplies
   context cost; the brief is the agent's only context. `wait_agent` only reports that a wait finished, and each agent's status contract
   arrives as a message: call `wait_agent` again until every spawned agent's message has arrived.

@@ -298,7 +298,7 @@ leak() {
 }
 for s in AskUserQuestion 'Skill tool' /amp-models CLAUDE_PLUGIN_ROOT CLAUDE_SKILL_DIR user_config \
   SendMessage PushNotification '{{' '<!-- claude' '<!-- codex' /amp:; do leak "$s" codex; done
-for s in spawn_agent request_user_input wait_agent '{{' '<!-- claude' '<!-- codex'; do leak "$s" skills agents; done
+for s in spawn_agent request_user_input wait_agent AGENTS.md '{{' '<!-- claude' '<!-- codex'; do leak "$s" skills agents; done
 ok
 
 case=codex-phase
