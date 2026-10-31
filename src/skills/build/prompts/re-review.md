@@ -1,6 +1,6 @@
 # Dispatch template: scoped re-review of a fix round
 
-Agent: `amp:checker` (no `model`: the plugin routes it). It verdicts findings and inspects the fix diff, nothing
+Agent: `amp:checker` ({{claude: no `model`: the plugin routes it}}{{codex: `model` only when `amp-install.json` pins it}}). It verdicts findings and inspects the fix diff, nothing
 else.
 
 ```

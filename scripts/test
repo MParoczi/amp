@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # amp's tests for scripts/render: fixtures in a temp root (its path has a space),
-# then the real repo; then codex/install in temp CODEX_HOMEs and the manifests. One "ok: <case>" line per case; the first failure prints
+# then the real repo; then codex/install in temp CODEX_HOMEs and the manifests, then the per-tool text in the rendered trees. One "ok: <case>" line per case; the first failure prints
 # "FAIL: <case>: <detail>" and exits 1. Runs from anywhere.
 #
 # Usage: scripts/test
@@ -277,4 +277,35 @@ grep -qF '"hooks": {}' "$cx" || fail "no empty hooks"
 for m in "$ROOT/.claude-plugin/plugin.json" "$cx"; do
   grep -qF '"version": "1.2.0"' "$m" || fail "$m: version is not 1.2.0"
 done
+ok
+
+# holds FILE TEXT...: the repo file FILE contains every TEXT
+holds() { f=$1; shift; for s in "$@"; do grep -qF -- "$s" "$ROOT/$f" || fail "$f lacks '$s'"; done; }
+# lacks FILE TEXT...: the repo file FILE contains no TEXT
+lacks() { f=$1; shift; for s in "$@"; do ! grep -qF -- "$s" "$ROOT/$f" || fail "$f has '$s'"; done; }
+skills_def="\`<skills>\` is the folder that holds this skill's folder (the parent of this SKILL.md's directory); use its absolute path."
+
+case=codex-phase
+holds codex/skills/phase/SKILL.md spawn_agent 'fork_turns: "none"' task_name wait_agent followup_task send_input \
+  close_agent 'reasoning_effort: "xhigh"' amp-install.json version .codex-plugin/plugin.json '<skills>/../install' \
+  AGENTS.md "$skills_def"
+ok
+
+case=skills-defined-3a
+for s in phase build; do holds "codex/skills/$s/SKILL.md" "$skills_def"; done
+ok
+
+case=codex-build
+holds codex/skills/build/SKILL.md spawn_agent followup_task close_agent
+lacks codex/skills/build/SKILL.md SendMessage
+ok
+
+case=codex-agents
+for f in "$ROOT"/codex/agents/*.toml; do lacks "codex/agents/$(basename "$f")" 'Skill tool' /amp-models; done
+holds codex/agents/amp-implementer.toml SKILL.md
+ok
+
+case=claude-mechanics
+holds skills/phase/SKILL.md /amp-models PushNotification
+holds skills/build/prompts/implement.md SendMessage
 ok

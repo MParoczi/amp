@@ -1,6 +1,6 @@
 # Dispatch template: final whole-branch review
 
-Agent: `amp-reviewer` (on a model-unavailable error re-dispatch with the fallback model).
+Agent: `amp-reviewer` (on a model-unavailable error re-spawn without `model`).
 
 ```
 Final whole-branch review — Phase <NN>: <title>, branch <branch>. Every task passed its own
@@ -22,7 +22,7 @@ Return:
 ### Strengths
 ### Issues — Critical / Important / Minor (file:line, what, why it matters, fix)
   Include integration gaps, cross-task naming or contract drift, silent failures, security,
-  and docs drift across the whole repo (README, CLAUDE.md, roadmap, user docs, project skills).
+  and docs drift across the whole repo (README, AGENTS.md, CLAUDE.md, roadmap, user docs, project skills).
 ### Lean (amp:lean tag lines across the branch, including anything two tasks built twice and
   code the branch left unreferenced, then net)
 ### Ledger triage

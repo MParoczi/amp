@@ -1,6 +1,6 @@
 # Dispatch template: task review (spec + quality + lean)
 
-Agent: `amp-reviewer` (on a model-unavailable error re-dispatch with the fallback model).
+Agent: `amp-reviewer` (on a model-unavailable error re-spawn without `model`).
 The agent definition carries the standing rules (read-only, no subagents, don't trust the report,
 don't re-run suites, calibration). Never add "don't flag X", "at most Minor" or "the plan chose"
 to this prompt: that is pre-judging.

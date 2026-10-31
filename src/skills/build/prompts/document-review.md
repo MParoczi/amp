@@ -1,13 +1,13 @@
 # Dispatch template: document review (spec, plan, or roadmap)
 
-Agent: `amp:reviewer` (on a model-unavailable error re-dispatch with the fallback model).
+Agent: `amp:reviewer` (on a model-unavailable error {{claude: re-dispatch with the fallback model}}{{codex: re-spawn without `model`}}).
 
 ```
 Document review — mode: <spec | plan | roadmap>.
 
 Document: <PATH>
 Sources it must honor: <decisions.md / grill summary path>, <prompt path>, <spec path for plan mode>,
-CLAUDE.md, <DISPATCH_SKILLS to load, if any>
+{{claude: CLAUDE.md}}{{codex: AGENTS.md (else CLAUDE.md)}}, <DISPATCH_SKILLS to load, if any>
 
 Flag only what would cause real problems downstream:
 - Completeness: placeholders, TBDs, missing sections, a decision from the sources not reflected

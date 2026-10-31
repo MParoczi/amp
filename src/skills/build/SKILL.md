@@ -10,6 +10,18 @@ You are the orchestrator. You never write product code here: every change comes 
 `amp:implementer` and passes a review. Your context stays for coordination: paths in, contracts
 out (`amp:lean` §2).
 
+<!-- codex -->
+`<skills>` is the folder that holds this skill's folder (the parent of this SKILL.md's directory); use its absolute path.
+
+Every dispatch below is a `spawn_agent` call made as amp:phase, Model routing says:
+`agent_type: "amp-<role>"`, the filled template as `message`, `reasoning_effort: "high"`, `model`
+only when `amp-install.json` pins the role, and in v2 also `task_name: "<role>-<N>"` (`-r<R>` in
+fix round R) and `fork_turns: "none"`. Collect each contract with `wait_agent` (in v2 it arrives
+as a message; wait again until it has). Resume a live implementer with `followup_task` (v2) or `send_input` (v1).
+Where `close_agent` exists, close each reviewer and checker once its result is read, and the
+implementer when its task's fix loop ends or before a round-4 fresh spawn.
+
+<!-- /codex -->
 Scripts (run with `bash`, from any cwd inside the repo):
 `S="${CLAUDE_PLUGIN_ROOT}/skills/build/scripts"` (keep the quotes: on Windows the path has backslashes): `$S/amp-workspace KEY`,
 `$S/task-brief PLAN N WS`, `$S/review-package WS BASE HEAD`.
@@ -40,7 +52,7 @@ For each task N:
    - `DONE_WITH_CONCERNS`: resolve correctness or scope concerns first, then review.
    - `NEEDS_CONTEXT`: answer precisely and resume.
    - `BLOCKED`: change something before retrying (more context, split the task, the escalation
-     model (amp:phase, Model routing), or a ledgered ruling that corrects the plan). Never retry unchanged.
+     {{claude: model}}{{codex: spawn}} (amp:phase, Model routing), or a ledgered ruling that corrects the plan). Never retry unchanged.
 4. **Review:** `bash "$S/review-package" $WS $BASE HEAD`, then dispatch `amp:reviewer` with
    `prompts/task-review.md`. Don't read the package yourself. Resolve each ⚠️ item yourself (you
    hold cross-task context); a confirmed gap counts as a spec ❌.
@@ -49,7 +61,7 @@ For each task N:
    text gets a ledgered ruling first. Up to **5 rounds**, each round one fix plus one scoped
    re-review:
    - Rounds 1–3 resume the same implementer. Rounds 4–5 dispatch a **fresh** implementer with
-     the escalation model (amp:phase, Model routing) ("you own it now; read the report for what was tried").
+     the escalation {{claude: model}}{{codex: effort}} (amp:phase, Model routing) ("you own it now; read the report for what was tried").
    - Before each round, `FIX_BASE=$(git rev-parse HEAD)`. After it, confirm the fix report has
      tests, command and output, run `review-package $WS $FIX_BASE HEAD`, and dispatch `amp:checker`
      with `prompts/re-review.md`. New Critical/Important breakage joins the open list;
@@ -79,10 +91,19 @@ For each task N:
 
 ## Model fallback
 
+<!-- claude -->
 On any dispatch that fails because the model is unavailable (rate limit, usage limit,
 overloaded), re-dispatch the same prompt immediately with the fallback model (amp:phase, Model
 routing). Ledger `Fallback: <role> → <model> (<error class>)` and keep that role on it for the
 rest of this run. Don't ask the user; this is pre-authorized.
+<!-- /claude -->
+<!-- codex -->
+On any spawn that fails because the model is unavailable (rate limit, usage limit, overloaded),
+re-spawn the same message immediately without `model`, so the agent runs on the session model
+(amp:phase, Model routing). Ledger `Fallback: <role> → session model (<error class>)` and keep
+that role on it for the rest of this run. If the failed spawn already had no `model`, wait briefly
+and retry once, then stop and tell the user. Don't ask the user otherwise; this is pre-authorized.
+<!-- /codex -->
 
 ## Red flags
 

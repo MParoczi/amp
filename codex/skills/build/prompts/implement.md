@@ -1,6 +1,6 @@
 # Dispatch template: implement one task
 
-Agent: `amp-implementer` (no `model`: the plugin routes it). Rounds 4–5 of a fix loop: fresh dispatch with the escalation model.
+Agent: `amp-implementer` (`model` only when `amp-install.json` pins it). Rounds 4–5 of a fix loop: fresh spawn with `reasoning_effort: "xhigh"`.
 The agent definition carries every standing rule (TDD, docs, commits, report contract, no
 subagents). Fill the brackets; add nothing else.
 
@@ -25,7 +25,7 @@ Work in: <repo root> on branch <branch>. Write your full report to <WORKSPACE>/t
 and reply with the status contract only.
 ```
 
-## Fix-round variant (rounds 1–3: resume the same agent via SendMessage; if it can't be resumed, dispatch fresh with the brief and report paths)
+## Fix-round variant (rounds 1–3: resume the same agent with `followup_task` (v2) or `send_input` (v1); if it can't be resumed, spawn fresh with the brief and report paths)
 
 ```
 Fix round <R>/5 for Task <N>. The review found these open issues (verbatim):
