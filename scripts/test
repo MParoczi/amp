@@ -31,7 +31,6 @@ same() {
   want=$(printf '%s' "$2")
   [ "$(cat "$fx/$1")" = "$want" ] || fail "$1 is '$(cat "$fx/$1")', want '$want'"
 }
-exists() { [ -e "$fx/$1" ] || fail "$1 missing"; }
 absent() { [ ! -e "$fx/$1" ] || fail "$1 should not exist"; }
 
 case=blocks
@@ -78,6 +77,17 @@ put src/skills/x/SKILL.md "$src"
 rendered
 same skills/x/SKILL.md "$src"
 same codex/skills/x/SKILL.md $'---\nname: x\ndescription: d\n---\nbody'
+ok
+
+case=frontmatter-markup
+fx "$case"
+put src/skills/x/SKILL.md $'---\nname: x\ndescription: d {{claude: A}}{{codex: B}}\n---\nbody\n'
+put src/agents/a.md $'---\nname: a\ndescription: d {{claude: A}}{{codex: B}}\n---\nbody\n'
+rendered
+same skills/x/SKILL.md $'---\nname: x\ndescription: d A\n---\nbody'
+same codex/skills/x/SKILL.md $'---\nname: x\ndescription: d B\n---\nbody'
+same agents/a.md $'---\nname: a\ndescription: d A\n---\nbody'
+grep -qxF 'description = "d B"' "$fx/codex/agents/amp-a.toml" || fail "amp-a.toml lacks 'description = \"d B\"'"
 ok
 
 case=scripts
