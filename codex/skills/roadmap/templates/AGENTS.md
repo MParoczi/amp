@@ -1,4 +1,4 @@
-# <Project> — project instructions (CLAUDE.md)
+# <Project> — project instructions (AGENTS.md)
 
 ## Project
 
@@ -12,7 +12,7 @@ can check.>
 ## Stack
 
 <Chosen stack with one-line rationale each; versions are pinned in <manifest>, not here. Verify
-library APIs via Context7 before use.>
+library APIs via the Context7 MCP when configured, else the official docs, before use.>
 
 ## How we work
 

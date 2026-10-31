@@ -285,6 +285,18 @@ holds() { f=$1; shift; for s in "$@"; do grep -qF -- "$s" "$ROOT/$f" || fail "$f
 lacks() { f=$1; shift; for s in "$@"; do ! grep -qF -- "$s" "$ROOT/$f" || fail "$f has '$s'"; done; }
 skills_def="\`<skills>\` is the folder that holds this skill's folder (the parent of this SKILL.md's directory); use its absolute path."
 
+case=leaks
+# leak TEXT DIR...: no file under the repo DIRs contains TEXT
+leak() {
+  txt=$1; shift
+  hit=$( (cd "$ROOT" && grep -rnF -- "$txt" "$@") | head -n 1 || true)
+  [ -z "$hit" ] || fail "'$txt' in $hit"
+}
+for s in AskUserQuestion 'Skill tool' /amp-models CLAUDE_PLUGIN_ROOT CLAUDE_SKILL_DIR user_config \
+  SendMessage PushNotification '{{' '<!-- claude' '<!-- codex' /amp:; do leak "$s" codex; done
+for s in spawn_agent request_user_input wait_agent '{{' '<!-- claude' '<!-- codex'; do leak "$s" skills agents; done
+ok
+
 case=codex-phase
 holds codex/skills/phase/SKILL.md spawn_agent 'fork_turns: "none"' task_name wait_agent followup_task send_input \
   close_agent 'reasoning_effort: "xhigh"' amp-install.json 'the agents are stale' .codex-plugin/plugin.json \
@@ -293,21 +305,39 @@ holds codex/skills/phase/SKILL.md spawn_agent 'fork_turns: "none"' task_name wai
 for f in phase build; do lacks "codex/skills/$f/SKILL.md" '-r<R>' '<role>-<'; done
 ok
 
-case=skills-defined-3a
-for s in phase build; do holds "codex/skills/$s/SKILL.md" "$skills_def"; done
+case=skills-defined
+for f in "$ROOT"/codex/skills/*/SKILL.md; do
+  ! grep -qF '<skills>/' "$f" || holds "${f#"$ROOT/"}" "$skills_def"
+done
 ok
 
 case=codex-build
 holds codex/skills/build/SKILL.md spawn_agent followup_task close_agent
-lacks codex/skills/build/SKILL.md SendMessage
 ok
 
 case=codex-agents
-for f in "$ROOT"/codex/agents/*.toml; do lacks "codex/agents/$(basename "$f")" 'Skill tool' /amp-models; done
 holds codex/agents/amp-implementer.toml SKILL.md
 ok
 
 case=claude-mechanics
 holds skills/phase/SKILL.md /amp-models PushNotification
 holds skills/build/prompts/implement.md SendMessage
+ok
+
+case=codex-claude-md
+# On Codex CLAUDE.md is only the fallback, so every mention also names AGENTS.md
+bad=$( (cd "$ROOT" && grep -rnF CLAUDE.md codex) | grep -vF AGENTS.md || true)
+[ -z "$bad" ] || fail "CLAUDE.md without AGENTS.md: $bad"
+ok
+
+case=codex-grill
+holds codex/skills/grill/SKILL.md request_user_input 'numbered text'
+lacks codex/skills/grill/SKILL.md 'Plan mode'
+ok
+
+case=codex-roadmap
+t=codex/skills/roadmap/templates
+for f in AGENTS.md config.toml; do [ -f "$ROOT/$t/$f" ] || fail "$t/$f missing"; done
+for f in CLAUDE.md settings.json; do [ ! -e "$ROOT/$t/$f" ] || fail "$t/$f should not exist"; done
+holds "$t/config.toml" 'model_reasoning_effort = "high"'
 ok

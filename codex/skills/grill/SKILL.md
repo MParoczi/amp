@@ -10,7 +10,7 @@ assumed. Finding facts is your job. Making decisions is theirs.
 
 ## 0. Before the first question
 
-Read what already answers questions: the prompt (phase prompt or request), `CLAUDE.md`, the
+Read what already answers questions: the prompt (phase prompt or request), `AGENTS.md` (else `CLAUDE.md`), the
 roadmap and its carry-forward/parked items addressed to this phase, earlier specs and ADRs, and the
 code the work touches. A decision already fixed by any of these is **settled**. Cite it in the
 summary and don't re-ask it. Ask only where the sources leave something open, disagree with each
@@ -40,7 +40,7 @@ branch that applies:
 ## 2. Facts vs decisions
 
 When a question needs a fact (existing behavior, a library's API or version, a file's contents,
-CI setup), **don't ask the user**. Dispatch an `amp-scout` (several in parallel when independent)
+CI setup), **don't ask the user**. Spawn an `amp-scout` as in amp:phase (several in parallel when independent)
 with a precise question and a findings path in the workspace. A running scout is an unsettled
 prerequisite: only the questions downstream of it wait, so ask the rest of the frontier now.
 
@@ -49,10 +49,13 @@ prerequisite: only the questions downstream of it wait, so ask the rest of the f
 The **frontier** is every open decision whose prerequisites are all settled and that no running
 scout blocks. Ask the whole frontier in one round:
 
-- **Enumerable options:** use the AskUserQuestion tool, up to 4 questions per call. Put the
-  recommended option first, labelled "(Recommended)". Each question gets 1–3 sentences of context
-  and options that state their trade-off. If the frontier has more than 4, ask first the ones that
-  unblock the most downstream decisions.
+- **Enumerable options:** use the `request_user_input` tool, up to 3 questions per call, each with
+  a `header` of at most 12 characters and 2–3 mutually exclusive options. Put the recommended
+  option first, labelled "(Recommended)"; Codex adds a free-form "Other" option itself. Each
+  question gets 1–3 sentences of context and options that state their trade-off. If the frontier
+  has more than 3, ask first the ones that unblock the most downstream decisions. If
+  `request_user_input` is unavailable (Default mode), ask the same questions in the numbered text
+  format below, with the options as its choices. Never ask the user to switch modes.
 - **Open-ended:** use numbered text, one block per question:
 
   ```

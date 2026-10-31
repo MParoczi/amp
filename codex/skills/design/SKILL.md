@@ -11,10 +11,12 @@ the grill builds the right thing.
 
 Load `amp:lean` first. The ladder governs every "new" in this document.
 
+`<skills>` is the folder that holds this skill's folder (the parent of this SKILL.md's directory); use its absolute path.
+
 ## 1. Reuse-first survey
 
 For each component the work needs, find what already exists: components, utilities, types,
-patterns, installed dependencies. For a large surface, dispatch `amp-scout`s in parallel, each
+patterns, installed dependencies. For a large surface, spawn `amp-scout`s as in amp:phase in parallel, each
 with one area and a findings path. Record one verdict per component:
 
 - **reuse `X`**, **extend `Y`** (reuse with a small change: name the change), or **new, because
@@ -33,7 +35,7 @@ A "new" without a reason that survives a search is a design smell.
 
 ## 2. Project design process (UX-bearing work)
 
-If the project defines a design process (named in its amp configuration or `CLAUDE.md`, e.g. a
+If the project defines a design process (named in its amp configuration or `AGENTS.md` (else `CLAUDE.md`), e.g. a
 design playbook, `/design-explore`, render/preview skills), run the steps it names for this surface
 now, before writing the spec. Their outputs (briefs, chosen directions, screenshots, choreography)
 are inputs the spec cites. Visual decisions the agent cannot judge from pixels alone are a
@@ -57,7 +59,7 @@ it). Sections, each scaled to the work (a sentence is fine where a sentence suff
    logged; what never happens silently.
 7. **Testing strategy**: the seams under test, the test levels, and the fixtures and emulators the
    project's test doctrine requires.
-8. **Docs impact**: every document that must change (README, CLAUDE.md, roadmap, user docs, ADRs,
+8. **Docs impact**: every document that must change (README, AGENTS.md (else CLAUDE.md), roadmap, user docs, ADRs,
    project skills) and what changes in it.
 9. **Review Focus**: the ≤ 5 input classes or failure modes the spec implies but tests might miss,
    and which are most likely to bite a real user. One line each, naming the condition and the
@@ -71,7 +73,7 @@ requirement readable two ways. YAGNI ruthlessly.
 
 1. **Self-review** against the decisions table: is every decision reflected, with nothing
    invented? Fix inline.
-2. **Independent review:** dispatch `amp-reviewer` with `<skills>/build/prompts/document-review.md`
+2. **Independent review:** spawn `amp-reviewer` (`spawn_agent`, `agent_type: "amp-reviewer"`, as amp:phase, Model routing says) with `<skills>/build/prompts/document-review.md`
    (mode: spec) and the spec, decisions and prompt paths. If it returns Critical or Important
    issues, fix them and run one confirmation re-review. If issues remain after that, rule on each
    (`Ruling:` line in the ledger) and continue. The spec isn't committed yet; amp:plan commits spec

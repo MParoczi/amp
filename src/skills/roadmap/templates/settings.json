@@ -1,5 +1,0 @@
-{
-  "$comment": "amp: the session model runs the orchestrator (grill, spec, plan, rulings, ship). Each subagent task type runs on the model set in the amp plugin settings (/amp-models or /config). All amp agents run at high effort.",
-  "model": "<session model chosen in the grill, e.g. opus>",
-  "effortLevel": "high"
-}

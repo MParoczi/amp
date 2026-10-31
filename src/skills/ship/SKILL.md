@@ -10,13 +10,19 @@ Everything here is **pre-authorized** by the grill confirmation: push the phase 
 PR, re-run CI, merge after green, tag per project config, and delete the merged branch. Stop only
 for the reasons in amp:phase's autonomy contract.
 
+<!-- codex -->
+`<skills>` is the folder that holds this skill's folder (the parent of this SKILL.md's directory); use its absolute path.
+
+Every `amp-implementer` dispatch below is a `spawn_agent` call with `agent_type: "amp-implementer"`, as amp:phase, Model routing says.
+
+<!-- /codex -->
 `D` = default branch: `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, falling
 back to `git symbolic-ref --short refs/remotes/origin/HEAD` without its `origin/` prefix.
 
 ## 1. Docs sweep and close-out (orchestrator bookkeeping; no product code)
 
 - Check the spec's **Docs impact** list against the branch: each named doc was updated, and nothing
-  else the branch made stale remains (README, CLAUDE.md, roadmap, user docs, project skills,
+  else the branch made stale remains (README, {{claude: CLAUDE.md}}{{codex: AGENTS.md (else CLAUDE.md)}}, roadmap, user docs, project skills,
   `.env.example`, CLI help). If a gap needs product knowledge, dispatch one `amp:implementer`.
   Pure bookkeeping you may edit yourself.
 - Run the project's **close-out** from its amp configuration, e.g. roadmap status row → Complete

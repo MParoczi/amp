@@ -1,13 +1,13 @@
 # <Project> — Roadmap (A → Z)
 
 > **How to use this file.** The project is built as an ordered sequence of phases, one prompt file
-> each under `docs/roadmap/prompts/`. For each phase, open a **fresh Claude Code session** in this
+> each under `docs/roadmap/prompts/`. For each phase, open a **fresh {{claude: Claude Code}}{{codex: Codex}} session** in this
 > repo and run `/amp:phase <NN>` (or paste the prompt file). Answer the grill; after you confirm the
 > summary, the session runs autonomously: design → plan → build with reviews → PR → CI → merge
 > into `main`, and it updates the status table below. Don't skip ahead: each phase assumes every
 > phase above it is Complete.
 >
-> Planning session: <YYYY-MM-DD>. Research: `docs/research/`. Rules: `CLAUDE.md`.
+> Planning session: <YYYY-MM-DD>. Research: `docs/research/`. Rules: {{claude: `CLAUDE.md`}}{{codex: `AGENTS.md`}}.
 
 ## Vision
 

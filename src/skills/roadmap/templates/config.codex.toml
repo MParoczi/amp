@@ -1,0 +1,7 @@
+# amp: the session model runs the orchestrator (grill, spec, plan, rulings, ship). amp's subagent
+# roles (amp-scout, amp-reviewer, amp-implementer, amp-checker) are Codex custom agents written by
+# amp's installer (`bash <amp plugin>/codex/install`, `--project` to install them into this repo).
+# Each runs on this session model unless the installer pinned it a model (`--reviewer <m>`, ...).
+# All amp agents run at high effort.
+model = "<session model chosen in the grill>"
+model_reasoning_effort = "high"

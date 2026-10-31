@@ -10,6 +10,8 @@ engineer who has seen neither this codebase nor the spec. A plan longer than the
 has written the code instead (a transcript). A line that decides nothing is a gap. Both are
 failures.
 
+`<skills>` is the folder that holds this skill's folder (the parent of this SKILL.md's directory); use its absolute path.
+
 Default path: `docs/amp/plans/YYYY-MM-DD-<NN>-<slug>.md` (project configuration may override it).
 
 ## Header (mandatory)
@@ -86,7 +88,7 @@ every file.
 
 ## Review and commit
 
-Dispatch `amp-reviewer` with `<skills>/build/prompts/document-review.md` (mode: plan), passing the plan
+Spawn `amp-reviewer` (`spawn_agent`, `agent_type: "amp-reviewer"`, as amp:phase, Model routing says) with `<skills>/build/prompts/document-review.md` (mode: plan), passing the plan
 and spec paths. Fix Critical/Important issues and run at most one confirmation re-review. Rule on
 residuals in the ledger. Then commit spec and plan together:
 `docs(<NN>): spec and implementation plan for <slug>`. Continue straight into amp:build; the grill

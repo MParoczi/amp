@@ -48,7 +48,7 @@ existing code this phase will build on that nothing references yet, so earlier p
 
 ## Docs to update
 
-<README / CLAUDE.md / user docs / ADRs / project skills this phase must change.>
+<README / AGENTS.md / user docs / ADRs / project skills this phase must change.>
 
 ## Close-out
 

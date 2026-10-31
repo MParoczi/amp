@@ -108,7 +108,7 @@ Everything pasted into a prompt or printed back stays resident and is re-read ev
 - **Batch same-shape work.** Five identical one-line edits are one dispatch, not five.
 - **Don't repeat evidence.** Don't re-run a suite someone already ran on the same code. Run focused
   tests while iterating and the full suite once before committing.
-- **Right-size the model, never below quality.** Use the role table in amp:phase. Turn count beats
+- **Right-size the model, never below quality.** Use the role table in amp:phase: a role runs on the session model unless the installer pinned one in `amp-install.json`. Turn count beats
   token price: a cheap model that takes three times the turns costs more.
 - **Prose after code: at most three short lines.** Pattern: `[result] → skipped: [X], add when
   [Y].` Explanation the user asked for (a report, a PR body, a summary) is not waste; give it in
