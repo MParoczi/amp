@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# Install amp's Codex agents (spec docs/amp/specs/2026-10-31-02-codex-install.md §5.3).
+# Copies codex/agents/amp-<role>.toml to ${CODEX_HOME:-~/.codex}/agents (or <repo>/.codex/agents
+# with --project) and writes amp-install.json there: the plugin version and each role's pinned
+# model (null = inherit the session model). --uninstall removes exactly those five files.
+#
+# Usage: install [--project] [--reviewer M] [--implementer M] [--checker M] [--scout M]
+#        install [--project] --uninstall
+set -euo pipefail
+
+usage() {
+  echo "usage: install [--project] [--reviewer M] [--implementer M] [--checker M] [--scout M]" >&2
+  echo "       install [--project] --uninstall" >&2
+  exit 2
+}
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+roles="reviewer implementer checker scout"
+re='^[A-Za-z0-9._:/-]+$'
+project=0 uninstall=0 pinned=0
+m_reviewer='' m_implementer='' m_checker='' m_scout=''
+while [ $# -gt 0 ]; do
+  case $1 in
+    --project) project=1 ;;
+    --uninstall) uninstall=1 ;;
+    --reviewer|--implementer|--checker|--scout)
+      [ $# -ge 2 ] && [[ $2 != --* ]] || usage
+      [[ $2 =~ $re ]] || { echo "install: invalid model '$2'" >&2; exit 2; }
+      printf -v "m_${1#--}" '%s' "$2"; pinned=1; shift ;;
+    *) usage ;;
+  esac
+  shift
+done
+[ "$uninstall$pinned" != 11 ] || usage
+
+if [ "$project" -eq 1 ]; then
+  top=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "install: --project needs a git repository" >&2; exit 1; }
+  dir=$top/.codex/agents
+else
+  dir=${CODEX_HOME:-$HOME/.codex}/agents
+fi
+
+if [ "$uninstall" -eq 1 ]; then
+  n=0
+  for f in amp-reviewer.toml amp-implementer.toml amp-checker.toml amp-scout.toml amp-install.json; do
+    [ -e "$dir/$f" ] || continue
+    rm -f "$dir/$f"; echo "removed: $dir/$f"; n=$((n + 1))
+  done
+  [ "$n" -gt 0 ] || echo "not installed: $dir"
+  exit 0
+fi
+
+src=$here/agents
+for r in $roles; do
+  [ -f "$src/amp-$r.toml" ] || { echo "install: no agent files in $src" >&2; exit 1; }
+done
+manifest=$here/../.codex-plugin/plugin.json
+version=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$manifest" 2>/dev/null) || true
+[ -n "$version" ] || { echo "install: no version in $manifest" >&2; exit 1; }
+
+mkdir -p "$dir"
+models=''
+for r in $roles; do
+  v=m_$r; m=${!v}
+  cp "$src/amp-$r.toml" "$dir/amp-$r.toml"
+  echo "installed: $dir/amp-$r.toml (model: ${m:-inherit})"
+  if [ -n "$m" ]; then m="\"$m\""; else m=null; fi
+  models="$models${models:+, }\"$r\": $m"
+done
+printf '{"version": "%s", "models": {%s}}\n' "$version" "$models" > "$dir/amp-install.json"
+echo "wrote: $dir/amp-install.json"
+echo "Start a new Codex session to load the amp agents."

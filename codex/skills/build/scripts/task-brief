@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Extract one task's full text from an amp plan into <workspace>/task-<N>-brief.md
+# so the implementer reads it in one call and the orchestrator never pastes it.
+# A task starts at a heading "### Task N" (any level) and ends at the next task
+# heading; headings inside code fences are ignored.
+#
+# Usage: task-brief PLAN_FILE N WORKSPACE
+set -euo pipefail
+
+[ $# -eq 3 ] || { echo "usage: task-brief PLAN_FILE N WORKSPACE" >&2; exit 2; }
+plan=$1; n=$2; ws=$3
+[ -f "$plan" ] || { echo "no such plan file: $plan" >&2; exit 2; }
+[ -d "$ws" ] || { echo "no such workspace: $ws" >&2; exit 2; }
+out="$ws/task-${n}-brief.md"
+
+awk -v n="$n" '
+  /^```/ { infence = !infence }
+  !infence && /^#+[ \t]+Task[ \t]+[0-9]+/ {
+    intask = ($0 ~ ("^#+[ \t]+Task[ \t]+" n "([^0-9]|$)"))
+  }
+  intask { print }
+' "$plan" > "$out"
+
+[ -s "$out" ] || { echo "task ${n} not found in ${plan}" >&2; exit 3; }
+echo "wrote ${out}: $(wc -l < "$out" | tr -d ' ') lines"

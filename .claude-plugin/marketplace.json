@@ -1,12 +1,12 @@
 {
   "name": "amp",
   "owner": { "name": "Mark Paroczi" },
-  "metadata": { "description": "amp: a grill-first, autonomous Claude Code workflow plugin." },
+  "metadata": { "description": "amp: a grill-first, autonomous workflow plugin for Claude Code and Codex." },
   "plugins": [
     {
       "name": "amp",
       "source": "./",
-      "description": "Grill-first, autonomous Claude Code workflow with configurable models per task type."
+      "description": "Grill-first, autonomous workflow for Claude Code and Codex, with configurable models per task type."
     }
   ]
 }
