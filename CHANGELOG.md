@@ -9,8 +9,9 @@
 - On Codex, agents run on the session model unless the installer pins a model per role
   (`--reviewer`, `--implementer`, `--checker`, `--scout`, recorded in `amp-install.json`).
   Escalation is a fresh implementer at reasoning effort `xhigh`, and fallback re-spawns on the
-  session model. `$amp:phase` and `$amp:roadmap` stop when the agents are missing or older than the
-  plugin. `--uninstall` removes them.
+  session model. Every skill that spawns agents (`$amp:phase`, `$amp:roadmap`, `$amp:grill`,
+  `$amp:design`, `$amp:plan`, `$amp:build`, `$amp:ship`) stops before its first spawn when the
+  agents are missing or differ from the plugin's version. `--uninstall` removes them.
 - On Codex, the project configuration is read from `AGENTS.md` (else `CLAUDE.md`), and
   `$amp:roadmap` writes `AGENTS.md` and `.codex/config.toml`.
 - The skills and agents are now rendered from one source in `src/` into the Claude Code and Codex

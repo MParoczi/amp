@@ -13,6 +13,8 @@ for the reasons in amp:phase's autonomy contract.
 <!-- codex -->
 `<skills>` is the folder that holds this skill's folder (the parent of this SKILL.md's directory); use its absolute path.
 
+Before the first spawn, run amp:phase's agent preflight (Preflight, step 4) unless it already ran in this session.
+
 Every `amp-implementer` dispatch below is a `spawn_agent` call with `agent_type: "amp-implementer"`, as amp:phase, Model routing says.
 
 <!-- /codex -->

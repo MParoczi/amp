@@ -12,6 +12,8 @@ failures.
 
 `<skills>` is the folder that holds this skill's folder (the parent of this SKILL.md's directory); use its absolute path.
 
+Before the first spawn, run amp:phase's agent preflight (Preflight, step 4) unless it already ran in this session.
+
 Default path: `docs/amp/plans/YYYY-MM-DD-<NN>-<slug>.md` (project configuration may override it).
 
 ## Header (mandatory)

@@ -19,6 +19,10 @@ other, or disagree with the code.
 
 Create `<workspace>/decisions.md` (the workspace comes from amp:phase; standalone, use
 `.amp/grill-<slug>/`). This file is the interview's memory and survives compaction.
+<!-- codex -->
+
+Before the first spawn, run amp:phase's agent preflight (Preflight, step 4) unless it already ran in this session.
+<!-- /codex -->
 
 ## 1. Map the decision tree
 

@@ -13,6 +13,8 @@ Load `amp:lean` first. The ladder governs every "new" in this document.
 
 `<skills>` is the folder that holds this skill's folder (the parent of this SKILL.md's directory); use its absolute path.
 
+Before the first spawn, run amp:phase's agent preflight (Preflight, step 4) unless it already ran in this session.
+
 ## 1. Reuse-first survey
 
 For each component the work needs, find what already exists: components, utilities, types,

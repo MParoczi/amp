@@ -309,6 +309,15 @@ holds codex/skills/phase/SKILL.md spawn_agent 'fork_turns: "none"' task_name wai
 for f in phase build; do lacks "codex/skills/$f/SKILL.md" '-r<R>' '<role>-<'; done
 ok
 
+case=codex-preflight
+# every Codex skill that spawns amp agents runs the agent preflight first (amp:phase defines it)
+for f in "$ROOT"/codex/skills/*/SKILL.md; do
+  [ "$f" = "$ROOT/codex/skills/phase/SKILL.md" ] && continue
+  ! grep -qE 'spawn_agent|amp-<role>|[Ss]pawn[^.]*`amp-' "$f" || grep -qiE 'agents? preflight' "$f" \
+    || fail "${f#"$ROOT/"} spawns agents without the agent preflight"
+done
+ok
+
 case=skills-defined
 for f in "$ROOT"/codex/skills/*/SKILL.md; do
   ! grep -qF '<skills>/' "$f" || holds "${f#"$ROOT/"}" "$skills_def"

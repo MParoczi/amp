@@ -89,8 +89,10 @@ and then `claude plugin install amp@amp`.
    described in the next section.
 4. Start a new Codex session, so it loads the agents.
 
-`$amp:phase` and `$amp:roadmap` check the install before they start. They stop and tell you what
-to run when the agents are missing, or when the installed version differs from the plugin's.
+Every amp skill that spawns agents (`$amp:phase`, `$amp:roadmap`, and `$amp:grill`, `$amp:design`,
+`$amp:plan`, `$amp:build` and `$amp:ship` run on their own) checks the install before its first
+spawn. It stops and tells you what to run when the agents are missing, or when the installed
+version differs from the plugin's.
 
 ## Choosing the models
 
@@ -167,7 +169,7 @@ runs at high reasoning effort. The other two task types have no setting on Codex
 
 To change the pins, run the installer again with the new flags and start a new session. A role
 whose flag you leave out goes back to the session model. **Re-run the installer after every
-plugin upgrade as well**: `$amp:phase` and `$amp:roadmap` stop when the version in
+plugin upgrade as well**: every amp skill that spawns agents stops when the version in
 `amp-install.json` differs from the plugin's.
 
 ## Using amp

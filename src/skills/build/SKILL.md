@@ -13,6 +13,8 @@ out (`amp:lean` §2).
 <!-- codex -->
 `<skills>` is the folder that holds this skill's folder (the parent of this SKILL.md's directory); use its absolute path.
 
+Before the first spawn, run amp:phase's agent preflight (Preflight, step 4) unless it already ran in this session.
+
 Every dispatch below is a `spawn_agent` call made as amp:phase, Model routing says:
 `agent_type: "amp-<role>"`, the filled template as `message`, `reasoning_effort: "high"`, `model`
 only when `amp-install.json` pins the role, and in v2 also a `task_name` from amp:phase's naming
