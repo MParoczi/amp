@@ -144,14 +144,16 @@ dispatch template as `message`, and `reasoning_effort: "high"`. Pass `model` onl
 `amp-install.json` pins that role. Spawn independent agents (parallel scouts) before waiting on any
 of them. Codex has two multi-agent versions; follow the one whose tools you have:
 
-- **v2** (`followup_task` exists): every spawn also passes `task_name: "<role>-<task id>"` (for
-  example `implementer-3`; add `-r<R>` in fix round R, and use a short slug for scouts, so no name
-  repeats) and `fork_turns: "none"`. The default forks your whole history into the
-  agent, which breaks reviewer independence and multiplies context cost; the brief is the agent's
-  only context. `wait_agent` only reports that a wait finished, and each agent's status contract
+- **v2** (`followup_task` exists): every spawn also passes `task_name: "<role>_<task id>"` and
+  `fork_turns: "none"`. A name uses only lowercase letters, digits and `_` (task `3a` stays `3a`)
+  and never repeats: add `_r<R>` in fix round R and `_retry<k>` for the k-th BLOCKED retry. For
+  example `implementer_3`, `reviewer_3`, `checker_3_r2`, `implementer_3_r4`, `scout_<short_slug>`,
+  `reviewer_final`, `implementer_final`, `checker_final`. Without `fork_turns: "none"` the spawn
+  forks your whole history into the agent, which breaks reviewer independence and multiplies
+  context cost; the brief is the agent's only context. `wait_agent` only reports that a wait finished, and each agent's status contract
   arrives as a message: call `wait_agent` again until every spawned agent's message has arrived.
-- **v1** (`send_input` exists): `wait_agent` returns the agent's result. At most 6 agents can be
-  open at once.
+- **v1** (`send_input` exists): `wait_agent` returns the agent's result. 6 agents can be open at
+  once by default (`agents.max_threads`).
 
 A `wait_agent` timeout means wait again.
 
@@ -159,8 +161,8 @@ A `wait_agent` timeout means wait again.
 `followup_task` (v2) or `send_input` (v1). Never spawn it again.
 
 **Closing.** Where `close_agent` exists, close each reviewer, checker and scout as soon as its
-result is read. Close the implementer when its task's fix loop ends, or before a round-4 fresh
-spawn.
+result is read. Close the implementer when its task's fix loop ends, or before any fresh implementer
+spawn for the same task (round 4, a BLOCKED retry).
 
 **Escalation** (fix rounds 4–5, a BLOCKED retry): spawn a fresh `amp-implementer` with
 `reasoning_effort: "xhigh"`, keeping any pinned `model`. Ledger `Escalation: implementer → xhigh`.

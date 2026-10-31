@@ -15,11 +15,12 @@ out (`amp:lean` §2).
 
 Every dispatch below is a `spawn_agent` call made as amp:phase, Model routing says:
 `agent_type: "amp-<role>"`, the filled template as `message`, `reasoning_effort: "high"`, `model`
-only when `amp-install.json` pins the role, and in v2 also `task_name: "<role>-<N>"` (`-r<R>` in
-fix round R) and `fork_turns: "none"`. Collect each contract with `wait_agent` (in v2 it arrives
-as a message; wait again until it has). Resume a live implementer with `followup_task` (v2) or `send_input` (v1).
-Where `close_agent` exists, close each reviewer and checker once its result is read, and the
-implementer when its task's fix loop ends or before a round-4 fresh spawn.
+only when `amp-install.json` pins the role, and in v2 also a `task_name` from amp:phase's naming
+scheme (`implementer_<N>`, `checker_<N>_r<R>`, `reviewer_final`, …) and `fork_turns: "none"`.
+Collect each contract with `wait_agent` (in v2 it arrives as a message; wait again until it has).
+Resume a live implementer with `followup_task` (v2) or `send_input` (v1). Where `close_agent`
+exists, close each reviewer and checker once its result is read, and the implementer when its
+task's fix loop ends or before any fresh implementer spawn for that task.
 
 <!-- /codex -->
 Scripts (run with `bash`, from any cwd inside the repo):

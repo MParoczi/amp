@@ -287,8 +287,10 @@ skills_def="\`<skills>\` is the folder that holds this skill's folder (the paren
 
 case=codex-phase
 holds codex/skills/phase/SKILL.md spawn_agent 'fork_turns: "none"' task_name wait_agent followup_task send_input \
-  close_agent 'reasoning_effort: "xhigh"' amp-install.json version .codex-plugin/plugin.json '<skills>/../install' \
-  AGENTS.md "$skills_def"
+  close_agent 'reasoning_effort: "xhigh"' amp-install.json 'the agents are stale' .codex-plugin/plugin.json \
+  '<skills>/../install' AGENTS.md "$skills_def" '<role>_<task id>' checker_3_r2
+# Codex agent names allow only [a-z0-9_]
+for f in phase build; do lacks "codex/skills/$f/SKILL.md" '-r<R>' '<role>-<'; done
 ok
 
 case=skills-defined-3a
