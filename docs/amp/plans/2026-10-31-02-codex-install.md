@@ -110,7 +110,7 @@ stderr). No new dependencies.
 
 **Commit:** `build: render Claude Code and Codex trees from src/`
 
-- [ ] **Step 1: Failing tests.** Add these cases to `scripts/test`. Each builds a fixture root in
+- [x] **Step 1: Failing tests.** Add these cases to `scripts/test`. Each builds a fixture root in
   `mktemp -d` whose path contains a space, then runs `AMP_RENDER_ROOT="$fx" bash "$ROOT/scripts/render"`.
   - **`blocks`:** a source line pair `<!-- claude -->\nC\n<!-- /claude -->` and the codex
     equivalent. `skills/x/SKILL.md` contains `C` and not `X`. `codex/skills/x/SKILL.md` contains
@@ -145,20 +145,20 @@ stderr). No new dependencies.
   - **`modes`:** `git ls-files -s` shows `100755` for every script listed under Global
     Constraints that is tracked.
   - **`drift`:** `bash scripts/render --check` on the real repo exits 0.
-- [ ] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: blocks` (no renderer yet).
-- [ ] **Step 3: Implement** `scripts/render`.
+- [x] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: blocks` (no renderer yet).
+- [x] **Step 3: Implement** `scripts/render`.
   - Resolve the root as `${AMP_RENDER_ROOT:-<script dir>/..}`.
   - Render both targets into `mktemp -d` with one awk pass per `.md` file and target.
   - On success, swap the four output trees in. Without `--check`, use `rm -rf` then `cp -a`. With
     `--check`, use `diff -r` and report.
   - Then `git mv` the sources and run the render on the real repo.
-- [ ] **Step 4: Run, expect PASS.**
+- [x] **Step 4: Run, expect PASS.**
   - `git add -A`, then `git update-index --chmod=+x` on the scripts.
   - `git diff --cached --exit-code HEAD -- skills agents`: no content and no mode change, which
     proves the Claude tree is byte-identical to 1.1.0.
   - `bash scripts/test && claude plugin validate --strict . && claude plugin test .`
-- [ ] **Step 5: Docs.** None.
-- [ ] **Step 6: Commit.**
+- [x] **Step 5: Docs.** None.
+- [x] **Step 6: Commit.**
 
 ### Task 2: Codex manifest and agent installer
 
@@ -180,7 +180,7 @@ are the files the installer copies.
 
 **Commit:** `feat(codex): Codex plugin manifest and agent installer`
 
-- [ ] **Step 1: Failing tests** in `scripts/test`, each using `CODEX_HOME=$(mktemp -d)`:
+- [x] **Step 1: Failing tests** in `scripts/test`, each using `CODEX_HOME=$(mktemp -d)`:
   - **`install-default`:** 4 `amp-*.toml` files, plus an `amp-install.json` that contains
     `"version": "1.2.0"` and four `null` models. Exit 0, and 4 `installed:` lines (one per agent;
     the JSON line is `wrote: <path>`).
@@ -196,15 +196,15 @@ are the files the installer copies.
   - **`manifests`:** `.codex-plugin/plugin.json` has `"skills": "./codex/skills"` and
     `"hooks": {}`. Both manifests have version `1.2.0`. Check with grep or sed, with no `jq`
     dependency.
-- [ ] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: install-default`. In Step 4, run
+- [x] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: install-default`. In Step 4, run
   `git add -A` and `--chmod=+x` on `codex/install` before the tests, so `modes` sees it.
-- [ ] **Step 3: Implement** `codex/install`.
+- [x] **Step 3: Implement** `codex/install`.
   - Read the version with sed from `<script dir>/../.codex-plugin/plugin.json`.
   - Validate every flag before writing anything.
   - Write the JSON with `printf`.
-- [ ] **Step 4: Run, expect PASS.** Run `bash scripts/test && claude plugin validate --strict .`
-- [ ] **Step 5: Docs.** None.
-- [ ] **Step 6: Commit.**
+- [x] **Step 4: Run, expect PASS.** Run `bash scripts/test && claude plugin validate --strict .`
+- [x] **Step 5: Docs.** None.
+- [x] **Step 6: Commit.**
 
 ### Task 3a: Codex orchestration mechanics (phase, build, build prompts, agents)
 
@@ -225,7 +225,7 @@ and `<skills>/../install`.
 
 **Commit:** `feat(codex): Codex-native orchestration and agent text`
 
-- [ ] **Step 1: Failing tests:**
+- [x] **Step 1: Failing tests:**
   - **`codex-phase`:** `codex/skills/phase/SKILL.md` contains:
     - the agent tools: `spawn_agent`, `fork_turns: "none"`, `task_name`, `wait_agent`,
       `followup_task`, `send_input`, `close_agent`;
@@ -242,8 +242,8 @@ and `<skills>/../install`.
     `amp-implementer.toml` contains `SKILL.md`.
   - **`claude-mechanics`:** `skills/phase/SKILL.md` still contains `/amp-models` and
     `PushNotification`, and `skills/build/SKILL.md` still contains `SendMessage`.
-- [ ] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: codex-phase`.
-- [ ] **Step 3: Implement** the spec §5.5 bullets for **phase** (agents, v1/v2 collection, resume
+- [x] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: codex-phase`.
+- [x] **Step 3: Implement** the spec §5.5 bullets for **phase** (agents, v1/v2 collection, resume
   and close, escalation, fallback, preflight, config, settings and the routing table as a Codex
   block), **build** (the same mechanics, matching phase), **build prompts** (`CLAUDE.md` spans and
   the resume wording) and **agents**.
@@ -252,9 +252,9 @@ and `<skills>/../install`.
   - The agents' return wording covers v1 and v2: "your final message is the status contract the
     orchestrator receives".
   - Then run `bash scripts/render` and reapply the script modes.
-- [ ] **Step 4: Run, expect PASS** with the full Verify command.
-- [ ] **Step 5: Docs.** None.
-- [ ] **Step 6: Commit.**
+- [x] **Step 4: Run, expect PASS** with the full Verify command.
+- [x] **Step 5: Docs.** None.
+- [x] **Step 6: Commit.**
 
 ### Task 3b: Codex user-facing stages, templates and the leak gate
 
@@ -276,7 +276,7 @@ and `<skills>/../install`.
 
 **Commit:** `feat(codex): Codex-native stage text, templates and leak gate`
 
-- [ ] **Step 1: Failing tests:**
+- [x] **Step 1: Failing tests:**
   - **`leaks`:** spec §7 item 6, with exactly its two lists plus `/amp:` for `codex/`, grepped with
     `-F` over `codex/` and over `skills/ agents/`.
   - **`codex-claude-md`:** every `CLAUDE.md` mention left in `codex/` is on a line that also names
@@ -288,8 +288,8 @@ and `<skills>/../install`.
     `model_reasoning_effort = "high"`.
   - **`skills-defined`:** every `codex/skills/*/SKILL.md` that contains `<skills>/` also contains
     the definition sentence. This case replaces `skills-defined-3a`.
-- [ ] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: leaks`.
-- [ ] **Step 3: Implement** the spec §5.5 bullets:
+- [x] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: leaks`.
+- [x] **Step 3: Implement** the spec §5.5 bullets:
   - **grill:** the question tool, its limits, and the Default-mode numbered-text fallback, with no
     mode-switch advice.
   - **design, plan, ship:** dispatch lines, config file name, and the `<skills>` definition block
@@ -308,9 +308,9 @@ and `<skills>/../install`.
       `model_reasoning_effort = "high"`, and a comment explaining the amp roles and the
       installer.
   - Then run `bash scripts/render` and reapply the script modes.
-- [ ] **Step 4: Run, expect PASS** with the full Verify command.
-- [ ] **Step 5: Docs.** None.
-- [ ] **Step 6: Commit.**
+- [x] **Step 4: Run, expect PASS** with the full Verify command.
+- [x] **Step 5: Docs.** None.
+- [x] **Step 6: Commit.**
 
 ### Task 4: README, CHANGELOG, manifest descriptions
 
@@ -327,12 +327,12 @@ document.
 
 **Commit:** `docs: install and use amp on Codex`
 
-- [ ] **Step 1: Failing test.** Extend `manifests`: both `plugin.json` files have an identical
+- [x] **Step 1: Failing test.** Extend `manifests`: both `plugin.json` files have an identical
   `description` line that contains `Codex`. The README itself isn't string-tested (lean: the
   reviewer checks it against spec §8).
-- [ ] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: manifests`.
-- [ ] **Step 3: Implement** every README line from spec §8 (Codex usage: `$amp:phase NN`), plus a 1.2.0 CHANGELOG entry dated
+- [x] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: manifests`.
+- [x] **Step 3: Implement** every README line from spec §8 (Codex usage: `$amp:phase NN`), plus a 1.2.0 CHANGELOG entry dated
   2026-10-31. Mention Codex in the manifest descriptions.
-- [ ] **Step 4: Run, expect PASS** with the full Verify command.
-- [ ] **Step 5: Docs.** This task.
-- [ ] **Step 6: Commit.**
+- [x] **Step 4: Run, expect PASS** with the full Verify command.
+- [x] **Step 5: Docs.** This task.
+- [x] **Step 6: Commit.**
