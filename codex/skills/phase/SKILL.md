@@ -110,7 +110,8 @@ of them. Codex has two multi-agent versions; follow the one whose tools you have
   context cost; the brief is the agent's only context. `wait_agent` only reports that a wait finished, and each agent's status contract
   arrives as a message: call `wait_agent` again until every spawned agent's message has arrived.
 - **v1** (`send_input` exists): `wait_agent` returns the agent's result. 6 agents can be open at
-  once by default (`agents.max_threads`).
+  once by default (`agents.max_concurrent_threads_per_session`; `agents.max_threads` is its legacy
+  alias).
 
 A `wait_agent` timeout means wait again.
 

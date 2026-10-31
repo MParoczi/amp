@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.0 — 2026-10-31
+
+- amp runs on Codex too (CLI or desktop app). Install it from the `MParoczi/amp` marketplace with
+  `codex plugin marketplace add MParoczi/amp` and `/plugins`, then run `codex/install` to add the
+  `amp-reviewer`, `amp-implementer`, `amp-checker` and `amp-scout` agents, globally or into one
+  repository (`--project`). Skills are invoked as `$amp:phase NN`, `$amp:roadmap` and so on.
+- On Codex, agents run on the session model unless the installer pins a model per role
+  (`--reviewer`, `--implementer`, `--checker`, `--scout`, recorded in `amp-install.json`).
+  Escalation is a fresh implementer at reasoning effort `xhigh`, and fallback re-spawns on the
+  session model. `$amp:phase` and `$amp:roadmap` stop when the agents are missing or older than the
+  plugin. `--uninstall` removes them.
+- On Codex, the project configuration is read from `AGENTS.md` (else `CLAUDE.md`), and
+  `$amp:roadmap` writes `AGENTS.md` and `.codex/config.toml`.
+- The skills and agents are now rendered from one source in `src/` into the Claude Code and Codex
+  trees by `scripts/render`; `scripts/test` covers the renderer, the installer and the manifests.
+  Codex support hasn't yet been tested end to end against a real Codex binary.
+
 ## 1.1.0 — 2026-10-13
 
 - `amp:lean` names its principles (DRY, YAGNI, KISS), adds the dead-code rule (code nothing

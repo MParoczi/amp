@@ -184,7 +184,8 @@ common.
     - **Multi-agent v1 and v2.** The text covers both versions:
       - **v2 spawns.** v2 requires `task_name`, so use `<role>_<task id>[_r<R>]`: Codex agent
         names allow only lowercase letters, digits and `_` (`protocol/src/agent_path.rs:138-145`),
-        and no name repeats (`checker_3_r2`, `reviewer_final`). Every v2 spawn also
+        and no name repeats (`checker_3_r2`, `reviewer_final`; the full scheme, including
+        `_retry<k>` and the `_final` names, lives in amp:phase). Every v2 spawn also
         passes `fork_turns: "none"`. The default forks the orchestrator's whole history, which
         breaks reviewer independence and multiplies context cost. The brief is the agent's only
         context.

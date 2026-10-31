@@ -128,6 +128,7 @@ issues and run one confirmation pass. Record residual rulings in the final repor
   then open a fresh Codex session here and run `$amp:phase 00`". `<flags>` holds
   `--reviewer|--implementer|--checker|--scout <model>` for each role the grill pinned, and
   `--project` if the grill chose to install the agents into this repo for collaborators (commit
-  the `.codex/agents` it writes). If the grill kept the installed agents as they are, drop the
-  install step.
+  the `.codex/agents` it writes). Without `--project` the installer writes the global
+  `~/.codex/agents`, so its pins apply to every project: say so in the report. If the grill kept the
+  installed agents as they are, drop the install step.
 <!-- /codex -->

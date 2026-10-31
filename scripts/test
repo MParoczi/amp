@@ -277,6 +277,9 @@ grep -qF '"hooks": {}' "$cx" || fail "no empty hooks"
 for m in "$ROOT/.claude-plugin/plugin.json" "$cx"; do
   grep -qF '"version": "1.2.0"' "$m" || fail "$m: version is not 1.2.0"
 done
+d=$(grep -F '"description":' "$ROOT/.claude-plugin/plugin.json" | head -n 1)
+[ "$d" = "$(grep -F '"description":' "$cx" | head -n 1)" ] || fail "plugin.json descriptions differ"
+[[ $d == *Codex* ]] || fail "plugin description does not mention Codex"
 ok
 
 # holds FILE TEXT...: the repo file FILE contains every TEXT
