@@ -1,6 +1,6 @@
 ---
 name: build
-description: The amp execution stage (Superpowers subagent-driven development, made lean). Executes an amp plan task by task in the current session. Per task, one amp-implementer writes tests, code, docs and one atomic commit, and one amp-reviewer gives spec, quality and lean verdicts, with a capped fix loop re-checked by amp-checker. A crash-proof ledger tracks progress, and a final whole-branch review closes it. Runs autonomously with no check-ins. Run by amp:phase after amp:plan.
+description: The amp execution stage (Superpowers subagent-driven development, made lean). Executes an amp plan task by task in the current session. Per task, one amp-implementer writes tests, code, docs and one atomic commit, and one amp-reviewer gives spec, quality and lean verdicts, with a capped fix loop re-checked by the resumed reviewer. A crash-proof ledger tracks progress, and a final whole-branch review closes it. Runs autonomously with no check-ins. Run by amp:phase after amp:plan.
 ---
 
 # amp:build
@@ -20,9 +20,10 @@ Every dispatch below is a `spawn_agent` call made as amp:phase, Model routing sa
 naming scheme (`implementer_<N>`, `checker_<N>_r<R>`, `reviewer_final`, …) and
 `fork_turns: "none"`.
 Collect each contract with `wait_agent` (in v2 it arrives as a message; wait again until it has).
-Resume a live implementer with `followup_task` (v2) or `send_input` (v1). Where `close_agent`
-exists, close each reviewer and checker once its result is read, and the implementer when its
-task's fix loop ends or before any fresh implementer spawn for that task.
+Resume a live implementer or reviewer with `followup_task` (v2) or `send_input` (v1). Where
+`close_agent` exists, close the task's reviewer and implementer when its fix loop ends (the final
+reviewer after the final fix wave's re-check), a fallback checker once its result is read, and the
+implementer before any fresh implementer spawn for that task.
 
 Scripts (run with `bash`, from any cwd inside the repo):
 `S="<skills>/build/scripts"` (keep the quotes: on Windows the path has backslashes): `$S/amp-workspace KEY`,
@@ -56,8 +57,9 @@ For each task N:
    - `BLOCKED`: change something before retrying (more context, split the task, the escalation
      spawn (amp:phase, Model routing), or a ledgered ruling that corrects the plan). Never retry unchanged.
 4. **Review:** `bash "$S/review-package" $WS $BASE HEAD`, then dispatch `amp-reviewer` with
-   `prompts/task-review.md`. Don't read the package yourself. Resolve each ⚠️ item yourself (you
-   hold cross-task context); a confirmed gap counts as a spec ❌.
+   `prompts/task-review.md`. Record the reviewer's agent id (fix-round re-reviews resume it).
+   Don't read the package yourself. Resolve each ⚠️ item yourself (you hold cross-task context);
+   a confirmed gap counts as a spec ❌.
 5. **Fix loop** (triggers: spec ❌, Critical or Important). Minor findings and lean tags never loop;
    ledger them as `Task N: minor (deferred): <one-liner>`. A finding that conflicts with the plan
    text gets a ledgered ruling first. Up to **5 rounds**, each round one fix plus one scoped
@@ -65,9 +67,11 @@ For each task N:
    - Rounds 1–3 resume the same implementer. Rounds 4–5 dispatch a **fresh** implementer with
      the escalation effort (amp:phase, Model routing) ("you own it now; read the report for what was tried").
    - Before each round, `FIX_BASE=$(git rev-parse HEAD)`. After it, confirm the fix report has
-     tests, command and output, run `review-package $WS $FIX_BASE HEAD`, and dispatch `amp-checker`
-     with `prompts/re-review.md`. New Critical/Important breakage joins the open list;
-     out-of-scope observations become deferred minors.
+     tests, command and output, run `review-package $WS $FIX_BASE HEAD`, and resume the task's
+     reviewer with `prompts/re-review.md` (as its header says). Only if the resume fails, dispatch
+     `amp-checker` with the full template and ledger
+     `Re-review: checker (reviewer not resumable: <why>)`. New Critical/Important breakage joins
+     the open list; out-of-scope observations become deferred minors.
    - Ledger `Task N: fix round R/5 (X addressed, Y open — <one-liners>; commits a..b)`.
    - **Breaker at round 5:** adjudicate every open finding. If it is wrong or contestable, or real
      but nothing builds on it, record `Task N: parked — <finding> — Ruling: <why>`. If it is real
@@ -84,8 +88,9 @@ For each task N:
 1. `MB=$(git merge-base origin/<default> HEAD)`, then `review-package $WS $MB HEAD`. Dispatch
    `amp-reviewer` with `prompts/final-review.md`.
 2. If it returns findings (including ledger items triaged must-fix), send **ONE** `amp-implementer`
-   dispatch with the complete list (never one fixer per finding), then one scoped `amp-checker`
-   re-review of that range. Adjudicate residuals as at the breaker. There is no second wave.
+   dispatch with the complete list (never one fixer per finding), then one scoped re-review of that
+   range by the resumed final reviewer, with the fix loop's checker fallback. Adjudicate residuals
+   as at the breaker. There is no second wave.
 3. Commit the plan's ticked checkboxes if they aren't committed yet:
    `docs(<NN>): mark plan tasks complete`.
 4. Hand off to **amp:ship**. The workspace stays until the merge (amp:ship reads the ledger for the

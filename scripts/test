@@ -379,3 +379,18 @@ lacks skills/phase/SKILL.md 'Every agent runs at **high effort**'
 lacks codex/skills/phase/SKILL.md 'Every agent runs at **high effort**'
 lacks skills/roadmap/templates/settings.json 'All amp agents run at high effort'
 ok
+
+case=reviewer-resume
+# fix rounds and confirmations resume the reviewer; amp:checker only when it can't be resumed
+holds skills/build/SKILL.md 'reviewer not resumable' "Record the reviewer's agent id"
+lacks skills/build/SKILL.md 're-checked by amp:checker'
+holds skills/phase/SKILL.md 'reviewer not resumable'
+lacks codex/skills/build/SKILL.md 'close each reviewer and checker once its result is read'
+holds skills/build/prompts/re-review.md 'resumed' 'amp:checker'
+holds codex/skills/build/SKILL.md 'reviewer not resumable' followup_task
+holds agents/reviewer.md 'Re-review'
+holds skills/design/SKILL.md 'Confirmation re-review'
+holds skills/plan/SKILL.md 'Confirmation re-review'
+holds skills/roadmap/SKILL.md 'Confirmation re-review'
+lacks codex/skills/phase/SKILL.md 'close each reviewer, checker and scout as soon as'
+ok

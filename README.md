@@ -7,7 +7,7 @@ CI and merges. You choose which model runs each kind of task.
 
 ```
 /amp:phase  →  grill (your one approval)  →  branch  →  spec  →  plan
-            →  build: per task, implementer → reviewer → capped fix loop → checker
+            →  build: per task, implementer → reviewer → capped fix loop → reviewer re-check
             →  final whole-branch review  →  docs + close-out  →  PR  →  green CI  →  merge
 ```
 
@@ -104,9 +104,9 @@ or `haiku`:
 
 | Setting | What runs on it | Default |
 |---|---|---|
-| **Reviewer** | spec, plan and roadmap reviews; every task review; the final whole-branch review (`amp:reviewer`) | `opus` |
+| **Reviewer** | spec, plan and roadmap reviews; every task review; the final whole-branch review; the re-check of each fix (`amp:reviewer`) | `opus` |
 | **Implementer** | each plan task, fix rounds 1–3, final-review fixes and CI fixes (`amp:implementer`) | `opus` |
-| **Checker** | the scoped re-review after each fix round (`amp:checker`) | `sonnet` |
+| **Checker** | the fallback re-check when the reviewer can't be resumed (`amp:checker`) | `sonnet` |
 | **Scout** | fact-finding during the grill, design and roadmap (`amp:scout`) | `sonnet` |
 | **Escalation** | a fresh implementer for fix rounds 4–5, and a retry of a BLOCKED task | `inherit` |
 | **Fallback** | where a dispatch goes when its model is unavailable (rate or usage limit, overload) | `sonnet` |
@@ -292,7 +292,7 @@ Example:
 | `amp:lean` · `amp:debug` | the same | skills | the economy doctrine and the root-cause discipline that every stage applies |
 | `amp:implementer` | `amp-implementer` | agent | one task, test first, one atomic commit, a report file, a short status reply |
 | `amp:reviewer` | `amp-reviewer` | agent | read-only reviews of tasks, the whole branch and documents, citing `file:line` for every finding |
-| `amp:checker` | `amp-checker` | agent | read-only check of each fix round: addressed or not, plus any new breakage |
+| `amp:checker` | `amp-checker` | agent | fallback re-check when the reviewer can't be resumed: each finding addressed or not, plus any new breakage in the fix |
 | `amp:scout` | `amp-scout` | agent | answers one factual question from primary sources, with citations |
 | `/amp-models` | `codex/install` + `amp-install.json` | command + pane / installer | the model settings |
 

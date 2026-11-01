@@ -88,7 +88,10 @@ every file.
 ## Review and commit
 
 Dispatch `amp:reviewer` with `${CLAUDE_PLUGIN_ROOT}/skills/build/prompts/document-review.md` (mode: plan), passing the plan
-and spec paths. Fix Critical/Important issues and run at most one confirmation re-review. Rule on
-residuals in the ledger. Then commit spec and plan together:
+and spec paths. Fix Critical/Important issues and run at most one confirmation re-review: resume the same reviewer via SendMessage
+with "Confirmation re-review: the document changed; verify each Critical/Important issue you raised
+is resolved and flag only new Critical/Important problems in the changes." If the resume fails,
+dispatch a fresh reviewer with the document-review template.
+Rule on residuals in the ledger. Then commit spec and plan together:
 `docs(<NN>): spec and implementation plan for <slug>`. Continue straight into amp:build; the grill
 confirmation was the approval.

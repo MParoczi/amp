@@ -80,7 +80,11 @@ From `${CLAUDE_SKILL_DIR}/templates/`:
 
 Dispatch `amp:reviewer` with `${CLAUDE_PLUGIN_ROOT}/skills/build/prompts/document-review.md` (mode: roadmap), passing
 ROADMAP.md, the prompts directory, CLAUDE.md and the grill decisions. Fix Critical/Important
-issues and run one confirmation pass. Record residual rulings in the final report.
+issues and run one confirmation re-review: resume the same reviewer via SendMessage
+with "Confirmation re-review: the document changed; verify each Critical/Important issue you raised
+is resolved and flag only new Critical/Important problems in the changes." If the resume fails,
+dispatch a fresh reviewer with the document-review template.
+Record residual rulings in the final report.
 
 ## 4. Commit and publish
 

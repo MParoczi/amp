@@ -74,8 +74,11 @@ requirement readable two ways. YAGNI ruthlessly.
    invented? Fix inline.
 2. **Independent review:** dispatch `amp:reviewer` with `${CLAUDE_PLUGIN_ROOT}/skills/build/prompts/document-review.md`
    (mode: spec) and the spec, decisions and prompt paths. If it returns Critical or Important
-   issues, fix them and run one confirmation re-review. If issues remain after that, rule on each
-   (`Ruling:` line in the ledger) and continue. The spec isn't committed yet; amp:plan commits spec
-   and plan together.
+   issues, fix them and run one confirmation re-review: resume the same reviewer via SendMessage
+   with "Confirmation re-review: the document changed; verify each Critical/Important issue you raised
+   is resolved and flag only new Critical/Important problems in the changes." If the resume fails,
+   dispatch a fresh reviewer with the document-review template.
+   If issues remain after that, rule on each (`Ruling:` line in the ledger) and continue. The spec
+   isn't committed yet; amp:plan commits spec and plan together.
 
 Model fallback applies to every dispatch (see amp:phase, Model routing).

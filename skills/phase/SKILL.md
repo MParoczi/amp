@@ -83,10 +83,10 @@ type is the user's choice, set in the plugin's settings (`/amp-models`, or the a
 |---|---|---|
 | Orchestrator: grill, design, plan, rulings, ship | main session | the session model (`/model`) |
 | Fact-finding: codebase, docs, versions, CI logs | `amp:scout` | ${user_config.scout} |
-| Spec / plan / roadmap review, task review, final whole-branch review | `amp:reviewer` | ${user_config.reviewer} |
+| Spec / plan / roadmap review, task review, final whole-branch review, and their re-reviews | `amp:reviewer` | ${user_config.reviewer} |
 | Implementation, fix rounds 1–3, final and CI fixes | `amp:implementer` | ${user_config.implementer} |
 | Fix rounds 4–5, a BLOCKED retry (escalation) | `amp:implementer` + `model` | ${user_config.escalation} |
-| Scoped re-review of a fix round | `amp:checker` | ${user_config.checker} |
+| Scoped re-review fallback (reviewer not resumable) | `amp:checker` | ${user_config.checker} |
 | Re-dispatch when a model is unavailable (fallback) | same agent + `model` | ${user_config.fallback} |
 
 **Dispatch amp agents without a `model` parameter:** the plugin assigns each its configured model.

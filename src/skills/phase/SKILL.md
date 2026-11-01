@@ -102,10 +102,10 @@ type is the user's choice, set in the plugin's settings (`/amp-models`, or the a
 |---|---|---|
 | Orchestrator: grill, design, plan, rulings, ship | main session | the session model (`/model`) |
 | Fact-finding: codebase, docs, versions, CI logs | `amp:scout` | ${user_config.scout} |
-| Spec / plan / roadmap review, task review, final whole-branch review | `amp:reviewer` | ${user_config.reviewer} |
+| Spec / plan / roadmap review, task review, final whole-branch review, and their re-reviews | `amp:reviewer` | ${user_config.reviewer} |
 | Implementation, fix rounds 1–3, final and CI fixes | `amp:implementer` | ${user_config.implementer} |
 | Fix rounds 4–5, a BLOCKED retry (escalation) | `amp:implementer` + `model` | ${user_config.escalation} |
-| Scoped re-review of a fix round | `amp:checker` | ${user_config.checker} |
+| Scoped re-review fallback (reviewer not resumable) | `amp:checker` | ${user_config.checker} |
 | Re-dispatch when a model is unavailable (fallback) | same agent + `model` | ${user_config.fallback} |
 
 **Dispatch amp agents without a `model` parameter:** the plugin assigns each its configured model.
@@ -134,10 +134,10 @@ model.
 |---|---|---|
 | Orchestrator: grill, design, plan, rulings, ship | main session | the session model (`/model`) |
 | Fact-finding: codebase, docs, versions, CI logs | `amp-scout` | `models.scout`, else the session model |
-| Spec / plan / roadmap review, task review, final whole-branch review | `amp-reviewer` | `models.reviewer`, else the session model |
+| Spec / plan / roadmap review, task review, final whole-branch review, and their re-reviews | `amp-reviewer` | `models.reviewer`, else the session model |
 | Implementation, fix rounds 1–3, final and CI fixes | `amp-implementer` | `models.implementer`, else the session model |
 | Fix rounds 4–5, a BLOCKED retry (escalation) | fresh `amp-implementer` + `reasoning_effort: "xhigh"` | `models.implementer`, else the session model |
-| Scoped re-review of a fix round | `amp-checker` | `models.checker`, else the session model |
+| Scoped re-review fallback (reviewer not resumable) | `amp-checker` | `models.checker`, else the session model |
 | Re-spawn when a model is unavailable (fallback) | same agent, no `model` | the session model |
 
 **Spawning.** Every agent is a `spawn_agent` call with `agent_type: "amp-<role>"`, the filled
@@ -162,11 +162,15 @@ role. Spawn independent agents (parallel scouts) before waiting on any of them. 
 A `wait_agent` timeout means wait again.
 
 **Resuming.** A live implementer is resumed for fix rounds 1–3, or after `NEEDS_CONTEXT`, with
-`followup_task` (v2) or `send_input` (v1). Never spawn it again.
+`followup_task` (v2) or `send_input` (v1). Never spawn it again. A live reviewer is resumed the
+same way for its re-reviews (fix rounds, the final fix wave, a document's confirmation). Only when
+that resume fails is a fresh agent spawned: `amp-checker` for a fix round (`checker_<N>_r<R>`,
+`checker_final`), `amp-reviewer` for a document (`reviewer_<mode>_r1`).
 
-**Closing.** Where `close_agent` exists, close each reviewer, checker and scout as soon as its
-result is read. Close the implementer when its task's fix loop ends, or before any fresh implementer
-spawn for the same task (round 4, a BLOCKED retry).
+**Closing.** Where `close_agent` exists, close each checker and scout as soon as its result is
+read, and each reviewer when its task's fix loop or its document's confirmation ends. Close the
+implementer when its task's fix loop ends, or before any fresh implementer spawn for the same task
+(round 4, a BLOCKED retry).
 
 **Escalation** (fix rounds 4–5, a BLOCKED retry): spawn a fresh `amp-implementer` with
 `reasoning_effort: "xhigh"`, keeping any pinned `model`. Ledger `Escalation: implementer → xhigh`.

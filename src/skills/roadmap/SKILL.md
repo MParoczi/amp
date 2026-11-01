@@ -110,7 +110,11 @@ From `${CLAUDE_SKILL_DIR}/templates/`:
 
 {{claude: Dispatch `amp:reviewer`}}{{codex: Spawn `amp-reviewer` (`spawn_agent`, `agent_type: "amp-reviewer"`, as amp:phase, Model routing says)}} with `${CLAUDE_PLUGIN_ROOT}/skills/build/prompts/document-review.md` (mode: roadmap), passing
 ROADMAP.md, the prompts directory, {{claude: CLAUDE.md}}{{codex: AGENTS.md}} and the grill decisions. Fix Critical/Important
-issues and run one confirmation pass. Record residual rulings in the final report.
+issues and run one confirmation re-review: resume the same reviewer {{claude: via SendMessage}}{{codex: with `followup_task` (v2) or `send_input` (v1)}}
+with "Confirmation re-review: the document changed; verify each Critical/Important issue you raised
+is resolved and flag only new Critical/Important problems in the changes." If the resume fails,
+{{claude: dispatch}}{{codex: spawn}} a fresh reviewer with the document-review template.
+Record residual rulings in the final report.
 
 ## 4. Commit and publish
 

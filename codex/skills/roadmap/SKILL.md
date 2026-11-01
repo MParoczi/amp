@@ -90,7 +90,11 @@ From `templates/`:
 
 Spawn `amp-reviewer` (`spawn_agent`, `agent_type: "amp-reviewer"`, as amp:phase, Model routing says) with `<skills>/build/prompts/document-review.md` (mode: roadmap), passing
 ROADMAP.md, the prompts directory, AGENTS.md and the grill decisions. Fix Critical/Important
-issues and run one confirmation pass. Record residual rulings in the final report.
+issues and run one confirmation re-review: resume the same reviewer with `followup_task` (v2) or `send_input` (v1)
+with "Confirmation re-review: the document changed; verify each Critical/Important issue you raised
+is resolved and flag only new Critical/Important problems in the changes." If the resume fails,
+spawn a fresh reviewer with the document-review template.
+Record residual rulings in the final report.
 
 ## 4. Commit and publish
 

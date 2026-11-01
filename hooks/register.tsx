@@ -18,7 +18,7 @@ export type Role = { key: string; agent?: string; label: string; help: string }
 export const ROLES: readonly Role[] = [
   { key: 'reviewer', agent: 'reviewer', label: 'Reviewer', help: 'spec, plan, roadmap, task and whole-branch reviews' },
   { key: 'implementer', agent: 'implementer', label: 'Implementer', help: 'tasks, fix rounds 1-3, final-review and CI fixes' },
-  { key: 'checker', agent: 'checker', label: 'Checker', help: 'scoped re-review of each fix round' },
+  { key: 'checker', agent: 'checker', label: 'Checker', help: "fallback re-check of a fix round when the reviewer can't be resumed" },
   { key: 'scout', agent: 'scout', label: 'Scout', help: 'fact-finding during grill, design and roadmap' },
   { key: 'escalation', label: 'Escalation', help: 'fresh implementer for fix rounds 4-5 and a BLOCKED retry' },
   { key: 'fallback', label: 'Fallback', help: 're-dispatch when a model is unavailable (rate or usage limit, overload)' },
