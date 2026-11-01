@@ -64,6 +64,7 @@ Stop at the first rung that holds; when two hold, take the higher one.
   no document claims (roadmap, spec, later phase prompt, user docs) is deleted. A "for later"
   comment is not a claim, nor is a test that exercises only the dead thing. Confirm with grep,
   including string and dynamic references, then delete it with its tests, exports and doc mentions.
+  Scope: the modules the work touches and what the work orphans, not the whole repo.
 - No interface with one implementation, no factory with one product, no config for a value that
   never changes, no wrapper that only delegates.
 - Mark a deliberate simplification with a known ceiling as `lean: <ceiling>, <upgrade trigger>`

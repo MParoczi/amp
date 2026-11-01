@@ -24,8 +24,9 @@ description: The amp root-cause discipline (Superpowers systematic-debugging, ma
 7. **Fix once, at the root.** Make the smallest change where all callers route through (amp:lean).
    Add a guard at another layer only where bad data genuinely enters from outside (a trust
    boundary).
-8. **Verify.** Run the pinning test, the tests around the change, then the suite once. Remove the
-   probes.
+8. **Verify.** Run the pinning test and the tests around the change. Run the full suite once only
+   when the fix touches shared code (code other modules import, a public interface, or
+   config/build files) or is the plan's last task. Remove the probes.
 
 **Three strikes.** If three hypotheses or fixes have failed, stop patching. The problem is
 structural (wrong model, wrong layer, a shared-state or timing assumption). Write down what the

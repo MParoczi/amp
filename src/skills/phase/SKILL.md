@@ -166,9 +166,9 @@ that resume fails is a fresh agent spawned: `amp-checker` for a fix round (`chec
 `checker_final`), `amp-reviewer` for a document (`reviewer_<mode>_r1`).
 
 **Closing.** Where `close_agent` exists, close each checker and scout as soon as its result is
-read, and each reviewer when its task's fix loop or its document's confirmation ends. Close the
-implementer when its task's fix loop ends, or before any fresh implementer spawn for the same task
-(round 4, a BLOCKED retry).
+read, and each reviewer when its task's fix loop or its document's confirmation ends
+(at once when nothing loops). Close the implementer when its task's fix loop ends, or before any
+fresh implementer spawn for the same task (round 4, a BLOCKED retry).
 
 **Escalation** (fix rounds 4–5, a BLOCKED retry): spawn a fresh `amp-implementer` with
 `reasoning_effort: "xhigh"`, keeping any pinned `model`. Ledger `Escalation: implementer → xhigh`.

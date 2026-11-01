@@ -21,9 +21,10 @@ naming scheme (`implementer_<N>`, `checker_<N>_r<R>`, `reviewer_final`, …) and
 `fork_turns: "none"`.
 Collect each contract with `wait_agent` (in v2 it arrives as a message; wait again until it has).
 Resume a live implementer or reviewer with `followup_task` (v2) or `send_input` (v1). Where
-`close_agent` exists, close the task's reviewer and implementer when its fix loop ends (the final
-reviewer after the final fix wave's re-check), a fallback checker once its result is read, and the
-implementer before any fresh implementer spawn for that task.
+`close_agent` exists, close the task's reviewer and implementer when its fix loop ends
+(at once when nothing loops; the final reviewer after the final fix wave's re-check), a fallback
+checker once its result is read, and the implementer before any fresh implementer spawn for that
+task.
 
 Scripts (run with `bash`, from any cwd inside the repo):
 `S="<skills>/build/scripts"` (keep the quotes: on Windows the path has backslashes): `$S/amp-workspace KEY`,
@@ -102,7 +103,8 @@ is Independent, set `WT="$WS/wt-<N+1>"`:
 3. When task N is complete **and** N+1's implementer has returned its contract (wait for it
    otherwise, and handle it as in loop step 3): if N gained fix commits,
    `git -C "$WT" rebase <phase branch>` (N+1's commits are unreviewed, so rewriting them is safe).
-   On a conflict, `git -C "$WT" rebase --abort`, clean up, ledger
+   On any rebase failure, `git -C "$WT" rebase --abort` (ignore its error if no rebase is in
+   progress), clean up, ledger
    `Task N+1: pipeline dropped — <why>`, and run N+1 sequentially from scratch. On a clean rebase,
    resume N+1's implementer to re-run its tests in the worktree.
 4. Check where N+1's work landed: `git rev-list --count HEAD..amp-wt-<N+1>` is at least 1, and
@@ -115,7 +117,8 @@ is Independent, set `WT="$WS/wt-<N+1>"`:
    name `Work in: <repo root> on branch <phase branch>`.
 
 **Cleanup** (every exit): `git worktree remove --force "$WT"`, then `git branch -D amp-wt-<N+1>`
-(`-D`: after a drop the branch is unmerged). An error for an item already gone is harmless.
+(`-D`: after a drop the branch is unmerged). An error for an item already gone is harmless. On a
+failed remove (a locked file), `git worktree prune` and retry once; ledger anything left.
 
 The worktree sits under the git-ignored `.amp/`, which some tools don't honor. While a pipeline is
 open, reference and dead-code checks use `git grep` (tracked files only), and a test or lint

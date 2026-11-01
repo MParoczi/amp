@@ -367,6 +367,8 @@ lacks agents/implementer.md "always including \`amp:lean\`"
 lacks agents/reviewer.md 'always `amp:lean`'
 lacks codex/agents/amp-implementer.toml 'like `amp:lean`'
 holds skills/lean/SKILL.md 'shared code'
+holds agents/implementer.md 'what the work orphans'
+holds skills/debug/SKILL.md 'shared code'
 ok
 
 case=effort
@@ -393,6 +395,10 @@ holds skills/design/SKILL.md 'Confirmation re-review'
 holds skills/plan/SKILL.md 'Confirmation re-review'
 holds skills/roadmap/SKILL.md 'Confirmation re-review'
 lacks codex/skills/phase/SKILL.md 'close each reviewer, checker and scout as soon as'
+holds codex/skills/phase/SKILL.md 'at once when nothing loops'
+holds codex/skills/build/SKILL.md 'at once when nothing loops'
+holds hooks/register.tsx 'and fix re-checks'
+holds .claude-plugin/plugin.json 'and fix re-checks'
 ok
 
 case=routing-once
@@ -409,7 +415,7 @@ case=pipeline
 holds skills/plan/SKILL.md '**Independent:** yes' 'only setup, config or docs'
 holds skills/build/prompts/document-review.md 'only setup, config or docs'
 holds skills/build/SKILL.md 'amp-wt-' 'git worktree add' 'merge --ff-only' 'worktree remove --force' 'branch -D' 'merged (base' 'Pipeline: off' 'git grep'
-holds skills/build/SKILL.md 'rev-list --count' '`Task N+1: pipeline dropped` or `Pipeline: off` line'
+holds skills/build/SKILL.md 'rev-list --count' '`Task N+1: pipeline dropped` or `Pipeline: off` line' 'worktree prune' 'On any rebase failure'
 holds codex/skills/build/SKILL.md 'amp-wt-'
 holds skills/phase/SKILL.md 'amp-wt-'
 lacks skills/build/SKILL.md 'never two implementers at once'

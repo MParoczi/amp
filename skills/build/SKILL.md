@@ -87,7 +87,8 @@ is Independent, set `WT="$WS/wt-<N+1>"`:
 3. When task N is complete **and** N+1's implementer has returned its contract (wait for it
    otherwise, and handle it as in loop step 3): if N gained fix commits,
    `git -C "$WT" rebase <phase branch>` (N+1's commits are unreviewed, so rewriting them is safe).
-   On a conflict, `git -C "$WT" rebase --abort`, clean up, ledger
+   On any rebase failure, `git -C "$WT" rebase --abort` (ignore its error if no rebase is in
+   progress), clean up, ledger
    `Task N+1: pipeline dropped — <why>`, and run N+1 sequentially from scratch. On a clean rebase,
    resume N+1's implementer to re-run its tests in the worktree.
 4. Check where N+1's work landed: `git rev-list --count HEAD..amp-wt-<N+1>` is at least 1, and
@@ -100,7 +101,8 @@ is Independent, set `WT="$WS/wt-<N+1>"`:
    name `Work in: <repo root> on branch <phase branch>`.
 
 **Cleanup** (every exit): `git worktree remove --force "$WT"`, then `git branch -D amp-wt-<N+1>`
-(`-D`: after a drop the branch is unmerged). An error for an item already gone is harmless.
+(`-D`: after a drop the branch is unmerged). An error for an item already gone is harmless. On a
+failed remove (a locked file), `git worktree prune` and retry once; ledger anything left.
 
 The worktree sits under the git-ignored `.amp/`, which some tools don't honor. While a pipeline is
 open, reference and dead-code checks use `git grep` (tracked files only), and a test or lint

@@ -16,7 +16,7 @@ const ALIASES = MODELS.filter(m => m !== 'inherit')
 export type Role = { key: string; agent?: string; label: string; help: string }
 
 export const ROLES: readonly Role[] = [
-  { key: 'reviewer', agent: 'reviewer', label: 'Reviewer', help: 'spec, plan, roadmap, task and whole-branch reviews' },
+  { key: 'reviewer', agent: 'reviewer', label: 'Reviewer', help: 'spec, plan, roadmap, task and whole-branch reviews, and fix re-checks' },
   { key: 'implementer', agent: 'implementer', label: 'Implementer', help: 'tasks, fix rounds 1-3, final-review and CI fixes' },
   { key: 'checker', agent: 'checker', label: 'Checker', help: "fallback re-check of a fix round when the reviewer can't be resumed" },
   { key: 'scout', agent: 'scout', label: 'Scout', help: 'fact-finding during grill, design and roadmap' },
