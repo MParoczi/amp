@@ -21,9 +21,9 @@
 - Opt-in pipelining: a plan task marked `**Independent:** yes` (it uses nothing the previous task
   produces and shares no file with it) is implemented in a git worktree under `.amp/` while the
   previous task is under review, then rebased if needed, merged and reviewed as usual. A rebase
-  conflict or undocumented setup drops back to one task at a time; every step is in the ledger, so
-  a crashed run resumes cleanly. On Codex the second implementer stays within the default thread
-  limit.
+  conflict, a failed merge or undocumented setup drops back to one task at a time. Every step is
+  ledgered, and after a crash amp keeps the pipelined task only if it was merged, otherwise it
+  redoes it. On Codex the second implementer stays within the default thread limit.
 
 ## 1.2.0 — 2026-10-31
 

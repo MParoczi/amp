@@ -71,7 +71,8 @@ conflicts, ambiguities and plan defects yourself, with the spec as the authority
    action, or a paid or external-account action.
 2. A destructive or irreversible operation **outside** the pre-authorized set. Pre-authorized:
    create the phase branch, commit, push the phase branch, open the PR, re-run CI, merge after
-   green, tag per project config, delete the merged phase branch.
+   green, tag per project config, delete the merged phase branch, and rebase, remove and delete
+   amp:build's own pipeline worktrees (`$WS/wt-*`) and `amp-wt-*` branches.
 3. A security-sensitive action, or a project-specific stop rule from the amp configuration.
 4. A plan so broken that every path forward is a guess, or a cap tripped in amp:ship (verify, CI,
    merge protection).

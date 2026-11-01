@@ -409,7 +409,10 @@ case=pipeline
 holds skills/plan/SKILL.md '**Independent:** yes' 'only setup, config or docs'
 holds skills/build/prompts/document-review.md 'only setup, config or docs'
 holds skills/build/SKILL.md 'amp-wt-' 'git worktree add' 'merge --ff-only' 'worktree remove --force' 'branch -D' 'merged (base' 'Pipeline: off' 'git grep'
+holds skills/build/SKILL.md 'rev-list --count' '`Task N+1: pipeline dropped` or `Pipeline: off` line'
 holds codex/skills/build/SKILL.md 'amp-wt-'
+holds skills/phase/SKILL.md 'amp-wt-'
 lacks skills/build/SKILL.md 'never two implementers at once'
 for a in implementer reviewer checker; do holds "agents/$a.md" 'git grep' '.amp/'; done
+holds agents/implementer.md 'git -C'
 ok

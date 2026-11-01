@@ -66,7 +66,8 @@ For each task N:
      Adjudicate only at the cap; every adjudication is a ledger line and nothing is discarded
      silently.
 6. **Complete:** ledger `Task N: complete (commits a..b, review clean | K parked)`, tick the task's
-   checkboxes in the plan file, and move on without asking anything.
+   checkboxes in the plan file, and move on without asking anything (a pipelined N+1 continues at
+   Pipelining step 3).
 
 **Batching:** tasks the plan marks as one batch of same-shape edits get one dispatch and one review.
 
@@ -74,8 +75,8 @@ For each task N:
 ahead). When task N's implementer reports DONE (or DONE_WITH_CONCERNS once resolved) and task N+1
 is Independent, set `WT="$WS/wt-<N+1>"`:
 
-1. `bash "$S/task-brief" <plan> N+1 $WS`, then `git worktree add "$WT" -b amp-wt-<N+1>` (from
-   HEAD, task N's head). Ledger `Task N+1: pipelined (worktree <WT>)`. Run the project's
+1. `bash "$S/task-brief" <plan> N+1 $WS`, ledger `Task N+1: pipelined (worktree <WT>)`, then
+   `git worktree add "$WT" -b amp-wt-<N+1>` (from HEAD, task N's head). Run the project's
    documented install or setup in `$WT` if its tests need one. If that fails, or the tests need
    setup the project doesn't document, clean up, ledger `Pipeline: off — <why>`, and run the rest
    of the plan sequentially.
@@ -89,25 +90,32 @@ is Independent, set `WT="$WS/wt-<N+1>"`:
    On a conflict, `git -C "$WT" rebase --abort`, clean up, ledger
    `Task N+1: pipeline dropped — <why>`, and run N+1 sequentially from scratch. On a clean rebase,
    resume N+1's implementer to re-run its tests in the worktree.
-4. `BASE=$(git rev-parse HEAD)`, ledger `Task N+1: merged (base <BASE>)`, then
-   `git merge --ff-only amp-wt-<N+1>` and clean up. Task N+1 continues at loop step 4 (review of
-   `BASE..HEAD`).
+4. Check where N+1's work landed: `git rev-list --count HEAD..amp-wt-<N+1>` is at least 1, and
+   `git log --format=%s <N's BASE>..HEAD` holds only task N's commits (no N+1 Commit line).
+   Otherwise treat it as a drop (cleanup, ledger `Task N+1: pipeline dropped — <why>`, redo N+1
+   sequentially).
+5. `BASE=$(git rev-parse HEAD)`, ledger `Task N+1: merged (base <BASE>)`, then
+   `git merge --ff-only amp-wt-<N+1>` (a failure is a drop, as above) and clean up. Task N+1
+   continues at loop step 4 (review of `BASE..HEAD`). The worktree is gone, so N+1's fix rounds
+   name `Work in: <repo root> on branch <phase branch>`.
 
 **Cleanup** (every exit): `git worktree remove --force "$WT"`, then `git branch -D amp-wt-<N+1>`
-(`-D`: after a drop the branch is unmerged).
+(`-D`: after a drop the branch is unmerged). An error for an item already gone is harmless.
 
 The worktree sits under the git-ignored `.amp/`, which some tools don't honor. While a pipeline is
 open, reference and dead-code checks use `git grep` (tracked files only), and a test or lint
 failure whose path is under `.amp/` is a pipeline artifact: re-run with `.amp` excluded, never a
 finding. The agents carry the same rule.
 
-**Resume after a crash** (a `Task N+1: pipelined` line with no later `Task N+1: complete`): N+1 is
-merged only when the ledger has `Task N+1: merged (base <BASE>)` **and** `amp-wt-<N+1>` is an
-ancestor of HEAD (`git merge-base --is-ancestor amp-wt-<N+1> HEAD`), or the branch is already gone
-and `<BASE>..HEAD` holds N+1's commit. Then clean up what is left and continue N+1 from its last
-ledger line (review of `<BASE>..HEAD`). Otherwise clean up, ledger `Pipeline: off — resume`, and
-redo N+1 sequentially after task N; that includes a crash while N+1 was still being implemented,
-when the temp branch tip is still N's head.
+**Resume after a crash** (a `Task N+1: pipelined` line with no later `Task N+1: complete`,
+`Task N+1: pipeline dropped` or `Pipeline: off` line; after those, N+1 resumes by the normal ledger
+rule): N+1 is merged only when the ledger has `Task N+1: merged (base <BASE>)` **and** either
+`amp-wt-<N+1>` is an ancestor of HEAD (`git merge-base --is-ancestor amp-wt-<N+1> HEAD`), or the
+branch is gone and `git log --format=%s <BASE>..HEAD` contains N+1's plan Commit line. Then clean
+up what is left and continue N+1 from its last ledger line (review of `<BASE>..HEAD`, fix rounds in
+the main tree). Otherwise clean up, ledger `Pipeline: off — resume`, and redo N+1 sequentially
+after task N; that includes a crash while N+1 was still being implemented, when the temp branch
+tip is still N's head.
 
 ## Final review
 

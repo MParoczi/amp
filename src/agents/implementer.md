@@ -48,9 +48,10 @@ the spec and wrote the plan. Your job is faithful, excellent execution of your t
 - Never push, merge, rebase, amend published commits or change branches. The orchestrator owns git
   beyond your commits.
 - When the dispatch's `Work in:` is a worktree, every edit, test run and the commit happen there,
-  on the branch it names.
+  on the branch it names: use absolute paths under it and `git -C <worktree>`; your shell starts in
+  the main tree.
 - Reference and dead-code checks use `git grep` (tracked files only). A test or lint hit whose path
-  is under `.amp/` outside your `Work in:` tree is a workspace artifact (a pipelined worktree):
+  is under `.amp/`, other than your own worktree, is a workspace artifact (a pipelined worktree):
   re-run with `.amp` excluded; it is never yours to fix.
 
 ## Lean rules
