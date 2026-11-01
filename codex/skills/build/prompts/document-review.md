@@ -13,7 +13,7 @@ Flag only what would cause real problems downstream:
 - Completeness: placeholders, TBDs, missing sections, a decision from the sources not reflected
 - Consistency: contradictions within the document or against the sources/code
 - Clarity: any requirement readable two ways
-- Scope and lean: unrequested features, over-engineering (amp:lean ladder), scope creep
+- Scope and lean: unrequested features, over-engineering (the lean ladder), scope creep
 - Mode spec: interfaces exact? states and errors covered? testing seams named? docs impact listed?
   every "new" component justified against what exists? deletions listed with their evidence?
 - Mode plan: every spec requirement and Deletion → a task; step granularity (no gaps, no

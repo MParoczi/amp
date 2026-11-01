@@ -355,3 +355,16 @@ for f in CLAUDE.md settings.json; do [ ! -e "$ROOT/$t/$f" ] || fail "$t/$f shoul
 holds "$t/config.toml" 'model_reasoning_effort = "high"'
 holds codex/skills/roadmap/SKILL.md amp-install.json 'the agents are stale' '<skills>/../install <flags>' --project
 ok
+
+case=lean-in-agents
+# the agents carry the lean rules, so no dispatch loads amp:lean
+holds agents/implementer.md '## Lean rules' 'Does this need to exist?' 'accessibility basics' 'data loss' 'lean: <ceiling>' 'shared code'
+holds agents/reviewer.md '## Lean rules' 'accessibility basics' 'Minor unless they add' 'delete:' 'reuse:' 'stdlib:' 'native:' 'yagni:' 'shrink:' 'net: -'
+for f in "$ROOT"/skills/build/prompts/*.md; do
+  lacks "${f#"$ROOT/"}" 'amp:lean,' 'amp:lean tag' 'amp:lean review-tag' 'amp:lean ladder'
+done
+lacks agents/implementer.md "always including \`amp:lean\`"
+lacks agents/reviewer.md 'always `amp:lean`'
+lacks codex/agents/amp-implementer.toml 'like `amp:lean`'
+holds skills/lean/SKILL.md 'shared code'
+ok

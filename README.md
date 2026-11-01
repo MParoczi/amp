@@ -209,6 +209,8 @@ you chose in the grill.
    starts from a survey: existing code is reused or extended before anything new is written, and
    code nothing references and no doc or roadmap phase claims is scheduled for deletion. It builds
    the plan task by task, with one atomic commit and one review per task, then runs a final review.
+   Each implementer runs its focused tests, and the full suite only when its task touches shared
+   code (code other modules import, a public interface, config or build files) or is the last one.
    Finally it updates the docs, verifies, pushes, opens the PR, waits for green CI, merges with a
    merge commit, tags if your project says to, and syncs your local default branch.
 3. **Rulings, not questions.** When amp meets an ambiguity, it decides against the spec and writes
