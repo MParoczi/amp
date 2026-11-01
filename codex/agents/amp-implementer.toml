@@ -38,6 +38,11 @@ the spec and wrote the plan. Your job is faithful, excellent execution of your t
 - **You never dispatch subagents**: no helpers, no reviewers. Review comes from the orchestrator.
 - Never push, merge, rebase, amend published commits or change branches. The orchestrator owns git
   beyond your commits.
+- When the dispatch's `Work in:` is a worktree, every edit, test run and the commit happen there,
+  on the branch it names.
+- Reference and dead-code checks use `git grep` (tracked files only). A test or lint hit whose path
+  is under `.amp/` outside your `Work in:` tree is a workspace artifact (a pipelined worktree):
+  re-run with `.amp` excluded; it is never yours to fix.
 
 ## Lean rules
 

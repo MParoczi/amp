@@ -212,7 +212,7 @@ inst
 [ "$rc" -eq 0 ] || fail "exit $rc: $out"
 for r in $roles; do [ -f "$dir/amp-$r.toml" ] || fail "amp-$r.toml missing"; done
 [ "$(ls "$dir" | wc -l)" -eq 5 ] || fail "files: $(ls "$dir")"
-grep -qF '"version": "1.2.0"' "$dir/amp-install.json" || fail "json: $(cat "$dir/amp-install.json")"
+grep -qF '"version": "1.3.0"' "$dir/amp-install.json" || fail "json: $(cat "$dir/amp-install.json")"
 [ "$(grep -oF ': null' "$dir/amp-install.json" | wc -l)" -eq 4 ] || fail "json: $(cat "$dir/amp-install.json")"
 count 'installed: ' 4
 has "wrote: $dir/amp-install.json"
@@ -275,7 +275,7 @@ cx=$ROOT/.codex-plugin/plugin.json
 grep -qF '"skills": "./codex/skills"' "$cx" || fail "no skills path"
 grep -qF '"hooks": {}' "$cx" || fail "no empty hooks"
 for m in "$ROOT/.claude-plugin/plugin.json" "$cx"; do
-  grep -qF '"version": "1.2.0"' "$m" || fail "$m: version is not 1.2.0"
+  grep -qF '"version": "1.3.0"' "$m" || fail "$m: version is not 1.3.0"
 done
 d=$(grep -F '"description":' "$ROOT/.claude-plugin/plugin.json" | head -n 1)
 [ "$d" = "$(grep -F '"description":' "$cx" | head -n 1)" ] || fail "plugin.json descriptions differ"
@@ -402,4 +402,14 @@ lacks skills/build/SKILL.md '## Model fallback'
 lacks codex/skills/build/SKILL.md '## Model fallback'
 lacks skills/design/SKILL.md 'Model fallback applies'
 holds skills/phase/SKILL.md 'amp model routing' 'Fallback (automatic, no question)'
+ok
+
+case=pipeline
+# plans fold setup-only tasks; amp:build pipelines Independent tasks in a worktree under the workspace
+holds skills/plan/SKILL.md '**Independent:** yes' 'only setup, config or docs'
+holds skills/build/prompts/document-review.md 'only setup, config or docs'
+holds skills/build/SKILL.md 'amp-wt-' 'git worktree add' 'merge --ff-only' 'worktree remove --force' 'branch -D' 'merged (base' 'Pipeline: off' 'git grep'
+holds codex/skills/build/SKILL.md 'amp-wt-'
+lacks skills/build/SKILL.md 'never two implementers at once'
+for a in implementer reviewer checker; do holds "agents/$a.md" 'git grep' '.amp/'; done
 ok

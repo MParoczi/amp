@@ -42,8 +42,10 @@ Dispatch templates: `prompts/`.
    same thing), and one row per task
    (do its tests match its code, and its created files match its later touches). Rule on every
    conflict, with the spec as the authority: `Ruling: <decision> — <why> — <cost if wrong>`.
+   Confirm or override each `**Independent:** yes` mark with a ruling: the task consumes nothing
+   the previous task produces and shares no file with it.
 
-## The task loop (strictly sequential: never two implementers at once)
+## The task loop (never two implementers in the same tree)
 
 For each task N:
 
@@ -51,7 +53,7 @@ For each task N:
 2. **Implement:** dispatch `amp-implementer` with `prompts/implement.md`. Record its agent id (fix
    rounds 1–3 resume it).
 3. **Handle the contract:**
-   - `DONE`: go to review.
+   - `DONE`: go to review (and start **Pipelining** below when task N+1 is Independent).
    - `DONE_WITH_CONCERNS`: resolve correctness or scope concerns first, then review.
    - `NEEDS_CONTEXT`: answer precisely and resume.
    - `BLOCKED`: change something before retrying (more context, split the task, the escalation
@@ -82,6 +84,45 @@ For each task N:
    checkboxes in the plan file, and move on without asking anything.
 
 **Batching:** tasks the plan marks as one batch of same-shape edits get one dispatch and one review.
+
+**Pipelining** (opt-in through the plan's confirmed Independent marks; at most one task runs
+ahead). When task N's implementer reports DONE (or DONE_WITH_CONCERNS once resolved) and task N+1
+is Independent, set `WT="$WS/wt-<N+1>"`:
+
+1. `bash "$S/task-brief" <plan> N+1 $WS`, then `git worktree add "$WT" -b amp-wt-<N+1>` (from
+   HEAD, task N's head). Ledger `Task N+1: pipelined (worktree <WT>)`. Run the project's
+   documented install or setup in `$WT` if its tests need one. If that fails, or the tests need
+   setup the project doesn't document, clean up, ledger `Pipeline: off — <why>`, and run the rest
+   of the plan sequentially.
+2. Dispatch task N's reviewer (loop step 4) and task N+1's implementer together, the implementer
+   with `Work in: <WT> on branch amp-wt-<N+1>`. Every dispatch while the pipeline is open names
+   `<WT>` as a pipelined worktree outside its scope. Task N's fix loop runs as usual in the main
+   tree. The second open `amp-implementer` (`implementer_<N+1>`) is within the default thread limit.
+3. When task N is complete **and** N+1's implementer has returned its contract (wait for it
+   otherwise, and handle it as in loop step 3): if N gained fix commits,
+   `git -C "$WT" rebase <phase branch>` (N+1's commits are unreviewed, so rewriting them is safe).
+   On a conflict, `git -C "$WT" rebase --abort`, clean up, ledger
+   `Task N+1: pipeline dropped — <why>`, and run N+1 sequentially from scratch. On a clean rebase,
+   resume N+1's implementer to re-run its tests in the worktree.
+4. `BASE=$(git rev-parse HEAD)`, ledger `Task N+1: merged (base <BASE>)`, then
+   `git merge --ff-only amp-wt-<N+1>` and clean up. Task N+1 continues at loop step 4 (review of
+   `BASE..HEAD`).
+
+**Cleanup** (every exit): `git worktree remove --force "$WT"`, then `git branch -D amp-wt-<N+1>`
+(`-D`: after a drop the branch is unmerged).
+
+The worktree sits under the git-ignored `.amp/`, which some tools don't honor. While a pipeline is
+open, reference and dead-code checks use `git grep` (tracked files only), and a test or lint
+failure whose path is under `.amp/` is a pipeline artifact: re-run with `.amp` excluded, never a
+finding. The agents carry the same rule.
+
+**Resume after a crash** (a `Task N+1: pipelined` line with no later `Task N+1: complete`): N+1 is
+merged only when the ledger has `Task N+1: merged (base <BASE>)` **and** `amp-wt-<N+1>` is an
+ancestor of HEAD (`git merge-base --is-ancestor amp-wt-<N+1> HEAD`), or the branch is already gone
+and `<BASE>..HEAD` holds N+1's commit. Then clean up what is left and continue N+1 from its last
+ledger line (review of `<BASE>..HEAD`). Otherwise clean up, ledger `Pipeline: off — resume`, and
+redo N+1 sequentially after task N; that includes a crash while N+1 was still being implemented,
+when the temp branch tip is still N's head.
 
 ## Final review
 

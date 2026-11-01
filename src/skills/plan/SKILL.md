@@ -50,9 +50,10 @@ where the plan's work would otherwise make it unwieldy.
 ## Tasks
 
 A task is the **smallest unit that carries its own test cycle and is worth a fresh reviewer's
-gate**. Fold setup, config and docs into the task whose deliverable needs them. Split only where a
-reviewer could reject one half while approving the other. Order by dependency: enabling refactors
-first, then tracer-bullet vertical slices. Each task ends green and committable.
+gate**. Fold setup, config and docs into the task whose deliverable needs them: never a task that
+is only setup, config or docs, unless the whole phase is docs. Split only where a reviewer could
+reject one half while approving the other. Order by dependency: enabling refactors first, then
+tracer-bullet vertical slices. Each task ends green and committable.
 
 ````markdown
 ### Task N: <component or behavior>
@@ -62,6 +63,7 @@ first, then tracer-bullet vertical slices. Each task ends green and committable.
 **Interfaces:** Consumes <exact names/signatures from earlier tasks> · Produces <exact names, params, return types later tasks rely on>
 **Docs:** <docs this task updates, or "none">
 **Commit:** `<type>(<scope>): <imperative summary>`
+**Independent:** yes <optional: only when it holds, see below; otherwise omit the line>
 
 - [ ] **Step 1: Failing test** `<test name>`, with its assertions as code, using the spec's exact values
 - [ ] **Step 2: Run, expect FAIL** `<command>` → `<expected failure>`
@@ -74,6 +76,10 @@ first, then tracer-bullet vertical slices. Each task ends green and committable.
 Commit types: `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `perf`, `style`,
 or the project's own convention if it defines one. **One task, one atomic commit.** A task that
 genuinely needs two commits (e.g. an expand–contract step) names both.
+
+`**Independent:** yes` marks a task that consumes nothing the previous task produces and shares no
+file with it. amp:build may then implement it in a worktree while the previous task is reviewed.
+Absent means no; mark it only when both hold.
 
 Batch same-shape trivial edits (the same one-line change across files) into ONE task that lists
 every file.
@@ -90,6 +96,8 @@ every file.
 5. **Lean:** no task builds what the spec doesn't require (`amp:lean` ladder).
 6. **DRY:** no two tasks create the same thing, every spec Deletion has a task, and each Reuse
    line names what the task builds on or says why nothing fits.
+7. **Sizing:** no task is only setup, config or docs (unless the phase is docs-only), and every
+   `Independent` mark holds.
 
 ## Review and commit
 

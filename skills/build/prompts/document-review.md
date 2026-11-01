@@ -18,7 +18,8 @@ Flag only what would cause real problems downstream:
   every "new" component justified against what exists? deletions listed with their evidence?
 - Mode plan: every spec requirement and Deletion → a task; step granularity (no gaps, no
   transcribed bodies); names and signatures consistent across tasks; no two tasks build the same
-  thing; each task one atomic commit; docs steps present
+  thing; each task one atomic commit; docs steps present; no task that is
+  only setup, config or docs (unless the phase is docs-only)
 - Mode roadmap: covers the whole vision A→Z; phases are vertical, shippable, one-session-sized;
   dependencies and order sound (risk early); each prompt self-contained and runnable by
   /amp:phase in a fresh session; branch types correct; verification gates concrete
