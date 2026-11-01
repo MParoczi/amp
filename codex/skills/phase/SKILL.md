@@ -134,11 +134,11 @@ implementer when its task's fix loop ends, or before any fresh implementer spawn
 
 **Fallback (automatic, no question):** when a spawn fails because its model is unavailable
 (usage/rate limit, 429, overloaded), re-spawn the same message without `model`, so the agent runs
-on the session model. Ledger `Fallback: <role> → session model` and keep that role on it for the
-rest of the run. If the failed spawn already had no `model`, wait briefly and retry once, then stop
-and tell the user. The main session can't switch its own model: if the **session** hits a limit,
-tell the user to run `/model <another model>` and say "continue". The workspace and ledger make
-the resume exact. Record every fallback in the PR's Rulings.
+on the session model. Ledger `Fallback: <role> → session model (<error class>)` and keep that
+role on it for the rest of the run. If the failed spawn already had no `model`, wait briefly and
+retry once, then stop and tell the user. The main session can't switch its own model: if the
+**session** hits a limit, tell the user to run `/model <another model>` and say "continue". The
+workspace and ledger make the resume exact. Record every fallback in the PR's Rulings.
 
 ## Project amp configuration
 

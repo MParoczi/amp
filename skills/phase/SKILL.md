@@ -77,32 +77,29 @@ PushNotification if that tool is available. Wait, then resume from the ledger.
 
 Reviewer and implementer run at high effort, checker and scout at medium. The model of each task
 type is the user's choice, set in the plugin's settings (`/amp-models`, or the amp rows under
-`/config`). Current settings (`inherit` = the session's model):
+`/config`).
 
-| Role | Runs as | Model |
-|---|---|---|
-| Orchestrator: grill, design, plan, rulings, ship | main session | the session model (`/model`) |
-| Fact-finding: codebase, docs, versions, CI logs | `amp:scout` | ${user_config.scout} |
-| Spec / plan / roadmap review, task review, final whole-branch review, and their re-reviews | `amp:reviewer` | ${user_config.reviewer} |
-| Implementation, fix rounds 1–3, final and CI fixes | `amp:implementer` | ${user_config.implementer} |
-| Fix rounds 4–5, a BLOCKED retry (escalation) | `amp:implementer` + `model` | ${user_config.escalation} |
-| Scoped re-review fallback (reviewer not resumable) | `amp:checker` | ${user_config.checker} |
-| Re-dispatch when a model is unavailable (fallback) | same agent + `model` | ${user_config.fallback} |
+| Role | Runs as |
+|---|---|
+| Orchestrator: grill, design, plan, rulings, ship | main session (`/model`) |
+| Fact-finding: codebase, docs, versions, CI logs | `amp:scout` |
+| Spec / plan / roadmap review, task review, final whole-branch review, and their re-reviews | `amp:reviewer` |
+| Implementation, fix rounds 1–3, final and CI fixes | `amp:implementer` |
+| Fix rounds 4–5, a BLOCKED retry (escalation) | `amp:implementer` + `model` |
+| Scoped re-review fallback (reviewer not resumable) | `amp:checker` |
+| Re-dispatch when a model is unavailable (fallback) | same agent + `model` |
 
 **Dispatch amp agents without a `model` parameter:** the plugin assigns each its configured model.
-Pass `model` only for the escalation and fallback rows, with the exact value the **amp model
-routing** section of your system prompt names (it resolves `inherit` to an alias). Without that
-section, pass the row's value above, and for `inherit` the session model's alias (`fable`,
-`opus`, `sonnet`, `haiku`), or no `model` if it has none. Never set
-`CLAUDE_CODE_SUBAGENT_MODEL`: it outranks the settings.
+Pass `model` only for escalation and fallback, with the value the **amp model routing** section of
+your system prompt names. Never set `CLAUDE_CODE_SUBAGENT_MODEL`: it outranks the settings.
 
 **Fallback (automatic, no question):** when a dispatch fails because its model is unavailable
 (usage/rate limit, 429, overloaded), re-dispatch the same prompt with the fallback model, ledger
-`Fallback: <role> → <model>`, and keep that role on it for the rest of the run. If the failed
-dispatch already ran on the fallback model, wait briefly and retry once, then stop and tell the
-user. The main session can't switch its own model: if the **session** hits a limit, tell the user
-to run `/model <another model>` and say "continue". The workspace and ledger make the resume
-exact. Record every fallback in the PR's Rulings.
+`Fallback: <role> → <model> (<error class>)`, and keep that role on it for the rest of the run.
+If the failed dispatch already ran on the fallback model, wait briefly and retry once, then stop
+and tell the user. The main session can't switch its own model: if the **session** hits a limit,
+tell the user to run `/model <another model>` and say "continue". The workspace and ledger make
+the resume exact. Record every fallback in the PR's Rulings.
 
 ## Project amp configuration
 

@@ -86,5 +86,3 @@ requirement readable two ways. YAGNI ruthlessly.
    {{claude: dispatch}}{{codex: spawn}} a fresh reviewer with the document-review template.
    If issues remain after that, rule on each (`Ruling:` line in the ledger) and continue. The spec
    isn't committed yet; amp:plan commits spec and plan together.
-
-Model fallback applies to every dispatch (see amp:phase, Model routing).

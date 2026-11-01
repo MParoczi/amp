@@ -394,3 +394,12 @@ holds skills/plan/SKILL.md 'Confirmation re-review'
 holds skills/roadmap/SKILL.md 'Confirmation re-review'
 lacks codex/skills/phase/SKILL.md 'close each reviewer, checker and scout as soon as'
 ok
+
+case=routing-once
+# amp:phase states model routing and fallback once; the plugin hook injects the Claude model values
+lacks skills/phase/SKILL.md '${user_config.' 'Without that section'
+lacks skills/build/SKILL.md '## Model fallback'
+lacks codex/skills/build/SKILL.md '## Model fallback'
+lacks skills/design/SKILL.md 'Model fallback applies'
+holds skills/phase/SKILL.md 'amp model routing' 'Fallback (automatic, no question)'
+ok

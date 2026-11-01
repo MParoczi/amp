@@ -96,14 +96,6 @@ For each task N:
 4. Hand off to **amp:ship**. The workspace stays until the merge (amp:ship reads the ledger for the
    PR body and deletes it).
 
-## Model fallback
-
-On any spawn that fails because the model is unavailable (rate limit, usage limit, overloaded),
-re-spawn the same message immediately without `model`, so the agent runs on the session model
-(amp:phase, Model routing). Ledger `Fallback: <role> → session model (<error class>)` and keep
-that role on it for the rest of this run. If the failed spawn already had no `model`, wait briefly
-and retry once, then stop and tell the user. Don't ask the user otherwise; this is pre-authorized.
-
 ## Red flags
 
 | Thought | Reality |

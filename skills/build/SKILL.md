@@ -81,13 +81,6 @@ For each task N:
 4. Hand off to **amp:ship**. The workspace stays until the merge (amp:ship reads the ledger for the
    PR body and deletes it).
 
-## Model fallback
-
-On any dispatch that fails because the model is unavailable (rate limit, usage limit,
-overloaded), re-dispatch the same prompt immediately with the fallback model (amp:phase, Model
-routing). Ledger `Fallback: <role> → <model> (<error class>)` and keep that role on it for the
-rest of this run. Don't ask the user; this is pre-authorized.
-
 ## Red flags
 
 | Thought | Reality |
