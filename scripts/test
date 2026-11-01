@@ -358,8 +358,8 @@ ok
 
 case=lean-in-agents
 # the agents carry the lean rules, so no dispatch loads amp:lean
-holds agents/implementer.md '## Lean rules' 'Does this need to exist?' 'accessibility basics' 'data loss' 'lean: <ceiling>' 'shared code'
-holds agents/reviewer.md '## Lean rules' 'accessibility basics' 'Minor unless they add' 'delete:' 'reuse:' 'stdlib:' 'native:' 'yagni:' 'shrink:' 'net: -'
+holds agents/implementer.md '## Lean rules' 'Does this need to exist?' 'accessibility basics' 'data loss' 'lean: <ceiling>' 'shared code' 'calibration knobs' 'string and dynamic references'
+holds agents/reviewer.md '## Lean rules' 'accessibility basics' 'calibration knobs' 'string and dynamic references' 'Minor unless they add' 'delete:' 'reuse:' 'stdlib:' 'native:' 'yagni:' 'shrink:' 'net: -'
 for f in "$ROOT"/skills/build/prompts/*.md; do
   lacks "${f#"$ROOT/"}" 'amp:lean,' 'amp:lean tag' 'amp:lean review-tag' 'amp:lean ladder'
 done

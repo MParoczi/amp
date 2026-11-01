@@ -65,14 +65,15 @@ Stop at the first rung that holds; when two hold, take the higher one.
   function beats one per caller.
 - **Dead code:** code nothing references (no caller, import, route, test, config or template) and
   no document claims (roadmap, spec, later phase prompt, user docs) is deleted. A "for later"
-  comment is not a claim, nor is a test that exercises only the dead thing. Delete it with its
-  tests, exports and doc mentions.
+  comment is not a claim, nor is a test that exercises only the dead thing. Confirm with grep,
+  including string and dynamic references, then delete it with its tests, exports and doc mentions.
 - No interface with one implementation, no factory with one product, no config for a value that
   never changes, no wrapper that only delegates.
 - Mark a deliberate simplification with a known ceiling as `lean: <ceiling>, <upgrade trigger>`
   in the language's comment syntax. amp:ship collects these into the PR.
 - **Never cut** input validation at trust boundaries, error handling that prevents data loss or
-  leaves the user uninformed, security measures, accessibility basics, or anything requested.
+  leaves the user uninformed, security measures, accessibility basics, physical-world
+  calibration knobs (hardware, clocks, sensors), or anything requested.
 - **Tests:** the project's test doctrine wins. Without one, non-trivial logic (a branch, loop,
   parser, money or security path) gets test-first coverage at its public seam: the smallest tests
   that fail if the behavior breaks. No per-function suites for trivial one-liners.

@@ -49,9 +49,11 @@ The lean axis of every code review. Anything tagged that removes required behavi
   code. Code that skipped a rung that held is over-engineered.
 - **Dead code** is code nothing references (no caller, import, route, test, config or template)
   **and** no document claims (roadmap, spec, later phase prompt, user docs). A "for later" comment
-  is not a claim, nor is a test that exercises only the dead thing.
+  is not a claim, nor is a test that exercises only the dead thing. Confirm with grep, including
+  string and dynamic references, before tagging `delete:`.
 - **Never cut:** never recommend cutting validation at trust boundaries, data loss handling,
-  security, accessibility basics, or anything requested.
+  security, accessibility basics, physical-world calibration knobs (hardware, clocks, sensors), or
+  anything requested.
 - **Tags**, one line per finding: `<file>:L<line>: <tag> <what>. <replacement>.`
   - `delete:` dead code, unused flexibility, speculative feature. Replacement: nothing.
   - `reuse:` new code an existing helper does, or would with a small change. Name the helper and
