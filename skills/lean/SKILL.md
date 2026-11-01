@@ -12,6 +12,8 @@ never skipped to save tokens.
 
 ## 1. Code economy: the ladder
 
+amp's agents carry a compact copy of these rules (`src/agents/implementer.md`, `reviewer.md`, `## Lean rules`); edit them together.
+
 Three names for one reflex: **DRY** (one place for each behavior), **YAGNI** (only what is asked
 for), **KISS** (the simplest thing that is correct).
 
@@ -108,7 +110,9 @@ Everything pasted into a prompt or printed back stays resident and is re-read ev
   conclusion.
 - **Batch same-shape work.** Five identical one-line edits are one dispatch, not five.
 - **Don't repeat evidence.** Don't re-run a suite someone already ran on the same code. Run focused
-  tests while iterating and the full suite once before committing.
+  tests while iterating and before committing; run the full suite before committing only when the
+  change touches shared code (code other modules import, a public interface, or config/build
+  files) or is the plan's last task.
 - **Right-size the model, never below quality.** Use the role table in amp:phase. Turn count beats
   token price: a cheap model that takes three times the turns costs more.
 - **Prose after code: at most three short lines.** Pattern: `[result] → skipped: [X], add when

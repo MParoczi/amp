@@ -1,7 +1,9 @@
 # Dispatch template: scoped re-review of a fix round
 
-Agent: `amp-checker` (`model` only when `amp-install.json` pins it). It verdicts findings and inspects the fix diff, nothing
-else.
+Agent: the reviewer that raised the findings, resumed with `followup_task` (v2) or `send_input` (v1):
+send the filled template without its `Load:` line, prefaced by "This replaces your full-review
+scope." Only if the resume fails: a fresh `amp-checker` (`model` only when `amp-install.json` pins it)
+with the full template. Either one verdicts findings and inspects the fix diff, nothing else.
 
 ```
 Scoped re-review — Phase <NN>, Task <N>, fix round <R>.

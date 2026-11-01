@@ -1,6 +1,6 @@
 ---
 name: build
-description: The amp execution stage (Superpowers subagent-driven development, made lean). Executes an amp plan task by task in the current session. Per task, one amp:implementer writes tests, code, docs and one atomic commit, and one amp:reviewer gives spec, quality and lean verdicts, with a capped fix loop re-checked by amp:checker. A crash-proof ledger tracks progress, and a final whole-branch review closes it. Runs autonomously with no check-ins. Run by amp:phase after amp:plan.
+description: The amp execution stage (Superpowers subagent-driven development, made lean). Executes an amp plan task by task in the current session. Per task, one amp:implementer writes tests, code, docs and one atomic commit, and one amp:reviewer gives spec, quality and lean verdicts, with a capped fix loop re-checked by the resumed reviewer. A crash-proof ledger tracks progress, and a final whole-branch review closes it. Runs autonomously with no check-ins. Run by amp:phase after amp:plan.
 effort: high
 ---
 
@@ -16,13 +16,17 @@ out (`amp:lean` §2).
 Before the first spawn, run only the **Agents:** check of amp:phase's Preflight (step 4), not its git steps, unless it already ran in this session.
 
 Every dispatch below is a `spawn_agent` call made as amp:phase, Model routing says:
-`agent_type: "amp-<role>"`, the filled template as `message`, `reasoning_effort: "high"`, `model`
-only when `amp-install.json` pins the role, and in v2 also a `task_name` from amp:phase's naming
-scheme (`implementer_<N>`, `checker_<N>_r<R>`, `reviewer_final`, …) and `fork_turns: "none"`.
+`agent_type: "amp-<role>"`, the filled template as `message`, `reasoning_effort: "medium"` for
+`amp-checker` and `"high"` for `amp-implementer` and `amp-reviewer` (`"xhigh"` on escalation),
+`model` only when `amp-install.json` pins the role, and in v2 also a `task_name` from amp:phase's
+naming scheme (`implementer_<N>`, `checker_<N>_r<R>`, `reviewer_final`, …) and
+`fork_turns: "none"`.
 Collect each contract with `wait_agent` (in v2 it arrives as a message; wait again until it has).
-Resume a live implementer with `followup_task` (v2) or `send_input` (v1). Where `close_agent`
-exists, close each reviewer and checker once its result is read, and the implementer when its
-task's fix loop ends or before any fresh implementer spawn for that task.
+Resume a live implementer or reviewer with `followup_task` (v2) or `send_input` (v1). Where
+`close_agent` exists, close the task's reviewer and implementer when its fix loop ends
+(at once when nothing loops; the final reviewer after the final fix wave's re-check), a fallback
+checker once its result is read, and the implementer before any fresh implementer spawn for that
+task.
 
 <!-- /codex -->
 Scripts (run with `bash`, from any cwd inside the repo):
@@ -42,8 +46,10 @@ Dispatch templates: `${CLAUDE_SKILL_DIR}/prompts/`.
    same thing), and one row per task
    (do its tests match its code, and its created files match its later touches). Rule on every
    conflict, with the spec as the authority: `Ruling: <decision> — <why> — <cost if wrong>`.
+   Confirm or override each `**Independent:** yes` mark with a ruling: the task consumes nothing
+   the previous task produces and shares no file with it.
 
-## The task loop (strictly sequential: never two implementers at once)
+## The task loop (never two implementers in the same tree)
 
 For each task N:
 
@@ -51,14 +57,15 @@ For each task N:
 2. **Implement:** dispatch `amp:implementer` with `prompts/implement.md`. Record its agent id (fix
    rounds 1–3 resume it).
 3. **Handle the contract:**
-   - `DONE`: go to review.
+   - `DONE`: go to review (and start **Pipelining** below when task N+1 is Independent).
    - `DONE_WITH_CONCERNS`: resolve correctness or scope concerns first, then review.
    - `NEEDS_CONTEXT`: answer precisely and resume.
    - `BLOCKED`: change something before retrying (more context, split the task, the escalation
      {{claude: model}}{{codex: spawn}} (amp:phase, Model routing), or a ledgered ruling that corrects the plan). Never retry unchanged.
 4. **Review:** `bash "$S/review-package" $WS $BASE HEAD`, then dispatch `amp:reviewer` with
-   `prompts/task-review.md`. Don't read the package yourself. Resolve each ⚠️ item yourself (you
-   hold cross-task context); a confirmed gap counts as a spec ❌.
+   `prompts/task-review.md`. Record the reviewer's agent id (fix-round re-reviews resume it).
+   Don't read the package yourself. Resolve each ⚠️ item yourself (you hold cross-task context);
+   a confirmed gap counts as a spec ❌.
 5. **Fix loop** (triggers: spec ❌, Critical or Important). Minor findings and lean tags never loop;
    ledger them as `Task N: minor (deferred): <one-liner>`. A finding that conflicts with the plan
    text gets a ledgered ruling first. Up to **5 rounds**, each round one fix plus one scoped
@@ -66,9 +73,11 @@ For each task N:
    - Rounds 1–3 resume the same implementer. Rounds 4–5 dispatch a **fresh** implementer with
      the escalation {{claude: model}}{{codex: effort}} (amp:phase, Model routing) ("you own it now; read the report for what was tried").
    - Before each round, `FIX_BASE=$(git rev-parse HEAD)`. After it, confirm the fix report has
-     tests, command and output, run `review-package $WS $FIX_BASE HEAD`, and dispatch `amp:checker`
-     with `prompts/re-review.md`. New Critical/Important breakage joins the open list;
-     out-of-scope observations become deferred minors.
+     tests, command and output, run `review-package $WS $FIX_BASE HEAD`, and resume the task's
+     reviewer with `prompts/re-review.md` (as its header says). Only if the resume fails, dispatch
+     `amp:checker` with the full template and ledger
+     `Re-review: checker (reviewer not resumable: <why>)`. New Critical/Important breakage joins
+     the open list; out-of-scope observations become deferred minors.
    - Ledger `Task N: fix round R/5 (X addressed, Y open — <one-liners>; commits a..b)`.
    - **Breaker at round 5:** adjudicate every open finding. If it is wrong or contestable, or real
      but nothing builds on it, record `Task N: parked — <finding> — Ruling: <why>`. If it is real
@@ -76,37 +85,71 @@ For each task N:
      Adjudicate only at the cap; every adjudication is a ledger line and nothing is discarded
      silently.
 6. **Complete:** ledger `Task N: complete (commits a..b, review clean | K parked)`, tick the task's
-   checkboxes in the plan file, and move on without asking anything.
+   checkboxes in the plan file, and move on without asking anything (a pipelined N+1 continues at
+   Pipelining step 3).
 
 **Batching:** tasks the plan marks as one batch of same-shape edits get one dispatch and one review.
+
+**Pipelining** (opt-in through the plan's confirmed Independent marks; at most one task runs
+ahead). When task N's implementer reports DONE (or DONE_WITH_CONCERNS once resolved) and task N+1
+is Independent, set `WT="$WS/wt-<N+1>"`:
+
+1. `bash "$S/task-brief" <plan> N+1 $WS`, ledger `Task N+1: pipelined (worktree <WT>)`, then
+   `git worktree add "$WT" -b amp-wt-<N+1>` (from HEAD, task N's head). Run the project's
+   documented install or setup in `$WT` if its tests need one. If that fails, or the tests need
+   setup the project doesn't document, clean up, ledger `Pipeline: off — <why>`, and run the rest
+   of the plan sequentially.
+2. Dispatch task N's reviewer (loop step 4) and task N+1's implementer together, the implementer
+   with `Work in: <WT> on branch amp-wt-<N+1>`. Every dispatch while the pipeline is open names
+   `<WT>` as a pipelined worktree outside its scope. Task N's fix loop runs as usual in the main
+   tree.{{codex:  The second open `amp-implementer` (`implementer_<N+1>`) is within the default thread limit.}}
+3. When task N is complete **and** N+1's implementer has returned its contract (wait for it
+   otherwise, and handle it as in loop step 3): if N gained fix commits,
+   `git -C "$WT" rebase <phase branch>` (N+1's commits are unreviewed, so rewriting them is safe).
+   On any rebase failure, `git -C "$WT" rebase --abort` (ignore its error if no rebase is in
+   progress), clean up, ledger
+   `Task N+1: pipeline dropped — <why>`, and run N+1 sequentially from scratch. On a clean rebase,
+   resume N+1's implementer to re-run its tests in the worktree.
+4. Check where N+1's work landed: `git rev-list --count HEAD..amp-wt-<N+1>` is at least 1, and
+   `git log --format=%s <N's BASE>..HEAD` holds only task N's commits (no N+1 Commit line).
+   Otherwise treat it as a drop (cleanup, ledger `Task N+1: pipeline dropped — <why>`, redo N+1
+   sequentially).
+5. `BASE=$(git rev-parse HEAD)`, ledger `Task N+1: merged (base <BASE>)`, then
+   `git merge --ff-only amp-wt-<N+1>` (a failure is a drop, as above) and clean up. Task N+1
+   continues at loop step 4 (review of `BASE..HEAD`). The worktree is gone, so N+1's fix rounds
+   name `Work in: <repo root> on branch <phase branch>`.
+
+**Cleanup** (every exit): `git worktree remove --force "$WT"`, then `git branch -D amp-wt-<N+1>`
+(`-D`: after a drop the branch is unmerged). An error for an item already gone is harmless. On a
+failed remove (a locked file), `git worktree prune` and retry once; ledger anything left.
+
+The worktree sits under the git-ignored `.amp/`, which some tools don't honor. While a pipeline is
+open, reference and dead-code checks use `git grep` (tracked files only), and a test or lint
+failure whose path is under `.amp/` is a pipeline artifact: re-run with `.amp` excluded, never a
+finding. The agents carry the same rule.
+
+**Resume after a crash** (a `Task N+1: pipelined` line with no later `Task N+1: complete`,
+`Task N+1: pipeline dropped` or `Pipeline: off` line; after those, N+1 resumes by the normal ledger
+rule): N+1 is merged only when the ledger has `Task N+1: merged (base <BASE>)` **and** either
+`amp-wt-<N+1>` is an ancestor of HEAD (`git merge-base --is-ancestor amp-wt-<N+1> HEAD`), or the
+branch is gone and `git log --format=%s <BASE>..HEAD` contains N+1's plan Commit line. Then clean
+up what is left and continue N+1 from its last ledger line (review of `<BASE>..HEAD`, fix rounds in
+the main tree). Otherwise clean up, ledger `Pipeline: off — resume`, and redo N+1 sequentially
+after task N; that includes a crash while N+1 was still being implemented, when the temp branch
+tip is still N's head.
 
 ## Final review
 
 1. `MB=$(git merge-base origin/<default> HEAD)`, then `review-package $WS $MB HEAD`. Dispatch
    `amp:reviewer` with `prompts/final-review.md`.
 2. If it returns findings (including ledger items triaged must-fix), send **ONE** `amp:implementer`
-   dispatch with the complete list (never one fixer per finding), then one scoped `amp:checker`
-   re-review of that range. Adjudicate residuals as at the breaker. There is no second wave.
+   dispatch with the complete list (never one fixer per finding), then one scoped re-review of that
+   range by the resumed final reviewer, with the fix loop's checker fallback. Adjudicate residuals
+   as at the breaker. There is no second wave.
 3. Commit the plan's ticked checkboxes if they aren't committed yet:
    `docs(<NN>): mark plan tasks complete`.
 4. Hand off to **amp:ship**. The workspace stays until the merge (amp:ship reads the ledger for the
    PR body and deletes it).
-
-## Model fallback
-
-<!-- claude -->
-On any dispatch that fails because the model is unavailable (rate limit, usage limit,
-overloaded), re-dispatch the same prompt immediately with the fallback model (amp:phase, Model
-routing). Ledger `Fallback: <role> → <model> (<error class>)` and keep that role on it for the
-rest of this run. Don't ask the user; this is pre-authorized.
-<!-- /claude -->
-<!-- codex -->
-On any spawn that fails because the model is unavailable (rate limit, usage limit, overloaded),
-re-spawn the same message immediately without `model`, so the agent runs on the session model
-(amp:phase, Model routing). Ledger `Fallback: <role> → session model (<error class>)` and keep
-that role on it for the rest of this run. If the failed spawn already had no `model`, wait briefly
-and retry once, then stop and tell the user. Don't ask the user otherwise; this is pre-authorized.
-<!-- /codex -->
 
 ## Red flags
 

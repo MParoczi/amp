@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.3.0 — 2026-11-01
+
+- A fix round is re-checked by the task's own reviewer, resumed with the fix diff, instead of a
+  fresh `amp:checker`. The final fix wave and the spec, plan and roadmap confirmation re-reviews
+  resume their reviewer too. `amp:checker` runs only when the reviewer can't be resumed, and the
+  ledger says why.
+- The implementer and reviewer agents carry the lean rules they need (the ladder, the dead-code
+  rule, the never-cut list, `lean:` markers, the review tags), so dispatches no longer load
+  `amp:lean`. The skill stays for the orchestrating stages.
+- Implementers run their focused tests, and the full suite only when the task touches shared code
+  (code other modules import, a public interface, config or build files) or is the plan's last
+  task. amp:ship's verification and CI are unchanged.
+- The checker and scout run at medium effort (Codex: `reasoning_effort: "medium"`); the reviewer
+  and implementer stay at high.
+- Model routing and fallback are stated once, in amp:phase. On Claude Code the model values come
+  from the plugin's injected routing section, so the skills no longer repeat them.
+- amp:plan never makes a task that is only setup, config or docs (unless the whole phase is docs);
+  its self-review and the plan review check it.
+- Opt-in pipelining: a plan task marked `**Independent:** yes` (it uses nothing the previous task
+  produces and shares no file with it) is implemented in a git worktree under `.amp/` while the
+  previous task is under review, then rebased if needed, merged and reviewed as usual. A rebase
+  conflict, a failed merge or undocumented setup drops back to one task at a time. Every step is
+  ledgered, and after a crash amp keeps the pipelined task only if it was merged, otherwise it
+  redoes it. On Codex the second implementer stays within the default thread limit.
+
 ## 1.2.0 — 2026-10-31
 
 - amp runs on Codex too (CLI or desktop app). Install it from the `MParoczi/amp` marketplace with

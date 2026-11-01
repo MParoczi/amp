@@ -7,7 +7,7 @@ CI and merges. You choose which model runs each kind of task.
 
 ```
 /amp:phase  →  grill (your one approval)  →  branch  →  spec  →  plan
-            →  build: per task, implementer → reviewer → capped fix loop → checker
+            →  build: per task, implementer → reviewer → capped fix loop → reviewer re-check
             →  final whole-branch review  →  docs + close-out  →  PR  →  green CI  →  merge
 ```
 
@@ -104,9 +104,9 @@ or `haiku`:
 
 | Setting | What runs on it | Default |
 |---|---|---|
-| **Reviewer** | spec, plan and roadmap reviews; every task review; the final whole-branch review (`amp:reviewer`) | `opus` |
+| **Reviewer** | spec, plan and roadmap reviews; every task review; the final whole-branch review; the re-check of each fix (`amp:reviewer`) | `opus` |
 | **Implementer** | each plan task, fix rounds 1–3, final-review fixes and CI fixes (`amp:implementer`) | `opus` |
-| **Checker** | the scoped re-review after each fix round (`amp:checker`) | `sonnet` |
+| **Checker** | the fallback re-check when the reviewer can't be resumed (`amp:checker`) | `sonnet` |
 | **Scout** | fact-finding during the grill, design and roadmap (`amp:scout`) | `sonnet` |
 | **Escalation** | a fresh implementer for fix rounds 4–5, and a retry of a BLOCKED task | `inherit` |
 | **Fallback** | where a dispatch goes when its model is unavailable (rate or usage limit, overload) | `sonnet` |
@@ -161,8 +161,9 @@ bash <plugin dir>/codex/install --reviewer M --implementer M --checker M --scout
 ```
 
 Each flag is optional. The installer records the pins in `amp-install.json` beside the agents
-(`null` means the session model), and amp passes a pinned role's model on each spawn. Every agent
-runs at high reasoning effort. The other two task types have no setting on Codex:
+(`null` means the session model), and amp passes a pinned role's model on each spawn. The
+reviewer and implementer run at high reasoning effort, the checker and scout at medium. The other
+two task types have no setting on Codex:
 
 - **Escalation** is a fresh implementer at reasoning effort `xhigh`, on the implementer's model.
 - **Fallback**, when a spawn's model is unavailable, re-spawns the agent without a model, so it
@@ -185,7 +186,8 @@ quality bar, delivery, safety rules) and has scouts research the options. It the
 - `docs/roadmap/prompts/<NN>-<slug>.md`: one self-contained prompt per phase.
 - `CLAUDE.md` with the project's `## amp configuration` (`AGENTS.md` on Codex).
 - `.claude/settings.json`: the session model and high effort (`.codex/config.toml` on Codex,
-  with `model` and `model_reasoning_effort = "high"`).
+  with `model` and `model_reasoning_effort = "high"`). amp's reviewer and implementer also run at
+  high effort, its checker and scout at medium.
 
 A reviewer checks the result. Then amp makes the initial commit and, if you asked for one, creates
 the GitHub repository. Use `/amp:roadmap revise: <change>` to add, split, reorder or re-scope
@@ -209,6 +211,14 @@ you chose in the grill.
    starts from a survey: existing code is reused or extended before anything new is written, and
    code nothing references and no doc or roadmap phase claims is scheduled for deletion. It builds
    the plan task by task, with one atomic commit and one review per task, then runs a final review.
+   Each implementer runs its focused tests, and the full suite only when its task touches shared
+   code (code other modules import, a public interface, config or build files) or is the last one.
+   A task is never only setup, config or docs: those fold into the task that needs them.
+   Pipelining is opt-in: when the plan marks a task `**Independent:** yes` (it uses nothing the
+   previous task produces and shares no file with it), amp implements it in a git worktree under
+   `.amp/` while the previous task is under review, then merges it and reviews it as usual. That
+   saves the wait for each marked task's implementation; on a rebase conflict, or setup the
+   project doesn't document, amp falls back to one task at a time.
    Finally it updates the docs, verifies, pushes, opens the PR, waits for green CI, merges with a
    merge commit, tags if your project says to, and syncs your local default branch.
 3. **Rulings, not questions.** When amp meets an ambiguity, it decides against the spec and writes
@@ -288,7 +298,7 @@ Example:
 | `amp:lean` · `amp:debug` | the same | skills | the economy doctrine and the root-cause discipline that every stage applies |
 | `amp:implementer` | `amp-implementer` | agent | one task, test first, one atomic commit, a report file, a short status reply |
 | `amp:reviewer` | `amp-reviewer` | agent | read-only reviews of tasks, the whole branch and documents, citing `file:line` for every finding |
-| `amp:checker` | `amp-checker` | agent | read-only check of each fix round: addressed or not, plus any new breakage |
+| `amp:checker` | `amp-checker` | agent | fallback re-check when the reviewer can't be resumed: each finding addressed or not, plus any new breakage in the fix |
 | `amp:scout` | `amp-scout` | agent | answers one factual question from primary sources, with citations |
 | `/amp-models` | `codex/install` + `amp-install.json` | command + pane / installer | the model settings |
 

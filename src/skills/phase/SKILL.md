@@ -77,7 +77,8 @@ conflicts, ambiguities and plan defects yourself, with the spec as the authority
    action, or a paid or external-account action.
 2. A destructive or irreversible operation **outside** the pre-authorized set. Pre-authorized:
    create the phase branch, commit, push the phase branch, open the PR, re-run CI, merge after
-   green, tag per project config, delete the merged phase branch.
+   green, tag per project config, delete the merged phase branch, and rebase, remove and delete
+   amp:build's own pipeline worktrees (`$WS/wt-*`) and `amp-wt-*` branches.
 3. A security-sensitive action, or a project-specific stop rule from the amp configuration.
 4. A plan so broken that every path forward is a guess, or a cap tripped in amp:ship (verify, CI,
    merge protection).
@@ -94,55 +95,54 @@ from the ledger.
 ## Model routing
 
 <!-- claude -->
-Every agent runs at **high effort**. The model of each task type is the user's choice, set in the
-plugin's settings (`/amp-models`, or the amp rows under `/config`). Current settings
-(`inherit` = the session's model):
+Reviewer and implementer run at high effort, checker and scout at medium. The model of each task
+type is the user's choice, set in the plugin's settings (`/amp-models`, or the amp rows under
+`/config`).
 
-| Role | Runs as | Model |
-|---|---|---|
-| Orchestrator: grill, design, plan, rulings, ship | main session | the session model (`/model`) |
-| Fact-finding: codebase, docs, versions, CI logs | `amp:scout` | ${user_config.scout} |
-| Spec / plan / roadmap review, task review, final whole-branch review | `amp:reviewer` | ${user_config.reviewer} |
-| Implementation, fix rounds 1–3, final and CI fixes | `amp:implementer` | ${user_config.implementer} |
-| Fix rounds 4–5, a BLOCKED retry (escalation) | `amp:implementer` + `model` | ${user_config.escalation} |
-| Scoped re-review of a fix round | `amp:checker` | ${user_config.checker} |
-| Re-dispatch when a model is unavailable (fallback) | same agent + `model` | ${user_config.fallback} |
+| Role | Runs as |
+|---|---|
+| Orchestrator: grill, design, plan, rulings, ship | main session (`/model`) |
+| Fact-finding: codebase, docs, versions, CI logs | `amp:scout` |
+| Spec / plan / roadmap review, task review, final whole-branch review, and their re-reviews | `amp:reviewer` |
+| Implementation, fix rounds 1–3, final and CI fixes | `amp:implementer` |
+| Fix rounds 4–5, a BLOCKED retry (escalation) | `amp:implementer` + `model` |
+| Scoped re-review fallback (reviewer not resumable) | `amp:checker` |
+| Re-dispatch when a model is unavailable (fallback) | same agent + `model` |
 
 **Dispatch amp agents without a `model` parameter:** the plugin assigns each its configured model.
-Pass `model` only for the escalation and fallback rows, with the exact value the **amp model
-routing** section of your system prompt names (it resolves `inherit` to an alias). Without that
-section, pass the row's value above, and for `inherit` the session model's alias (`fable`,
-`opus`, `sonnet`, `haiku`), or no `model` if it has none. Never set
-`CLAUDE_CODE_SUBAGENT_MODEL`: it outranks the settings.
+Pass `model` only for escalation and fallback, with the value the **amp model routing** section of
+your system prompt names. Never set `CLAUDE_CODE_SUBAGENT_MODEL`: it outranks the settings.
 
 **Fallback (automatic, no question):** when a dispatch fails because its model is unavailable
 (usage/rate limit, 429, overloaded), re-dispatch the same prompt with the fallback model, ledger
-`Fallback: <role> → <model>`, and keep that role on it for the rest of the run. If the failed
-dispatch already ran on the fallback model, wait briefly and retry once, then stop and tell the
-user. The main session can't switch its own model: if the **session** hits a limit, tell the user
-to run `/model <another model>` and say "continue". The workspace and ledger make the resume
-exact. Record every fallback in the PR's Rulings.
+`Fallback: <role> → <model> (<error class>)`, and keep that role on it for the rest of the run.
+If the failed dispatch already ran on the fallback model, wait briefly and retry once, then stop
+and tell the user. The main session can't switch its own model: if the **session** hits a limit,
+tell the user to run `/model <another model>` and say "continue". The workspace and ledger make
+the resume exact. Record every fallback in the PR's Rulings.
 <!-- /claude -->
 <!-- codex -->
-Every agent runs at **high effort**. amp's roles are Codex custom agents (`amp-scout`,
-`amp-reviewer`, `amp-implementer`, `amp-checker`) written by `bash <skills>/../install`. The
-installer flags `--scout`, `--reviewer`, `--implementer` and `--checker` pin a role's model in
-`amp-install.json` under `models`; `null` means the session model.
+Reviewer and implementer run at high effort, checker and scout at medium. amp's roles are Codex
+custom agents (`amp-scout`, `amp-reviewer`, `amp-implementer`, `amp-checker`) written by
+`bash <skills>/../install`. The installer flags `--scout`, `--reviewer`, `--implementer` and
+`--checker` pin a role's model in `amp-install.json` under `models`; `null` means the session
+model.
 
 | Role | Runs as | Model |
 |---|---|---|
 | Orchestrator: grill, design, plan, rulings, ship | main session | the session model (`/model`) |
 | Fact-finding: codebase, docs, versions, CI logs | `amp-scout` | `models.scout`, else the session model |
-| Spec / plan / roadmap review, task review, final whole-branch review | `amp-reviewer` | `models.reviewer`, else the session model |
+| Spec / plan / roadmap review, task review, final whole-branch review, and their re-reviews | `amp-reviewer` | `models.reviewer`, else the session model |
 | Implementation, fix rounds 1–3, final and CI fixes | `amp-implementer` | `models.implementer`, else the session model |
 | Fix rounds 4–5, a BLOCKED retry (escalation) | fresh `amp-implementer` + `reasoning_effort: "xhigh"` | `models.implementer`, else the session model |
-| Scoped re-review of a fix round | `amp-checker` | `models.checker`, else the session model |
+| Scoped re-review fallback (reviewer not resumable) | `amp-checker` | `models.checker`, else the session model |
 | Re-spawn when a model is unavailable (fallback) | same agent, no `model` | the session model |
 
 **Spawning.** Every agent is a `spawn_agent` call with `agent_type: "amp-<role>"`, the filled
-dispatch template as `message`, and `reasoning_effort: "high"`. Pass `model` only when
-`amp-install.json` pins that role. Spawn independent agents (parallel scouts) before waiting on any
-of them. Codex has two multi-agent versions; follow the one whose tools you have:
+dispatch template as `message`, and the role's effort: `reasoning_effort: "medium"` for
+`amp-scout` and `amp-checker`, `reasoning_effort: "high"` for `amp-reviewer` and
+`amp-implementer` (escalation: `"xhigh"`). Pass `model` only when `amp-install.json` pins that
+role. Spawn independent agents (parallel scouts) before waiting on any of them. Codex has two multi-agent versions; follow the one whose tools you have:
 
 - **v2** (`followup_task` exists): every spawn also passes `task_name: "<role>_<task id>"` and
   `fork_turns: "none"`. A name uses only lowercase letters, digits and `_` (task `3a` stays `3a`)
@@ -160,22 +160,26 @@ of them. Codex has two multi-agent versions; follow the one whose tools you have
 A `wait_agent` timeout means wait again.
 
 **Resuming.** A live implementer is resumed for fix rounds 1–3, or after `NEEDS_CONTEXT`, with
-`followup_task` (v2) or `send_input` (v1). Never spawn it again.
+`followup_task` (v2) or `send_input` (v1). Never spawn it again. A live reviewer is resumed the
+same way for its re-reviews (fix rounds, the final fix wave, a document's confirmation). Only when
+that resume fails is a fresh agent spawned: `amp-checker` for a fix round (`checker_<N>_r<R>`,
+`checker_final`), `amp-reviewer` for a document (`reviewer_<mode>_r1`).
 
-**Closing.** Where `close_agent` exists, close each reviewer, checker and scout as soon as its
-result is read. Close the implementer when its task's fix loop ends, or before any fresh implementer
-spawn for the same task (round 4, a BLOCKED retry).
+**Closing.** Where `close_agent` exists, close each checker and scout as soon as its result is
+read, and each reviewer when its task's fix loop or its document's confirmation ends
+(at once when nothing loops). Close the implementer when its task's fix loop ends, or before any
+fresh implementer spawn for the same task (round 4, a BLOCKED retry).
 
 **Escalation** (fix rounds 4–5, a BLOCKED retry): spawn a fresh `amp-implementer` with
 `reasoning_effort: "xhigh"`, keeping any pinned `model`. Ledger `Escalation: implementer → xhigh`.
 
 **Fallback (automatic, no question):** when a spawn fails because its model is unavailable
 (usage/rate limit, 429, overloaded), re-spawn the same message without `model`, so the agent runs
-on the session model. Ledger `Fallback: <role> → session model` and keep that role on it for the
-rest of the run. If the failed spawn already had no `model`, wait briefly and retry once, then stop
-and tell the user. The main session can't switch its own model: if the **session** hits a limit,
-tell the user to run `/model <another model>` and say "continue". The workspace and ledger make
-the resume exact. Record every fallback in the PR's Rulings.
+on the session model. Ledger `Fallback: <role> → session model (<error class>)` and keep that
+role on it for the rest of the run. If the failed spawn already had no `model`, wait briefly and
+retry once, then stop and tell the user. The main session can't switch its own model: if the
+**session** hits a limit, tell the user to run `/model <another model>` and say "continue". The
+workspace and ledger make the resume exact. Record every fallback in the PR's Rulings.
 <!-- /codex -->
 
 ## Project amp configuration

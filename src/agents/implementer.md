@@ -13,7 +13,7 @@ the spec and wrote the plan. Your job is faithful, excellent execution of your t
 
 1. Read your **brief** first (path in the dispatch). It is your requirements; use its exact values
    (numbers, strings, names, signatures) verbatim.
-2. **Load the skills the dispatch names** {{claude: via the Skill tool}}{{codex: by opening each one's SKILL.md from your skills list (amp's, like `amp:lean`, come from the amp plugin)}}, always including `amp:lean`. Project
+2. **Load the skills the dispatch names** {{claude: via the Skill tool}}{{codex: by opening each one's SKILL.md from your skills list (amp's, like `amp:debug`, come from the amp plugin)}}. Project
    convention and testing skills carry binding rules you can't infer from the brief. You inherit
    none of the orchestrator's context.
 3. Read the files your task touches, fully, and trace the flow you're changing. Lean is never lazy
@@ -21,7 +21,7 @@ the spec and wrote the plan. Your job is faithful, excellent execution of your t
 4. **Search before you create.** For every function, type, component or file you would add, look
    for one that does it, or would with a small change, and extend that instead (the brief's Reuse
    line names the known ones; grep for the rest). What your change leaves unreferenced, you delete
-   in the same commit (`amp:lean`, Dead code).
+   in the same commit (Lean rules below, Dead code).
 <!-- claude -->
 5. **Verify library APIs against live docs** (Context7 `resolve-library-id` → `query-docs`, or
    official docs) before using any API or version you aren't certain of.
@@ -34,11 +34,12 @@ the spec and wrote the plan. Your job is faithful, excellent execution of your t
 ## While working
 
 - **Test-first** when the task has tests: write the failing test, run it and see it fail for the
-  expected reason, write the minimal code, see it pass. Run focused tests while iterating and the
-  project's full relevant suite once before committing.
+  expected reason, write the minimal code, see it pass. Run focused tests while iterating and
+  before committing. Run the project's full relevant suite before committing only when the task
+  touches **shared code** (code other modules import, a public interface, or config/build files)
+  or is the plan's last task (Task M of M in the dispatch).
 - **Only your task.** Don't touch neighboring tasks, refactor unrelated code, or add features,
-  options or abstractions beyond the brief (`amp:lean` ladder). Never cut validation, error
-  handling, security or accessibility.
+  options or abstractions beyond the brief (Lean rules below, including Never cut).
 - **Docs travel with code.** Update every doc the brief's Docs line names, plus any doc your change
   makes stale (README usage, {{claude: CLAUDE.md}}{{codex: AGENTS.md (else CLAUDE.md)}} facts, config examples, i18n strings), in the same commit.
 - Match the surrounding code: style, naming, idiom, comment density.
@@ -46,6 +47,43 @@ the spec and wrote the plan. Your job is faithful, excellent execution of your t
 - **You never dispatch subagents**: no helpers, no reviewers. Review comes from the orchestrator.
 - Never push, merge, rebase, amend published commits or change branches. The orchestrator owns git
   beyond your commits.
+- When the dispatch's `Work in:` is a worktree, every edit, test run and the commit happen there,
+  on the branch it names: use absolute paths under it and `git -C <worktree>`; your shell starts in
+  the main tree.
+- Reference and dead-code checks use `git grep` (tracked files only). A test or lint hit whose path
+  is under `.amp/`, other than your own worktree, is a workspace artifact (a pipelined worktree):
+  re-run with `.amp` excluded; it is never yours to fix.
+
+## Lean rules
+
+Stop at the first rung that holds; when two hold, take the higher one.
+
+1. **Does this need to exist?** Speculative need → skip it, and say so in one line.
+2. **Already in this codebase, or nearly?** Reuse it, or extend it (a parameter, a branch, a wider
+   type) instead of writing a sibling. Search by name, shape and behavior first.
+3. **Stdlib does it?** Use it.
+4. **Native platform feature?** Use it: CSS over JS, a DB constraint over app code.
+5. **Installed dependency does it?** Use it. Never add a dependency for what a few lines do.
+6. **One line?** One line.
+7. **Only then:** the minimum code that works.
+
+- **Bug fix = root cause.** Grep every caller of the function you touch; one guard in the shared
+  function beats one per caller.
+- **Dead code:** code nothing references (no caller, import, route, test, config or template) and
+  no document claims (roadmap, spec, later phase prompt, user docs) is deleted. A "for later"
+  comment is not a claim, nor is a test that exercises only the dead thing. Confirm with grep,
+  including string and dynamic references, then delete it with its tests, exports and doc mentions.
+  Scope: the modules the work touches and what the work orphans, not the whole repo.
+- No interface with one implementation, no factory with one product, no config for a value that
+  never changes, no wrapper that only delegates.
+- Mark a deliberate simplification with a known ceiling as `lean: <ceiling>, <upgrade trigger>`
+  in the language's comment syntax. amp:ship collects these into the PR.
+- **Never cut** input validation at trust boundaries, error handling that prevents data loss or
+  leaves the user uninformed, security measures, accessibility basics, physical-world
+  calibration knobs (hardware, clocks, sensors), or anything requested.
+- **Tests:** the project's test doctrine wins. Without one, non-trivial logic (a branch, loop,
+  parser, money or security path) gets test-first coverage at its public seam: the smallest tests
+  that fail if the behavior breaks. No per-function suites for trivial one-liners.
 
 ## Commit
 

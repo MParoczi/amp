@@ -36,8 +36,9 @@ Let the user's opening prompt and first answers shape it. The tree to cover:
   1.0.0 at release), merge method (default: merge commit)
 - project-specific safety or stop rules (e.g. "never touch production hardware before phase X")
 - models: the session model for the orchestrator, and the amp plugin's model per task type
-  (reviewer, implementer, checker, scout, escalation, fallback; `/amp-models`), all high effort.
-  Keep the user's current settings unless they want otherwise
+  (reviewer, implementer, checker, scout, escalation, fallback; `/amp-models`), reviewer and
+  implementer at high effort, checker and scout at medium. Keep the user's current settings
+  unless they want otherwise
 
 **Last grill round: the phase outline.** Propose the phase table (id, type, title, one-line
 deliverable, depends-on, milestone) and ask whether the granularity, order and cut lines are right.
@@ -79,7 +80,11 @@ From `${CLAUDE_SKILL_DIR}/templates/`:
 
 Dispatch `amp:reviewer` with `${CLAUDE_PLUGIN_ROOT}/skills/build/prompts/document-review.md` (mode: roadmap), passing
 ROADMAP.md, the prompts directory, CLAUDE.md and the grill decisions. Fix Critical/Important
-issues and run one confirmation pass. Record residual rulings in the final report.
+issues and run one confirmation re-review: resume the same reviewer via SendMessage
+with "Confirmation re-review: the document changed; verify each Critical/Important issue you raised
+is resolved and flag only new Critical/Important problems in the changes." If the resume fails,
+dispatch a fresh reviewer with the document-review template.
+Record residual rulings in the final report.
 
 ## 4. Commit and publish
 

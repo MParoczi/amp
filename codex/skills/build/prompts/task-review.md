@@ -9,7 +9,7 @@ to this prompt: that is pre-judging.
 Task review — Phase <NN>, Task <N>: <task name>. A task-scoped gate; a whole-branch review
 happens later.
 
-Load these skills first: amp:lean, <DISPATCH_SKILLS>.
+Load these skills first: <DISPATCH_SKILLS> (none → skip).
 
 What was requested: <WORKSPACE>/task-<N>-brief.md
 Global Constraints (your attention lens):
@@ -33,12 +33,9 @@ left behind by the change), and docs drift (a doc the change made stale that the
 update is Important).
 
 ### Lean
-amp:lean review-tag lines (`file:Lline: tag what. replacement.`), then `net: -N lines possible`
+Your lean review tags (`file:Lline: tag what. replacement.`), then `net: -N lines possible`
 or `Lean already.` Anything tagged that removes required behavior is not lean: don't list it.
 
 ### Verdict
 Task quality: Approved | Needs fixes — one or two sentences.
 ```
-
-Severity: the agent's calibration applies. Lean findings are Minor unless they add a dependency, an
-abstraction layer, a duplicate of an existing helper or dead code (Important).

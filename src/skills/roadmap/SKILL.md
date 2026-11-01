@@ -48,14 +48,16 @@ Let the user's opening prompt and first answers shape it. The tree to cover:
 - project-specific safety or stop rules (e.g. "never touch production hardware before phase X")
 <!-- claude -->
 - models: the session model for the orchestrator, and the amp plugin's model per task type
-  (reviewer, implementer, checker, scout, escalation, fallback; `/amp-models`), all high effort.
-  Keep the user's current settings unless they want otherwise
+  (reviewer, implementer, checker, scout, escalation, fallback; `/amp-models`), reviewer and
+  implementer at high effort, checker and scout at medium. Keep the user's current settings
+  unless they want otherwise
 <!-- /claude -->
 <!-- codex -->
 - models: the session model for the orchestrator (written to `.codex/config.toml`), and whether
   to pin a model per amp role (reviewer, implementer, checker, scout; the installer's flags,
-  otherwise each runs on the session model), all high effort, and whether to install the agents
-  into this repo for collaborators (`--project`). Keep the user's current settings (the
+  otherwise each runs on the session model), reviewer and implementer at high effort, checker
+  and scout at medium, and whether to install the agents into this repo for collaborators
+  (`--project`). Keep the user's current settings (the
   `amp-install.json` the preflight read) unless they want otherwise
 <!-- /codex -->
 
@@ -108,7 +110,11 @@ From `${CLAUDE_SKILL_DIR}/templates/`:
 
 {{claude: Dispatch `amp:reviewer`}}{{codex: Spawn `amp-reviewer` (`spawn_agent`, `agent_type: "amp-reviewer"`, as amp:phase, Model routing says)}} with `${CLAUDE_PLUGIN_ROOT}/skills/build/prompts/document-review.md` (mode: roadmap), passing
 ROADMAP.md, the prompts directory, {{claude: CLAUDE.md}}{{codex: AGENTS.md}} and the grill decisions. Fix Critical/Important
-issues and run one confirmation pass. Record residual rulings in the final report.
+issues and run one confirmation re-review: resume the same reviewer {{claude: via SendMessage}}{{codex: with `followup_task` (v2) or `send_input` (v1)}}
+with "Confirmation re-review: the document changed; verify each Critical/Important issue you raised
+is resolved and flag only new Critical/Important problems in the changes." If the resume fails,
+{{claude: dispatch}}{{codex: spawn}} a fresh reviewer with the document-review template.
+Record residual rulings in the final report.
 
 ## 4. Commit and publish
 

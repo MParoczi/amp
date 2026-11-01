@@ -11,7 +11,7 @@ Read your brief first: <WORKSPACE>/task-<N>-brief.md. It is your requirements; u
 values verbatim.
 Spec (binding authority, read only the sections the brief cites): <SPEC_PATH>
 
-Load these skills before writing anything: amp:lean, <DISPATCH_SKILLS>.
+Load these skills before writing anything: <DISPATCH_SKILLS> (none → skip).
 
 Global Constraints (bind this task):
 <verbatim from the plan's Global Constraints>

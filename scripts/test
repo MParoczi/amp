@@ -212,7 +212,7 @@ inst
 [ "$rc" -eq 0 ] || fail "exit $rc: $out"
 for r in $roles; do [ -f "$dir/amp-$r.toml" ] || fail "amp-$r.toml missing"; done
 [ "$(ls "$dir" | wc -l)" -eq 5 ] || fail "files: $(ls "$dir")"
-grep -qF '"version": "1.2.0"' "$dir/amp-install.json" || fail "json: $(cat "$dir/amp-install.json")"
+grep -qF '"version": "1.3.0"' "$dir/amp-install.json" || fail "json: $(cat "$dir/amp-install.json")"
 [ "$(grep -oF ': null' "$dir/amp-install.json" | wc -l)" -eq 4 ] || fail "json: $(cat "$dir/amp-install.json")"
 count 'installed: ' 4
 has "wrote: $dir/amp-install.json"
@@ -275,7 +275,7 @@ cx=$ROOT/.codex-plugin/plugin.json
 grep -qF '"skills": "./codex/skills"' "$cx" || fail "no skills path"
 grep -qF '"hooks": {}' "$cx" || fail "no empty hooks"
 for m in "$ROOT/.claude-plugin/plugin.json" "$cx"; do
-  grep -qF '"version": "1.2.0"' "$m" || fail "$m: version is not 1.2.0"
+  grep -qF '"version": "1.3.0"' "$m" || fail "$m: version is not 1.3.0"
 done
 d=$(grep -F '"description":' "$ROOT/.claude-plugin/plugin.json" | head -n 1)
 [ "$d" = "$(grep -F '"description":' "$cx" | head -n 1)" ] || fail "plugin.json descriptions differ"
@@ -354,4 +354,71 @@ for f in AGENTS.md config.toml; do [ -f "$ROOT/$t/$f" ] || fail "$t/$f missing";
 for f in CLAUDE.md settings.json; do [ ! -e "$ROOT/$t/$f" ] || fail "$t/$f should not exist"; done
 holds "$t/config.toml" 'model_reasoning_effort = "high"'
 holds codex/skills/roadmap/SKILL.md amp-install.json 'the agents are stale' '<skills>/../install <flags>' --project
+ok
+
+case=lean-in-agents
+# the agents carry the lean rules, so no dispatch loads amp:lean
+holds agents/implementer.md '## Lean rules' 'Does this need to exist?' 'accessibility basics' 'data loss' 'lean: <ceiling>' 'shared code' 'calibration knobs' 'string and dynamic references'
+holds agents/reviewer.md '## Lean rules' 'accessibility basics' 'calibration knobs' 'string and dynamic references' 'Minor unless they add' 'delete:' 'reuse:' 'stdlib:' 'native:' 'yagni:' 'shrink:' 'net: -'
+for f in "$ROOT"/skills/build/prompts/*.md; do
+  lacks "${f#"$ROOT/"}" 'amp:lean,' 'amp:lean tag' 'amp:lean review-tag' 'amp:lean ladder'
+done
+lacks agents/implementer.md "always including \`amp:lean\`"
+lacks agents/reviewer.md 'always `amp:lean`'
+lacks codex/agents/amp-implementer.toml 'like `amp:lean`'
+holds skills/lean/SKILL.md 'shared code'
+holds agents/implementer.md 'what the work orphans'
+holds skills/debug/SKILL.md 'shared code'
+ok
+
+case=effort
+# reviewer and implementer at high effort, checker and scout at medium
+holds agents/checker.md 'effort: medium'
+holds agents/scout.md 'effort: medium' 'at medium effort'
+holds codex/skills/phase/SKILL.md 'reasoning_effort: "medium"'
+holds codex/skills/build/SKILL.md 'reasoning_effort: "medium"'
+lacks skills/phase/SKILL.md 'Every agent runs at **high effort**'
+lacks codex/skills/phase/SKILL.md 'Every agent runs at **high effort**'
+lacks skills/roadmap/templates/settings.json 'All amp agents run at high effort'
+ok
+
+case=reviewer-resume
+# fix rounds and confirmations resume the reviewer; amp:checker only when it can't be resumed
+holds skills/build/SKILL.md 'reviewer not resumable' "Record the reviewer's agent id"
+lacks skills/build/SKILL.md 're-checked by amp:checker'
+holds skills/phase/SKILL.md 'reviewer not resumable'
+lacks codex/skills/build/SKILL.md 'close each reviewer and checker once its result is read'
+holds skills/build/prompts/re-review.md 'resumed' 'amp:checker'
+holds codex/skills/build/SKILL.md 'reviewer not resumable' followup_task
+holds agents/reviewer.md 'Re-review'
+holds skills/design/SKILL.md 'Confirmation re-review'
+holds skills/plan/SKILL.md 'Confirmation re-review'
+holds skills/roadmap/SKILL.md 'Confirmation re-review'
+lacks codex/skills/phase/SKILL.md 'close each reviewer, checker and scout as soon as'
+holds codex/skills/phase/SKILL.md 'at once when nothing loops'
+holds codex/skills/build/SKILL.md 'at once when nothing loops'
+holds hooks/register.tsx 'and fix re-checks'
+holds .claude-plugin/plugin.json 'and fix re-checks'
+ok
+
+case=routing-once
+# amp:phase states model routing and fallback once; the plugin hook injects the Claude model values
+lacks skills/phase/SKILL.md '${user_config.' 'Without that section'
+lacks skills/build/SKILL.md '## Model fallback'
+lacks codex/skills/build/SKILL.md '## Model fallback'
+lacks skills/design/SKILL.md 'Model fallback applies'
+holds skills/phase/SKILL.md 'amp model routing' 'Fallback (automatic, no question)'
+ok
+
+case=pipeline
+# plans fold setup-only tasks; amp:build pipelines Independent tasks in a worktree under the workspace
+holds skills/plan/SKILL.md '**Independent:** yes' 'only setup, config or docs'
+holds skills/build/prompts/document-review.md 'only setup, config or docs'
+holds skills/build/SKILL.md 'amp-wt-' 'git worktree add' 'merge --ff-only' 'worktree remove --force' 'branch -D' 'merged (base' 'Pipeline: off' 'git grep'
+holds skills/build/SKILL.md 'rev-list --count' '`Task N+1: pipeline dropped` or `Pipeline: off` line' 'worktree prune' 'On any rebase failure'
+holds codex/skills/build/SKILL.md 'amp-wt-'
+holds skills/phase/SKILL.md 'amp-wt-'
+lacks skills/build/SKILL.md 'never two implementers at once'
+for a in implementer reviewer checker; do holds "agents/$a.md" 'git grep' '.amp/'; done
+holds agents/implementer.md 'git -C'
 ok
