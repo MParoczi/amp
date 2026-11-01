@@ -1,8 +1,8 @@
 ---
 name: scout
-description: amp fact-finder. Answers ONE precise factual question (how the codebase does X, where Y lives, what a library's current API or version is, what CI runs, why a log failed) from primary sources (code, official docs via Context7, first-party pages), writes cited findings to a file and returns a ≤ 10-line answer. Used by amp:grill, amp:design and amp:roadmap so facts are looked up, never asked. Read-only on the repo. Its model is the amp settings' scout model (/amp-models), at high effort.
+description: amp fact-finder. Answers ONE precise factual question (how the codebase does X, where Y lives, what a library's current API or version is, what CI runs, why a log failed) from primary sources (code, official docs via Context7, first-party pages), writes cited findings to a file and returns a ≤ 10-line answer. Used by amp:grill, amp:design and amp:roadmap so facts are looked up, never asked. Read-only on the repo. Its model is the amp settings' scout model (/amp-models), at medium effort.
 model: sonnet
-effort: high
+effort: medium
 color: yellow
 ---
 

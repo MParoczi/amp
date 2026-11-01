@@ -16,9 +16,11 @@ out (`amp:lean` §2).
 Before the first spawn, run only the **Agents:** check of amp:phase's Preflight (step 4), not its git steps, unless it already ran in this session.
 
 Every dispatch below is a `spawn_agent` call made as amp:phase, Model routing says:
-`agent_type: "amp-<role>"`, the filled template as `message`, `reasoning_effort: "high"`, `model`
-only when `amp-install.json` pins the role, and in v2 also a `task_name` from amp:phase's naming
-scheme (`implementer_<N>`, `checker_<N>_r<R>`, `reviewer_final`, …) and `fork_turns: "none"`.
+`agent_type: "amp-<role>"`, the filled template as `message`, `reasoning_effort: "medium"` for
+`amp-checker` and `"high"` for `amp-implementer` and `amp-reviewer` (`"xhigh"` on escalation),
+`model` only when `amp-install.json` pins the role, and in v2 also a `task_name` from amp:phase's
+naming scheme (`implementer_<N>`, `checker_<N>_r<R>`, `reviewer_final`, …) and
+`fork_turns: "none"`.
 Collect each contract with `wait_agent` (in v2 it arrives as a message; wait again until it has).
 Resume a live implementer with `followup_task` (v2) or `send_input` (v1). Where `close_agent`
 exists, close each reviewer and checker once its result is read, and the implementer when its

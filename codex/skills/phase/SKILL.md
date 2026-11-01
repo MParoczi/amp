@@ -81,10 +81,11 @@ from the ledger.
 
 ## Model routing
 
-Every agent runs at **high effort**. amp's roles are Codex custom agents (`amp-scout`,
-`amp-reviewer`, `amp-implementer`, `amp-checker`) written by `bash <skills>/../install`. The
-installer flags `--scout`, `--reviewer`, `--implementer` and `--checker` pin a role's model in
-`amp-install.json` under `models`; `null` means the session model.
+Reviewer and implementer run at high effort, checker and scout at medium. amp's roles are Codex
+custom agents (`amp-scout`, `amp-reviewer`, `amp-implementer`, `amp-checker`) written by
+`bash <skills>/../install`. The installer flags `--scout`, `--reviewer`, `--implementer` and
+`--checker` pin a role's model in `amp-install.json` under `models`; `null` means the session
+model.
 
 | Role | Runs as | Model |
 |---|---|---|
@@ -97,9 +98,10 @@ installer flags `--scout`, `--reviewer`, `--implementer` and `--checker` pin a r
 | Re-spawn when a model is unavailable (fallback) | same agent, no `model` | the session model |
 
 **Spawning.** Every agent is a `spawn_agent` call with `agent_type: "amp-<role>"`, the filled
-dispatch template as `message`, and `reasoning_effort: "high"`. Pass `model` only when
-`amp-install.json` pins that role. Spawn independent agents (parallel scouts) before waiting on any
-of them. Codex has two multi-agent versions; follow the one whose tools you have:
+dispatch template as `message`, and the role's effort: `reasoning_effort: "medium"` for
+`amp-scout` and `amp-checker`, `reasoning_effort: "high"` for `amp-reviewer` and
+`amp-implementer` (escalation: `"xhigh"`). Pass `model` only when `amp-install.json` pins that
+role. Spawn independent agents (parallel scouts) before waiting on any of them. Codex has two multi-agent versions; follow the one whose tools you have:
 
 - **v2** (`followup_task` exists): every spawn also passes `task_name: "<role>_<task id>"` and
   `fork_turns: "none"`. A name uses only lowercase letters, digits and `_` (task `3a` stays `3a`)

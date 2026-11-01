@@ -161,8 +161,9 @@ bash <plugin dir>/codex/install --reviewer M --implementer M --checker M --scout
 ```
 
 Each flag is optional. The installer records the pins in `amp-install.json` beside the agents
-(`null` means the session model), and amp passes a pinned role's model on each spawn. Every agent
-runs at high reasoning effort. The other two task types have no setting on Codex:
+(`null` means the session model), and amp passes a pinned role's model on each spawn. The
+reviewer and implementer run at high reasoning effort, the checker and scout at medium. The other
+two task types have no setting on Codex:
 
 - **Escalation** is a fresh implementer at reasoning effort `xhigh`, on the implementer's model.
 - **Fallback**, when a spawn's model is unavailable, re-spawns the agent without a model, so it
@@ -185,7 +186,8 @@ quality bar, delivery, safety rules) and has scouts research the options. It the
 - `docs/roadmap/prompts/<NN>-<slug>.md`: one self-contained prompt per phase.
 - `CLAUDE.md` with the project's `## amp configuration` (`AGENTS.md` on Codex).
 - `.claude/settings.json`: the session model and high effort (`.codex/config.toml` on Codex,
-  with `model` and `model_reasoning_effort = "high"`).
+  with `model` and `model_reasoning_effort = "high"`). amp's reviewer and implementer also run at
+  high effort, its checker and scout at medium.
 
 A reviewer checks the result. Then amp makes the initial commit and, if you asked for one, creates
 the GitHub repository. Use `/amp:roadmap revise: <change>` to add, split, reorder or re-scope

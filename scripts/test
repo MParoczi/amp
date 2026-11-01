@@ -368,3 +368,14 @@ lacks agents/reviewer.md 'always `amp:lean`'
 lacks codex/agents/amp-implementer.toml 'like `amp:lean`'
 holds skills/lean/SKILL.md 'shared code'
 ok
+
+case=effort
+# reviewer and implementer at high effort, checker and scout at medium
+holds agents/checker.md 'effort: medium'
+holds agents/scout.md 'effort: medium' 'at medium effort'
+holds codex/skills/phase/SKILL.md 'reasoning_effort: "medium"'
+holds codex/skills/build/SKILL.md 'reasoning_effort: "medium"'
+lacks skills/phase/SKILL.md 'Every agent runs at **high effort**'
+lacks codex/skills/phase/SKILL.md 'Every agent runs at **high effort**'
+lacks skills/roadmap/templates/settings.json 'All amp agents run at high effort'
+ok

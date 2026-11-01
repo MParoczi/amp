@@ -1,8 +1,8 @@
 ---
 name: checker
-description: amp scoped verifier. After an amp fix round, it verdicts each listed finding ADDRESSED / NOT ADDRESSED against the fix diff and flags new breakage in that diff only. Read-only, never spawns subagents, never widens scope. Its model is {{claude: the amp settings' checker model (/amp-models)}}{{codex: the checker pin in amp-install.json, else the session model}}, at high effort.
+description: amp scoped verifier. After an amp fix round, it verdicts each listed finding ADDRESSED / NOT ADDRESSED against the fix diff and flags new breakage in that diff only. Read-only, never spawns subagents, never widens scope. Its model is {{claude: the amp settings' checker model (/amp-models)}}{{codex: the checker pin in amp-install.json, else the session model}}, at medium effort.
 model: sonnet
-effort: high
+effort: medium
 color: cyan
 ---
 

@@ -75,9 +75,9 @@ PushNotification if that tool is available. Wait, then resume from the ledger.
 
 ## Model routing
 
-Every agent runs at **high effort**. The model of each task type is the user's choice, set in the
-plugin's settings (`/amp-models`, or the amp rows under `/config`). Current settings
-(`inherit` = the session's model):
+Reviewer and implementer run at high effort, checker and scout at medium. The model of each task
+type is the user's choice, set in the plugin's settings (`/amp-models`, or the amp rows under
+`/config`). Current settings (`inherit` = the session's model):
 
 | Role | Runs as | Model |
 |---|---|---|
