@@ -8,7 +8,9 @@ effort: high
 
 Everything here is **pre-authorized** by the grill confirmation: push the phase branch, open the
 PR, re-run CI, merge after green, tag per project config, and delete the merged branch. Stop only
-for the reasons in amp:phase's autonomy contract.
+for the reasons in amp:phase's autonomy contract, and follow it at every stop below (gh auth,
+verify cap, CI cap, merge protection): first append `Stage: stopped — <what is needed>` to the
+ledger, only when $WS/progress.md exists.
 
 `D` = default branch: `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, falling
 back to `git symbolic-ref --short refs/remotes/origin/HEAD` without its `origin/` prefix.

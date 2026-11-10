@@ -433,8 +433,9 @@ for t in skills codex/skills; do
     'Stage: stopped — <what is needed>'
   holds "$t/grill/SKILL.md" 'Stage: gate' 'only when $WS/progress.md exists'
   holds "$t/plan/SKILL.md" 'Plan: <plan path>' 'Stage: plan' 'only when $WS/progress.md exists'
-  holds "$t/build/SKILL.md" 'Stage: build' 'If no ledger exists (amp:build run on its own), create it'
-  holds "$t/ship/SKILL.md" 'Stage: ship' 'Stage: merged — <PR URL>' 'only when $WS/progress.md exists'
+  holds "$t/build/SKILL.md" 'Either way, append `Stage: build`' 'If no ledger exists (amp:build run on its own), create it'
+  holds "$t/ship/SKILL.md" 'Stage: ship' 'Stage: merged — <PR URL>' 'only when $WS/progress.md exists' \
+    'Stage: stopped — <what is needed>'
   lacks "$t/build/SKILL.md" '# amp ledger — plan:'
 done
 ok
