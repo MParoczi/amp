@@ -90,8 +90,8 @@ and then `claude plugin install amp@amp`.
    to the repository's `.codex/agents`, which you can commit so collaborators get them too. The
    model flags are described in the next section.
 4. Trust amp's hooks: open `/hooks` in Codex, review amp's two entries and trust them. Codex
-   doesn't run a plugin's hooks until you do. They carry the guardrails and the read-only roles
-   (see [What the plugin adds to a session](#what-the-plugin-adds-to-a-session)). The hooks run
+   doesn't run a plugin's hooks until you do. They carry the resume guard, the guardrails and the
+   read-only roles (see [What the plugin adds to a session](#what-the-plugin-adds-to-a-session)). The hooks run
    `bash`, so on Windows Git Bash's `bash` must come first on PATH, ahead of
    `C:\Windows\System32\bash.exe`; otherwise Codex reports a hook error.
 5. Start a new Codex session, so it loads the agents.
@@ -322,12 +322,14 @@ A ledger over 4 MiB, or one that can't be read, is skipped.
   `diff`, `branch --contains`, `tag -l`) and a temporary worktree outside the repository stay
   allowed. This holds whether or not a run is active.
 
-On Codex, once you trust amp's hooks in `/hooks`, the guardrails and the read-only roles apply
-too, with the same rules and the same refusals. `codex/hooks/amp-hook` checks every shell command
-the same way, and for `amp-reviewer`, `amp-checker` and `amp-scout` every file an `apply_patch`
-adds, updates, deletes or moves to. Codex has no PowerShell tool, so only its shell commands are
-checked. A hook input it can't parse lets the call through. The status line, `/amp-run`, the
-alerts and the dispatch rows are Claude Code only.
+On Codex, once you trust amp's hooks in `/hooks`, the resume guard, the guardrails and the
+read-only roles apply too, with the same rules and the same refusals. When a session starts,
+resumes or compacts on a branch an unfinished run owns, `codex/hooks/amp-hook` adds the same
+resume note to its context. It checks every shell command the same way, and for `amp-reviewer`,
+`amp-checker` and `amp-scout` every file an `apply_patch` adds, updates, deletes or moves to.
+Codex has no PowerShell tool, so only its shell commands are checked. A hook input it can't parse
+lets the call through. The status line, `/amp-run`, the alerts and the dispatch rows are Claude
+Code only.
 
 Known gaps: the guardrails match spellings, so a git alias, an `sh -c` wrapper, a command after a
 lone `&` (background) or one inside a `( … )` subshell slips past them; they are defense in depth,
@@ -383,6 +385,7 @@ Example:
 | `/amp-models` | `codex/install` + `amp-install.json` | command + pane / installer | the model settings |
 | `/amp-run` | — | command + pane | the active run: stage, tasks, fix rounds, parked items |
 | amp status line | — | hook | `amp <key> · <stage>`, plus the task and fix round during the build |
+| amp resume guard | `codex/hooks/amp-hook` | hook | tells a session on a branch an unfinished run owns to resume it with `amp:phase <key>` |
 | amp guardrails | `codex/hooks/amp-hook` | hook | while a run is active, refuses the git and `gh` commands that skip hooks, rewrite or discard work, or bypass the PR |
 | amp read-only roles | `codex/hooks/amp-hook` | hook | refuses repository edits and writing git commands from the reviewer, checker and scout |
 | amp alerts | — | hook | a toast and a sound when the grill summary is ready, a run stops or merges, or a question waits |
