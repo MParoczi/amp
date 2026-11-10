@@ -45,9 +45,14 @@ export function configured(options: PluginOptions, key: string): string {
   return typeof value === 'string' && (MODELS as readonly string[]).includes(value) ? value : 'inherit'
 }
 
+/** The role an amp agent's subagent type (`<plugin>:<agent>`) names, or undefined. */
+function roleFor(plugin: string, subagentType: string | undefined): Role | undefined {
+  return ROLES.find(r => r.agent !== undefined && subagentType === `${plugin}:${r.agent}`)
+}
+
 /** The model an amp agent spawns on: its task type's, or the parent's for `inherit`. */
 export function spawnModel(options: PluginOptions, plugin: string, subagentType: string, parentModel: string): string | undefined {
-  const role = ROLES.find(r => r.agent !== undefined && subagentType === `${plugin}:${r.agent}`)
+  const role = roleFor(plugin, subagentType)
   if (role === undefined) return undefined
   const model = configured(options, role.key)
   return model === 'inherit' ? parentModel : model
@@ -249,13 +254,9 @@ function firstLine(output: unknown): string | undefined {
 
 /** The heading and result line of an amp agent's row, or undefined for any other call. */
 async function dispatchRow($: EngineInterface, options: PluginOptions, row: RenderPropsOf['ToolUse']) {
-  const type = row.tool === 'Agent' ? text(row.input, 'subagent_type') : undefined
-  const role = ROLES.find(r => r.agent !== undefined && type === `${$.plugin.name}:${r.agent}`)
-  if (type === undefined || role === undefined) return undefined
-  const planned = async () => {
-    const model = spawnModel(options, $.plugin.name, type, 'inherit') ?? 'inherit'
-    return aliasFor(model, await $.session.model().catch(() => '')) ?? 'inherit'
-  }
+  const role = row.tool === 'Agent' ? roleFor($.plugin.name, text(row.input, 'subagent_type')) : undefined
+  if (role === undefined) return undefined
+  const planned = async () => aliasFor(configured(options, role.key), await $.session.model().catch(() => '')) ?? 'inherit'
   const model = text(row.output, 'resolvedModel') ?? text(row.input, 'model') ?? (await planned())
   const task = [text(row.input, 'description'), text(row.input, 'prompt')].map(t => t?.match(/Task (\d+[a-z]?)/)?.[1]).find(Boolean)
   return { heading: [`${$.plugin.name} ${role.agent}`, model, ...(task ? [`task ${task}`] : [])].join(' · '), result: firstLine(row.output) }
@@ -348,11 +349,7 @@ export const register: Register = (on, options) => {
     return (
       <Box flexDirection="column">
         <Text bold>{heading}</Text>
-        {rest.map((line, at) => (
-          <Box key={`line-${at}`}>
-            <Text>{line}</Text>
-          </Box>
-        ))}
+        {rest.map((line, at) => <Text key={`line-${at}`}>{line}</Text>)}
       </Box>
     )
   })

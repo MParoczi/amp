@@ -34,6 +34,7 @@ export function splitCommands(command: string): string[][] {
   let words: string[] = []
   let word: string | undefined
   let quote = ''
+  let end = -1
   const endWord = () => {
     if (word !== undefined) words.push(word)
     word = undefined
@@ -59,9 +60,8 @@ export function splitCommands(command: string): string[][] {
     } else if (c === "'" || c === '"') {
       quote = c
       add()
-    } else if (c === '@' && (text[i + 1] === "'" || text[i + 1] === '"') && text[i + 2] === '\n' && text.includes(`\n${text[i + 1]}@`, i + 2)) {
+    } else if (c === '@' && (text[i + 1] === "'" || text[i + 1] === '"') && text[i + 2] === '\n' && (end = text.indexOf(`\n${text[i + 1]}@`, i + 2)) >= 0) {
       // A PowerShell here-string, `@'⏎…⏎'@` or `@"⏎…⏎"@`: one literal word.
-      const end = text.indexOf(`\n${text[i + 1]}@`, i + 2)
       add(text.slice(i + 3, end))
       i = end + 2
     } else if (c === ';' || c === '|' || c === '\n') endSegment()
