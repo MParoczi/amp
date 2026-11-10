@@ -277,6 +277,14 @@ describe('amp alerts', () => {
     expect(host.toasts).toEqual(['amp stopped: need gh auth login'])
   })
 
+  test('a stop without a note toasts without a trailing colon', async ($, on) => {
+    const host = fakeHost(on, { git: GIT, files: files({ '04-x': TEXT }) })
+    await $.session.start(START)
+    host.files.set(LEDGER, { text: `${TEXT}\nStage: stopped`, mtimeMs: 200 })
+    await $.tool.call(LS)
+    expect(host.toasts).toEqual(['amp stopped'])
+  })
+
   test('a merge toasts once although the ledger then vanishes, and clears the status', async ($, on) => {
     const host = fakeHost(on, { git: GIT, files: files({ '04-x': TEXT }) })
     await $.session.start(START)

@@ -107,7 +107,7 @@ function alert($: EngineInterface, text: string) {
 /** The toast a run's stage change to gate, stopped or merged raises. */
 function stageAlert(run: Run): string | undefined {
   if (run.stage === 'gate') return 'amp: grill summary ready — confirm to start the run'
-  if (run.stage === 'stopped') return `amp stopped: ${run.note}`
+  if (run.stage === 'stopped') return run.note ? `amp stopped: ${run.note}` : 'amp stopped'
   if (run.stage === 'merged') return `amp: merged — ${run.note}`
   return undefined
 }
