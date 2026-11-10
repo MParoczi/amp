@@ -1,5 +1,6 @@
-import type { EngineInterface, PluginOptions, Register } from 'claude-code'
+import type { EngineInterface, PluginOptions, Register, ToolCallInput } from 'claude-code'
 
+import { guardViolation, readOnlyViolation, roleOf } from './guard'
 import { parseLedger, planTaskCount, resumeText, statusText, type Run } from './run'
 
 /*
@@ -14,6 +15,10 @@ import { parseLedger, planTaskCount, resumeText, statusText, type Run } from './
  * The amp run (spec §5.2-5.3): the active run is the newest `.amp/<key>/progress.md` not yet
  * merged. Every tool call and turn re-scans for it; the status line, the `/amp-run` pane, the
  * resume section and the compaction note show it. Outside a git repository all of them are idle.
+ *
+ * Guards (spec §5.4-5.5, hooks/guard.ts): before a tool call, a reviewer, checker or scout may not
+ * edit the repository outside `.amp/` or run a writing git command; while a run is active, every
+ * loop's Bash and PowerShell commands are held to the guardrails.
  */
 
 export const MODELS = ['inherit', 'fable', 'opus', 'sonnet', 'haiku'] as const
@@ -79,6 +84,8 @@ const MAX_LEDGER = 4 * 1024 * 1024
 /** The repository root (`git rev-parse --show-toplevel`); undefined keeps the run hooks idle. */
 let root: string | undefined
 let defaultBranch = 'main'
+/** The session's directory: a relative path in a read-only role's call resolves against it. */
+let cwd: string | undefined
 let active: Run | undefined
 /** Each ledger read so far, by path, with the mtime it was read at: re-read only when that changes. */
 let ledgers = new Map<string, { mtimeMs: number; run: Run }>()
@@ -172,6 +179,23 @@ async function resumable($: EngineInterface): Promise<Run | undefined> {
   return branch !== undefined && branch === (active.branch ?? defaultBranch) ? active : undefined
 }
 
+/** The deny for a call: a read-only role's first (any time), then the guardrails while a run is active. */
+async function guard($: EngineInterface, e: ToolCallInput): Promise<string | undefined> {
+  if (root === undefined) return undefined
+  const command = e.tool === 'Bash' || e.tool === 'PowerShell' ? e.command : undefined
+  const path = e.tool === 'Edit' || e.tool === 'Write' ? e.file_path : e.tool === 'NotebookEdit' ? e.notebook_path : undefined
+  if (command === undefined && path === undefined) return undefined
+  const role = e.agentId === undefined ? undefined : roleOf(await $.agent.list(), e.agentId, $.plugin.name)
+  const readOnly = role && readOnlyViolation(role, { tool: e.tool, command, path, cwd: cwd ?? root }, root)
+  if (readOnly) return readOnly
+  if (active === undefined || command === undefined) return undefined
+  const branch = command.includes('git') ? await git($, 'branch', '--show-current') : undefined
+  const deny = guardViolation(command, { branch, defaultBranch })
+  // A run deleted since the last refresh (abandoned) no longer guards.
+  const run = deny && (await refresh($))
+  return run && `${deny} (If the user says this run is abandoned, they can delete .amp/${run.key}/; never delete it yourself.)`
+}
+
 /** The `/amp-run` pane's lines, the first its heading. */
 function runLines(run: Run, total: number | undefined): string[] {
   const done = run.tasks.filter(t => t.state === 'complete').length
@@ -209,6 +233,7 @@ export const register: Register = (on, options) => {
     await $.command.register({ name: 'amp-models', description: 'Choose the model each amp task type runs on' })
     await $.command.register({ name: 'amp-run', description: 'Show the current amp run: stage, tasks, fix rounds, parked items' })
     root = await git($, 'rev-parse', '--show-toplevel')
+    cwd = e.cwd
     defaultBranch = root === undefined ? 'main' : await findDefaultBranch($)
     ledgers = new Map()
     totals = new Map()
@@ -218,6 +243,9 @@ export const register: Register = (on, options) => {
   })
 
   on('tool.call', async ($, e, next) => {
+    // A failing guard (agent list, git, fs) lets the call through: nothing throws out of a hook.
+    const deny = await guard($, e).catch(() => undefined)
+    if (deny) return { deny }
     const result = await next(e)
     await refresh($)
     return result

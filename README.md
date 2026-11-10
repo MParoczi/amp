@@ -263,8 +263,8 @@ merge, leaving the PR as the record.
 In Claude Code, amp's hooks module watches the run's ledger. The **active run** is the newest
 `.amp/<key>/progress.md` whose stage isn't `merged`. Every tool call and every finished turn
 checks for it again, so a run started mid-session shows up at once and a merged one drops out.
-Outside a git repository, or with no ledger, nothing below appears. A ledger over 4 MiB, or one
-that can't be read, is skipped.
+Outside a git repository nothing below appears, and with no ledger only the read-only roles apply.
+A ledger over 4 MiB, or one that can't be read, is skipped.
 
 - **Status line.** While a run is active the status line reads `amp <key> · <stage>`. During the
   build it adds the task and any fix round, for example
@@ -278,6 +278,38 @@ that can't be read, is skipped.
   the default branch while the run has none yet), the prompt tells Claude that the run owns the
   branch and that it resumes with `amp:phase <key>`. A compaction in the main conversation keeps
   the same note, so the summary still names the run, its stage and its ledger.
+- **Guardrails.** While a run is active, every Bash and PowerShell command, in the main
+  conversation and in every subagent, is checked before it runs. Each `&&`, `||`, `;`, `|` or
+  newline segment is checked on its own; quoted text and heredoc bodies are data, so
+  `git commit -m "fix; git push -f"` passes. A blocked command is refused with the rule and what
+  to do instead:
+  - **hooks skipped:** `git commit --no-verify` or `-n`
+  - **signing skipped:** `git commit --no-gpg-sign`, or `git -c commit.gpgsign=false commit`
+  - **force push:** `git push` with `--force`, `-f`, `--force-with-lease`, `--force-if-includes`,
+    `--mirror`, `--delete`/`-d`, or a refspec starting with `+` or `:`
+  - **push to default:** a push to the default branch, or a bare `git push` while on it
+  - **hard reset:** `git reset --hard`
+  - **commit on default:** `git commit` while on the default branch
+  - **discard work:** `git stash` (except `list` and `show`), `git checkout --`/`-f`,
+    `git restore` without `--staged` (or with `--worktree`), `git clean -f`
+  - **admin merge:** `gh pr merge --admin`
+
+  What amp's skills run stays allowed: the tag push on the default branch,
+  `git worktree remove --force`, `git branch -D amp-wt-*` and `gh pr merge --merge --delete-branch`.
+  The default branch is origin's HEAD, else `init.defaultBranch`, else `main`. When the current
+  branch can't be read, only the two rules that need it are skipped.
+- **Read-only roles.** `amp:reviewer`, `amp:checker` and `amp:scout` may not edit, write or
+  notebook-edit a file inside the repository except under `.amp/`, and may not run a writing git
+  command (commit, push, merge, reset, checkout, stash, add, a new tag or branch, `apply` without
+  `--check`, a `worktree add` inside the repository, and the like). Reading git (`status`, `log`,
+  `diff`, `branch --contains`, `tag -l`) and a temporary worktree outside the repository stay
+  allowed. This holds whether or not a run is active.
+
+Known gaps: the guardrails match spellings, so a git alias or an `sh -c` wrapper slips past them;
+they are defense in depth, and the skills remain the contract. The read-only rule doesn't stop
+non-git shell writes (`>`, `sed -i`, `rm`), because reviewers run test suites that write caches.
+An abandoned run keeps the guardrails on until its `.amp/<key>/` folder is deleted, which every
+refusal says; Claude never deletes it itself.
 
 ## Project configuration
 
@@ -326,6 +358,8 @@ Example:
 | `/amp-models` | `codex/install` + `amp-install.json` | command + pane / installer | the model settings |
 | `/amp-run` | — | command + pane | the active run: stage, tasks, fix rounds, parked items |
 | amp status line | — | hook | `amp <key> · <stage>`, plus the task and fix round during the build |
+| amp guardrails | — | hook | while a run is active, refuses the git and `gh` commands that skip hooks, rewrite or discard work, or bypass the PR |
+| amp read-only roles | — | hook | refuses repository edits and writing git commands from the reviewer, checker and scout |
 
 The bundled scripts in `skills/build/scripts/` (`codex/skills/build/scripts/` on Codex) handle the
 run's bookkeeping. `amp-workspace` creates the `.amp/<key>/` folder. `task-brief` extracts one
@@ -388,8 +422,9 @@ after rendering: `git add -A`, then `git update-index --chmod=+x` on `scripts/re
 Layout: `.claude-plugin/` (Claude Code manifest, marketplace), `.codex-plugin/` (Codex manifest),
 `src/` (the sources), the rendered `skills/`, `agents/`, `codex/skills/` and `codex/agents/`,
 `codex/install` (the Codex agent installer), `scripts/` (render and test), and `hooks/` (the
-Claude Code hooks module `register.tsx` for the routing, the panes and the run hooks; `run.ts`, the
-ledger parser it reads the run with; and their tests). The editor types for the hooks
+Claude Code hooks module `register.tsx` for the routing, the panes, the run hooks and the guards;
+`run.ts`, the ledger parser it reads the run with; `guard.ts`, the guardrails and read-only rules
+it checks each command and path with; and their tests). The editor types for the hooks
 module appear in `.claude-plugin/types/` the first time a session loads the folder with
 `--plugin-dir`. That folder is git-ignored.
 
