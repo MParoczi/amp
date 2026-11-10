@@ -1,0 +1,31 @@
+{
+  "description": "amp: resume guard, autonomy guardrails, read-only roles",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$PLUGIN_ROOT/codex/hooks/amp-hook\" session-start",
+            "commandWindows": "bash \"%PLUGIN_ROOT%/codex/hooks/amp-hook\" session-start",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$PLUGIN_ROOT/codex/hooks/amp-hook\" pre-tool-use",
+            "commandWindows": "bash \"%PLUGIN_ROOT%/codex/hooks/amp-hook\" pre-tool-use",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

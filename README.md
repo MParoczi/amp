@@ -89,7 +89,12 @@ and then `claude plugin install amp@amp`.
    model pins apply to every project without its own `--project` install. With `--project` they go
    to the repository's `.codex/agents`, which you can commit so collaborators get them too. The
    model flags are described in the next section.
-4. Start a new Codex session, so it loads the agents.
+4. Trust amp's hooks: open `/hooks` in Codex, review amp's two entries and trust them. Codex
+   doesn't run a plugin's hooks until you do. They carry the guardrails and the read-only roles
+   (see [What the plugin adds to a session](#what-the-plugin-adds-to-a-session)). The hooks run
+   `bash`, so on Windows Git Bash's `bash` must come first on PATH, ahead of
+   `C:\Windows\System32\bash.exe`; otherwise Codex reports a hook error.
+5. Start a new Codex session, so it loads the agents.
 
 Every amp skill that spawns agents (`$amp:phase`, `$amp:roadmap`, and `$amp:grill`, `$amp:design`,
 `$amp:plan`, `$amp:build` and `$amp:ship` run on their own) checks the install before its first
@@ -317,6 +322,13 @@ A ledger over 4 MiB, or one that can't be read, is skipped.
   `diff`, `branch --contains`, `tag -l`) and a temporary worktree outside the repository stay
   allowed. This holds whether or not a run is active.
 
+On Codex, once you trust amp's hooks in `/hooks`, the guardrails and the read-only roles apply
+too, with the same rules and the same refusals. `codex/hooks/amp-hook` checks every shell command
+the same way, and for `amp-reviewer`, `amp-checker` and `amp-scout` every file an `apply_patch`
+adds, updates, deletes or moves to. Codex has no PowerShell tool, so only its shell commands are
+checked. A hook input it can't parse lets the call through. The status line, `/amp-run`, the
+alerts and the dispatch rows are Claude Code only.
+
 Known gaps: the guardrails match spellings, so a git alias, an `sh -c` wrapper, a command after a
 lone `&` (background) or one inside a `( … )` subshell slips past them; they are defense in depth,
 and the skills remain the contract. The read-only rule doesn't stop
@@ -371,8 +383,8 @@ Example:
 | `/amp-models` | `codex/install` + `amp-install.json` | command + pane / installer | the model settings |
 | `/amp-run` | — | command + pane | the active run: stage, tasks, fix rounds, parked items |
 | amp status line | — | hook | `amp <key> · <stage>`, plus the task and fix round during the build |
-| amp guardrails | — | hook | while a run is active, refuses the git and `gh` commands that skip hooks, rewrite or discard work, or bypass the PR |
-| amp read-only roles | — | hook | refuses repository edits and writing git commands from the reviewer, checker and scout |
+| amp guardrails | `codex/hooks/amp-hook` | hook | while a run is active, refuses the git and `gh` commands that skip hooks, rewrite or discard work, or bypass the PR |
+| amp read-only roles | `codex/hooks/amp-hook` | hook | refuses repository edits and writing git commands from the reviewer, checker and scout |
 | amp alerts | — | hook | a toast and a sound when the grill summary is ready, a run stops or merges, or a question waits |
 | amp dispatch rows | — | hook | an amp agent's tool row names its role, model and task, then its first report line |
 
@@ -423,7 +435,7 @@ between the tools is marked in the `.md` sources:
 ```
 bash scripts/render                   # regenerate the four rendered trees from src/
 bash scripts/render --check           # fail if the rendered trees are out of date
-bash scripts/test                     # renderer, installer and manifest tests
+bash scripts/test                     # renderer, installer, manifest and Codex hook tests
 claude plugin validate --strict .     # manifest, marketplace and hooks module
 claude plugin test .                  # hooks/*.test.ts against the engine
 claude --plugin-dir .                 # a session with this working copy loaded
@@ -431,12 +443,14 @@ claude --plugin-dir .                 # a session with this working copy loaded
 
 On a checkout with `core.filemode=false` (common on Windows), re-apply the scripts' executable bit
 after rendering: `git add -A`, then `git update-index --chmod=+x` on `scripts/render`,
-`scripts/test`, `codex/install` and the files in `src/skills/build/scripts/`,
+`scripts/test`, `codex/install`, `codex/hooks/amp-hook` and the files in `src/skills/build/scripts/`,
 `skills/build/scripts/` and `codex/skills/build/scripts/`.
 
 Layout: `.claude-plugin/` (Claude Code manifest, marketplace), `.codex-plugin/` (Codex manifest),
 `src/` (the sources), the rendered `skills/`, `agents/`, `codex/skills/` and `codex/agents/`,
-`codex/install` (the Codex agent installer), `scripts/` (render and test), and `hooks/` (the
+`codex/install` (the Codex agent installer), `codex/hooks/` (the Codex hooks file `hooks.json` and
+`amp-hook`, the bash port of the guardrails and read-only rules it runs), `scripts/` (render and
+test), and `hooks/` (the
 Claude Code hooks module `register.tsx` for the routing, the panes, the run hooks and the guards;
 `run.ts`, the ledger parser it reads the run with; `guard.ts`, the guardrails and read-only rules
 it checks each command and path with; their tests; and `sounds/`, the alert sound). The editor
