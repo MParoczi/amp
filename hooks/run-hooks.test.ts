@@ -6,8 +6,8 @@ import { parseLedger, statusText } from './run'
 /*
  * The host the run hooks see. The kit has no fs, network or process: these test hooks sit beneath
  * the plugin and answer `$.fs`, `$.process.run`, `$.agent.list`, `$.ui.status`, `$.ui.toast`,
- * `$.audio.play`, plus the bottoms a session start, a command, a prompt (with the session model)
- * and a tool call need.
+ * `$.audio.play`, plus the bottoms a session start, a command, a prompt (with the session model),
+ * a tool call and a finished turn need.
  */
 type Host = {
   files: Map<string, { text: string; mtimeMs: number; unreadable?: true }>   // absolute, '/'-separated; unreadable: stat answers, read rejects
@@ -70,6 +70,7 @@ function fakeHost(on: On, init: Partial<Pick<Host, 'files' | 'git' | 'agents' | 
   on('session.model', () => ({ value: 'claude-opus-5-5' }))
   on('session.cwd', () => ({ value: host.cwd }))
   on('tool.call', () => ({ result: {} }))
+  on('turn.complete', (_, e) => ({ text: e.answer }))
   return host
 }
 
@@ -238,6 +239,98 @@ describe('amp run hooks', () => {
       await ui.unmount()
     }
   })
+})
+
+const ALERT = 'hooks/sounds/alert.wav'
+const LS = { tool: 'Bash', command: 'ls' } as const
+const ASK = { tool: 'AskUserQuestion', questions: [{ question: 'Which?', header: 'Pick', options: [{ label: 'a', description: '' }, { label: 'b', description: '' }], multiSelect: false }] } as const
+
+describe('amp alerts', () => {
+  test('a ledger already at gate when the session opens does not toast', async ($, on) => {
+    const host = fakeHost(on, { git: GIT, files: files({ '04-x': '# amp ledger — 04-x\nStage: gate' }) })
+    await $.session.start(START)
+    await $.tool.call(LS)
+    expect(host.toasts).toEqual([])
+    expect(host.sounds).toEqual([])
+  })
+
+  test('grill to gate toasts once with a sound, from the main loop only', async ($, on) => {
+    const host = fakeHost(on, { git: GIT, files: files({ '04-x': NO_BRANCH }) })
+    await $.session.start(START)
+    host.files.set(LEDGER, { text: `${NO_BRANCH}\nStage: gate`, mtimeMs: 200 })
+    await $.tool.call({ ...LS, agentId: 'a1' })
+    expect(host.toasts).toEqual([])
+    await $.tool.call(LS)
+    await $.tool.call(LS)
+    expect(host.toasts).toEqual(['amp: grill summary ready — confirm to start the run'])
+    expect(host.sounds).toEqual([ALERT])
+  })
+
+  test('a stop toasts its note once; a later non-Stage line does not toast again', async ($, on) => {
+    const host = fakeHost(on, { git: GIT, files: files({ '04-x': TEXT }) })
+    await $.session.start(START)
+    const stopped = `${TEXT}\nStage: stopped — need gh auth login`
+    host.files.set(LEDGER, { text: stopped, mtimeMs: 200 })
+    await $.tool.call(LS)
+    host.files.set(LEDGER, { text: `${stopped}\nRuling: x`, mtimeMs: 300 })
+    await $.turn.complete({ answer: '', durationMs: 1, isAborted: false, turnId: 't1', reason: 'answer' })
+    expect(host.toasts).toEqual(['amp stopped: need gh auth login'])
+  })
+
+  test('a merge toasts once although the ledger then vanishes, and clears the status', async ($, on) => {
+    const host = fakeHost(on, { git: GIT, files: files({ '04-x': TEXT }) })
+    await $.session.start(START)
+    host.files.set(LEDGER, { text: `${TEXT}\nStage: merged — https://x/pr/5`, mtimeMs: 200 })
+    await $.tool.call(LS)
+    host.files.delete(LEDGER)
+    await $.tool.call(LS)
+    expect(host.toasts).toEqual(['amp: merged — https://x/pr/5'])
+    expect(host.status.at(-1)).toBeUndefined()
+  })
+
+  test('a question during the build toasts; one during the grill or from a subagent does not', async ($, on) => {
+    const host = fakeHost(on, { git: GIT, files: files({ '04-x': TEXT }) })
+    await $.session.start(START)
+    await $.tool.call({ ...ASK, agentId: 'a1' })
+    expect(host.toasts).toEqual([])
+    await $.tool.call(ASK)
+    expect(host.toasts).toEqual(['amp needs your answer'])
+    expect(host.sounds).toEqual([ALERT])
+    host.files.set(LEDGER, { text: NO_BRANCH, mtimeMs: 200 })
+    await $.tool.call(LS)
+    await $.tool.call(ASK)
+    expect(host.toasts).toEqual(['amp needs your answer'])
+  })
+})
+
+const ROW = { tool_use_id: 't1', tool: 'Agent', isRunning: true, isErrored: false, isInterrupted: false } as const
+const IMPLEMENTER = { subagent_type: 'amp:implementer', description: 'Task 3a: x', prompt: 'do it' }
+const DONE = { status: 'completed', resolvedModel: 'claude-sonnet-x', content: [{ type: 'text', text: '\n- STATUS: DONE\n- Commits: …' }] }
+
+describe('amp dispatch rows', () => {
+  for (const surface of ['terminal', 'desktop'] as const) {
+    test(`an amp agent's row names its role, model and task, then its result (${surface})`, async ($, on) => {
+      fakeHost(on)
+      const ui = await $.ui.mount({ plugin: 'amp', surface, component: 'ToolUse', requestId: 't1', props: { ...ROW, input: IMPLEMENTER } })
+      expect(await ui.keepsBeneath()).toBe(true)
+      expect(await ui.find({ type: 'Text', text: 'amp implementer · opus · task 3a' })).toBeDefined()
+      await ui.redraw({ ...ROW, isRunning: false, input: IMPLEMENTER, output: DONE })
+      expect(await ui.find({ type: 'Text', text: 'amp implementer · claude-sonnet-x · task 3a' })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: '- STATUS: DONE' })).toBeDefined()
+      await ui.redraw({ ...ROW, isRunning: false, input: IMPLEMENTER, output: { status: 'async_launched', agentId: 'a1', description: 'x', prompt: 'p', outputFile: 'f' } })
+      expect(await ui.find({ type: 'Text', text: 'amp implementer · opus · task 3a' })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: /STATUS/ })).toBeUndefined()
+      await ui.unmount()
+    })
+
+    test(`a non-amp agent's row is unchanged (${surface})`, async ($, on) => {
+      fakeHost(on)
+      const ui = await $.ui.mount({ plugin: 'amp', surface, component: 'ToolUse', requestId: 't1', props: { ...ROW, input: { ...IMPLEMENTER, subagent_type: 'Explore' } } })
+      expect(await ui.keepsBeneath()).toBe(true)
+      expect(await ui.findAll({ type: 'Text' })).toEqual([])
+      await ui.unmount()
+    })
+  }
 })
 
 const SUFFIX = ' (If the user says this run is abandoned, they can delete .amp/04-x/; never delete it yourself.)'

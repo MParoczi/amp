@@ -436,3 +436,13 @@ for t in skills codex/skills; do
   lacks "$t/build/SKILL.md" '# amp ledger — plan:'
 done
 ok
+
+case=alert-wav
+# the alert sound (spec 04 §5.3): a small RIFF/WAVE file that git treats as binary
+w=$ROOT/hooks/sounds/alert.wav
+[ -f "$w" ] || fail "no $w"
+[ "$(head -c 4 "$w")" = RIFF ] || fail "does not start with RIFF"
+[ "$(dd if="$w" bs=1 skip=8 count=4 2>/dev/null)" = WAVE ] || fail "no WAVE at offset 8"
+[ "$(wc -c < "$w")" -lt 16384 ] || fail "$(wc -c < "$w") bytes, want under 16384"
+[ "$(git -C "$ROOT" check-attr binary hooks/sounds/alert.wav)" = 'hooks/sounds/alert.wav: binary: set' ] || fail "not binary in git"
+ok

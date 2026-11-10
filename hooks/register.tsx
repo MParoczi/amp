@@ -1,7 +1,7 @@
-import type { EngineInterface, PluginOptions, Register, ToolCallInput } from 'claude-code'
+import type { EngineInterface, PluginOptions, Register, RenderPropsOf, ToolCallInput } from 'claude-code'
 
 import { guardViolation, readOnlyViolation, roleOf } from './guard'
-import { parseLedger, planTaskCount, resumeText, statusText, type Run } from './run'
+import { parseLedger, planTaskCount, resumeText, statusText, type Run, type Stage } from './run'
 
 /*
  * amp model routing. The plugin's `userConfig` holds one model per task type (the `/config` rows
@@ -19,6 +19,10 @@ import { parseLedger, planTaskCount, resumeText, statusText, type Run } from './
  * Guards (spec §5.4-5.5, hooks/guard.ts): before a tool call, a reviewer, checker or scout may not
  * edit the repository outside `.amp/` or run a writing git command; while a run is active, every
  * loop's Bash and PowerShell commands are held to the guardrails.
+ *
+ * Alerts (spec §5.3): in the main loop, a toast and a sound when a run reaches gate, stopped or
+ * merged, and when a question is asked after the grill. An amp agent's tool row names its role,
+ * model and task, and its first result line once it completes.
  */
 
 export const MODELS = ['inherit', 'fable', 'opus', 'sonnet', 'haiku'] as const
@@ -89,6 +93,34 @@ let active: Run | undefined
 let ledgers = new Map<string, { mtimeMs: number; run: Run }>()
 /** Plan task totals by plan path, with the plan's mtime; undefined when it counts none. */
 let totals = new Map<string, { mtimeMs: number; total: number | undefined }>()
+/** Each run's stage at the last main-loop refresh, by key; a run's first parse seeds it silently. */
+let lastStage = new Map<string, Stage>()
+/** The stages a question alerts at: never during the grill. */
+const ASKING: readonly Stage[] = ['design', 'plan', 'build', 'ship']
+
+/** A toast, and the alert sound where the host can play it (spec §6: silent otherwise). */
+function alert($: EngineInterface, text: string) {
+  $.ui.toast(text)
+  $.audio.play({ asset: 'hooks/sounds/alert.wav' }).catch(() => {})
+}
+
+/** The toast a run's stage change to gate, stopped or merged raises. */
+function stageAlert(run: Run): string | undefined {
+  if (run.stage === 'gate') return 'amp: grill summary ready — confirm to start the run'
+  if (run.stage === 'stopped') return `amp stopped: ${run.note}`
+  if (run.stage === 'merged') return `amp: merged — ${run.note}`
+  return undefined
+}
+
+/** Alerts each candidate run whose stage changed since the last check; a merged run is still a candidate here. */
+function checkStages($: EngineInterface) {
+  for (const { run } of ledgers.values()) {
+    const before = lastStage.get(run.key)
+    lastStage.set(run.key, run.stage)
+    const text = before !== undefined && before !== run.stage ? stageAlert(run) : undefined
+    if (text) alert($, text)
+  }
+}
 
 /** A git command's trimmed stdout, or undefined when it fails, exits non-zero or prints nothing. */
 async function git($: EngineInterface, ...args: string[]): Promise<string | undefined> {
@@ -160,9 +192,13 @@ async function show($: EngineInterface) {
   }
 }
 
-/** Re-scans for the active run and shows it when it or its ledger changed (an unchanged ledger keeps its Run). */
-async function refresh($: EngineInterface): Promise<Run | undefined> {
+/**
+ * Re-scans for the active run and shows it when it or its ledger changed (an unchanged ledger keeps its Run).
+ * The main loop's refresh (`isMain`) also runs the stage alerts.
+ */
+async function refresh($: EngineInterface, isMain: boolean): Promise<Run | undefined> {
   const run = await scan($)
+  if (isMain) checkStages($)
   if (run !== active) {
     active = run
     await show($)
@@ -192,8 +228,37 @@ async function guard($: EngineInterface, e: ToolCallInput): Promise<string | und
   const branch = command.includes('git') ? await git($, 'branch', '--show-current') : undefined
   const deny = guardViolation(command, { branch, defaultBranch })
   // A run deleted since the last refresh (abandoned) no longer guards.
-  const run = deny && (await refresh($))
+  const run = deny && (await refresh($, e.agentId === undefined))
   return run && `${deny} (If the user says this run is abandoned, they can delete .amp/${run.key}/; never delete it yourself.)`
+}
+
+/** A field of an unknown record when it is a string. */
+function text(value: unknown, key: string): string | undefined {
+  const field = typeof value === 'object' && value !== null ? (value as Record<string, unknown>)[key] : undefined
+  return typeof field === 'string' ? field : undefined
+}
+
+/** An Agent result's first non-blank line, from its content, else its hand-back report, cut to 100 characters. */
+function firstLine(output: unknown): string | undefined {
+  if (text(output, 'status') !== 'completed') return undefined
+  const { content, handbackReport } = output as { content?: unknown; handbackReport?: unknown }
+  const parts = Array.isArray(content) ? content.map(part => text(part, 'text') ?? '') : []
+  const line = (body: string | undefined) => body?.split('\n').map(l => l.trim()).find(l => l !== '')
+  return (line(parts.join('\n')) ?? line(text(handbackReport, 'text')))?.slice(0, 100)
+}
+
+/** The heading and result line of an amp agent's row, or undefined for any other call. */
+async function dispatchRow($: EngineInterface, options: PluginOptions, row: RenderPropsOf['ToolUse']) {
+  const type = row.tool === 'Agent' ? text(row.input, 'subagent_type') : undefined
+  const role = ROLES.find(r => r.agent !== undefined && type === `${$.plugin.name}:${r.agent}`)
+  if (type === undefined || role === undefined) return undefined
+  const planned = async () => {
+    const model = spawnModel(options, $.plugin.name, type, 'inherit') ?? 'inherit'
+    return aliasFor(model, await $.session.model().catch(() => '')) ?? 'inherit'
+  }
+  const model = text(row.output, 'resolvedModel') ?? text(row.input, 'model') ?? (await planned())
+  const task = [text(row.input, 'description'), text(row.input, 'prompt')].map(t => t?.match(/Task (\d+[a-z]?)/)?.[1]).find(Boolean)
+  return { heading: [`${$.plugin.name} ${role.agent}`, model, ...(task ? [`task ${task}`] : [])].join(' · '), result: firstLine(row.output) }
 }
 
 /** The `/amp-run` pane's lines, the first its heading. */
@@ -237,6 +302,7 @@ export const register: Register = (on, options) => {
     ledgers = new Map()
     totals = new Map()
     active = await scan($)
+    checkStages($)
     await show($)
     return next(e)
   })
@@ -248,14 +314,16 @@ export const register: Register = (on, options) => {
       return undefined
     })
     if (deny) return { deny }
+    const isMain = e.agentId === undefined
+    if (isMain && e.tool === 'AskUserQuestion' && active && ASKING.includes(active.stage)) alert($, 'amp needs your answer')
     const result = await next(e)
-    await refresh($)
+    await refresh($, isMain)
     return result
   })
 
   on('turn.complete', async ($, e, next) => {
     const result = await next(e)
-    await refresh($)
+    await refresh($, e.agentId === undefined)
     return result
   })
 
@@ -267,7 +335,7 @@ export const register: Register = (on, options) => {
   })
 
   on('command.run', { command: 'amp-run' }, async $ => {
-    const run = await refresh($)
+    const run = await refresh($, true)
     await openPane($, RUN_PANE, 'amp run').catch(() => undefined)
     return { text: run ? statusText(run, await planTotal($, run)) : NO_RUN }
   })
@@ -285,6 +353,22 @@ export const register: Register = (on, options) => {
             <Text>{line}</Text>
           </Box>
         ))}
+      </Box>
+    )
+  })
+
+  on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
+    const beneath = await next(e)
+    const row = await dispatchRow($, options, e.props)
+    if (row === undefined) return beneath
+    const { Box, Text } = $.ui.resolve(e)
+    return (
+      <Box flexDirection="column">
+        {beneath}
+        <Box flexDirection="column" borderStyle="round" paddingX={1}>
+          <Text bold>{row.heading}</Text>
+          {row.result !== undefined && <Text dimColor>{row.result}</Text>}
+        </Box>
       </Box>
     )
   })
