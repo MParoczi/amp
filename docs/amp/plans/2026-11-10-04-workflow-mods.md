@@ -99,7 +99,7 @@ used.
 
 **Commit:** `feat(skills): write the amp ledger from intake with Stage lines`
 
-- [ ] **Step 1: Failing test.** New `case=stage-lines` in `scripts/test`. For both rendered trees
+- [x] **Step 1: Failing test.** New `case=stage-lines` in `scripts/test`. For both rendered trees
   it greps these literal strings:
   - phase: `# amp ledger — <NN>-<slug>`, `Stage: grill`, `Branch: <branch>`, `Stage: design`
     and `Stage: stopped — <what is needed>`
@@ -109,8 +109,8 @@ used.
   - ship: `Stage: ship` and `Stage: merged — <PR URL>`
   - each of grill, plan and ship: `only when $WS/progress.md exists`
   - build: `If no ledger exists (amp:build run on its own), create it`
-- [ ] **Step 2: Run, expect FAIL.** `bash scripts/test` → `FAIL: stage-lines: …`
-- [ ] **Step 3: Implement** the spec §5.1 "Who writes what":
+- [x] **Step 2: Run, expect FAIL.** `bash scripts/test` → `FAIL: stage-lines: …`
+- [x] **Step 3: Implement** the spec §5.1 "Who writes what":
   - one sentence per write point, using the literal strings above
   - phase's autonomy-contract stop rule writes `Stage: stopped — <what is needed>` before the stop
     message, and the resume writes the stage it continues
@@ -118,9 +118,9 @@ used.
     form is retired from the text)
 
   Then run `bash scripts/render`.
-- [ ] **Step 4: Run, expect PASS.** `bash scripts/render --check && bash scripts/test`
-- [ ] **Step 5: Docs.** none beyond the skills.
-- [ ] **Step 6: Commit.**
+- [x] **Step 4: Run, expect PASS.** `bash scripts/render --check && bash scripts/test`
+- [x] **Step 5: Docs.** none beyond the skills.
+- [x] **Step 6: Commit.**
 
 ### Task 2: Ledger parser
 
@@ -133,7 +133,7 @@ used.
 **Commit:** `feat(hooks): parse the amp ledger`
 **Independent:** yes
 
-- [ ] **Step 1: Failing tests** in `run.test.ts`, on a fixture ledger containing:
+- [x] **Step 1: Failing tests** in `run.test.ts`, on a fixture ledger containing:
   - the header and `Stage: grill`, then `Stage: build — tasks`
   - `Branch: feature/04-x` and `Plan: docs/amp/plans/p.md`
   - `Task 1: complete (commits a..b, review clean)`
@@ -156,11 +156,11 @@ used.
   - `planTaskCount('### Task 1: a\n### Task 2a: b')` is 2
   - `resumeText` contains `# amp run in progress (04-x)`, the ledger path and
     `amp:phase 04-x`
-- [ ] **Step 2: Run, expect FAIL.** `claude plugin test .` → `run.ts` is missing.
-- [ ] **Step 3: Implement** in `hooks/run.ts`: line-by-line regexes, last value wins.
-- [ ] **Step 4: Run, expect PASS.** `claude plugin test .`
-- [ ] **Step 5: Docs.** none.
-- [ ] **Step 6: Commit.**
+- [x] **Step 2: Run, expect FAIL.** `claude plugin test .` → `run.ts` is missing.
+- [x] **Step 3: Implement** in `hooks/run.ts`: line-by-line regexes, last value wins.
+- [x] **Step 4: Run, expect PASS.** `claude plugin test .`
+- [x] **Step 5: Docs.** none.
+- [x] **Step 6: Commit.**
 
 ### Task 3: Run detection, status line, `/amp-run` pane, resume section, compaction note
 
@@ -205,7 +205,7 @@ used.
 
 **Commit:** `feat(hooks): amp run status line, /amp-run pane and resume guard`
 
-- [ ] **Step 1: Failing tests** in `run-hooks.test.ts`, all through `fakeHost`:
+- [x] **Step 1: Failing tests** in `run-hooks.test.ts`, all through `fakeHost`:
   - With no `.amp`: the last status is `undefined`, `/amp-run` replies
     `No amp run in this repository.`, and no `:resume` section is added.
   - A ledger added to `files` **after** `session.start`: after one tool call, the last status
@@ -225,8 +225,8 @@ used.
   - `session.compact` with no `agentId`: the instructions end with `Keep: amp run 04-x is in
     progress`. With an `agentId` they are unchanged.
   - The pane mounted on `terminal` and `desktop` shows the stage, `3a` and `fix round 2/5`.
-- [ ] **Step 2: Run, expect FAIL.** `claude plugin test .`
-- [ ] **Step 3: Implement:**
+- [x] **Step 2: Run, expect FAIL.** `claude plugin test .`
+- [x] **Step 3: Implement:**
   - spec §5.2 "Finding the run"
   - the §5.4 default-branch chain, resolved once in `session.start`
   - the §5.3 rows `session.start`, `tool.call` (the after-refresh only), `turn.complete`,
@@ -235,9 +235,9 @@ used.
   Refresh: `$.fs.list(<root>/.amp)`, a stat of each `progress.md`, a re-read only on an mtime
   change, and a candidate skipped when its stat size is over 4 MiB or its read rejects. Cache the
   plan total by its path.
-- [ ] **Step 4: Run, expect PASS.** `claude plugin test . && claude plugin validate .`
-- [ ] **Step 5: Docs.** the README items.
-- [ ] **Step 6: Commit.**
+- [x] **Step 4: Run, expect PASS.** `claude plugin test . && claude plugin validate .`
+- [x] **Step 5: Docs.** the README items.
+- [x] **Step 6: Commit.**
 
 ### Task 4: Guardrails and read-only roles (Claude Code)
 
@@ -266,7 +266,7 @@ export function insideRoot(path: string, cwd: string, root: string): 'repo' | 'a
 
 **Commit:** `feat(hooks): amp autonomy guardrails and read-only reviewer roles`
 
-- [ ] **Step 1: Failing tests.**
+- [x] **Step 1: Failing tests.**
   - In `guard.test.ts`:
     - every row of spec §5.4: a deny case (the `<rule>` is in the text) and its allowed example
     - the §5.4 splitter fixtures table
@@ -292,17 +292,17 @@ export function insideRoot(path: string, cwd: string, root: string): 'repo' | 'a
     - a Write to `${ROOT}/.amp/04-x/r.md` from `a1` passes
     - the same repo Write from the main loop passes
     - `Bash git commit -m x` from `a1` is denied (no ledger needed)
-- [ ] **Step 2: Run, expect FAIL.** `claude plugin test .`
-- [ ] **Step 3: Implement** `guard.ts` per spec §5.4 and §5.5. Then wire `tool.call`:
+- [x] **Step 2: Run, expect FAIL.** `claude plugin test .`
+- [x] **Step 3: Implement** `guard.ts` per spec §5.4 and §5.5. Then wire `tool.call`:
   - **read-only first**, always on: roles via
     `roleOf(await $.agent.list(), e.agentId, $.plugin.name)`, for Edit/Write/NotebookEdit and
     Bash/PowerShell
   - **then the guardrails**, while a run is active: Bash/PowerShell, with the current branch
     fetched only when the command contains `git`; append the suffix
   - return `{ deny }`
-- [ ] **Step 4: Run, expect PASS.** `claude plugin test . && claude plugin validate .`
-- [ ] **Step 5: Docs.** the README items.
-- [ ] **Step 6: Commit.**
+- [x] **Step 4: Run, expect PASS.** `claude plugin test . && claude plugin validate .`
+- [x] **Step 5: Docs.** the README items.
+- [x] **Step 6: Commit.**
 
 ### Task 5: Alerts and amp dispatch rows
 
@@ -319,7 +319,7 @@ export function insideRoot(path: string, cwd: string, root: string): 'repo' | 'a
 
 **Commit:** `feat(hooks): amp gate, stop and merge alerts and rich dispatch rows`
 
-- [ ] **Step 1: Failing tests** (through `fakeHost`).
+- [x] **Step 1: Failing tests** (through `fakeHost`).
   - **Alerts:**
     - A ledger that reads `Stage: gate` at the first refresh → no toast.
     - A run at `grill` that changes to `Stage: gate` → the toast
@@ -340,16 +340,16 @@ export function insideRoot(path: string, cwd: string, root: string): 'repo' | 'a
     - A non-amp agent's row is unchanged.
   - **`scripts/test` case=`alert-wav`:** the file starts with `RIFF`, has `WAVE` at offset 8, and
     is under 16384 bytes. `git check-attr binary hooks/sounds/alert.wav` reports `set`.
-- [ ] **Step 2: Run, expect FAIL.** `claude plugin test .` and `bash scripts/test`
-- [ ] **Step 3: Implement** the spec §5.3 Alerts and ToolUse rows.
+- [x] **Step 2: Run, expect FAIL.** `claude plugin test .` and `bash scripts/test`
+- [x] **Step 3: Implement** the spec §5.3 Alerts and ToolUse rows.
   - Add `*.wav binary` to `.gitattributes` first.
   - Generate the WAV once with an inline command: 0.25 s, 880 Hz, 22050 Hz, mono, 16-bit, for
     example `node -e` or `python -c`.
   - The alert helper is `$.ui.toast(text)` plus
     `$.audio.play({asset:'hooks/sounds/alert.wav'}).catch(() => {})`.
-- [ ] **Step 4: Run, expect PASS.** `claude plugin test . && bash scripts/test && claude plugin validate .`
-- [ ] **Step 5: Docs.** the README items.
-- [ ] **Step 6: Commit.**
+- [x] **Step 4: Run, expect PASS.** `claude plugin test . && bash scripts/test && claude plugin validate .`
+- [x] **Step 5: Docs.** the README items.
+- [x] **Step 6: Commit.**
 
 ### Task 6: Codex pre-tool-use hook (guardrails and read-only roles)
 
@@ -369,7 +369,7 @@ at `session-start`, which Task 7 implements; until then that subcommand exits 0 
 
 **Commit:** `feat(codex): guardrails and read-only roles as a Codex PreToolUse hook`
 
-- [ ] **Step 1: Failing tests** in `scripts/test`, each in a temp git repo with
+- [x] **Step 1: Failing tests** in `scripts/test`, each in a temp git repo with
   `refs/remotes/origin/HEAD → origin/main` and a `.amp/04-x/progress.md`, piping JSON to
   `bash codex/hooks/amp-hook pre-tool-use`:
   - The same deny and allow rows as Task 4 (§5.4, §5.5, the splitter fixtures, Review Focus 2),
@@ -394,15 +394,15 @@ at `session-start`, which Task 7 implements; until then that subcommand exits 0 
     - the `"hooks": {}` assertion at `scripts/test:276` is replaced
     - the spec §7 hooks-file grep checks
   - `case=modes` covers `codex/hooks/amp-hook` as 100755.
-- [ ] **Step 2: Run, expect FAIL.** `bash scripts/test`
-- [ ] **Step 3: Implement** `amp-hook` per spec §5.6:
+- [x] **Step 2: Run, expect FAIL.** `bash scripts/test`
+- [x] **Step 3: Implement** `amp-hook` per spec §5.6:
   - sed JSON extraction, failing open
   - the `guard.ts` tokenizer rules
   - `commandWindows` in `hooks.json`
   - `git update-index --chmod=+x`
-- [ ] **Step 4: Run, expect PASS.** `bash scripts/test && bash scripts/render --check`
-- [ ] **Step 5: Docs.** the README items.
-- [ ] **Step 6: Commit.**
+- [x] **Step 4: Run, expect PASS.** `bash scripts/test && bash scripts/render --check`
+- [x] **Step 5: Docs.** the README items.
+- [x] **Step 6: Commit.**
 
 ### Task 7: Codex resume guard, release 1.4.0
 
@@ -414,16 +414,16 @@ at `session-start`, which Task 7 implements; until then that subcommand exits 0 
 bump.
 **Commit:** `feat(codex): resume guard as a Codex SessionStart hook; release 1.4.0`
 
-- [ ] **Step 1: Failing tests** in `scripts/test`:
+- [x] **Step 1: Failing tests** in `scripts/test`:
   - `session-start` prints `# amp run in progress (04-x)` and the ledger path for a matching
     `Branch:`
   - it prints nothing for a mismatched branch, for no `.amp`, and for a `Stage: merged` ledger
   - with two ledgers, the newer (`touch` order) wins
   - both manifests are `"version": "1.4.0"`, replacing the 1.3.0 assertions at
     `scripts/test:215,278`
-- [ ] **Step 2: Run, expect FAIL.** `bash scripts/test`
-- [ ] **Step 3: Implement** `session-start` per spec §5.6.2, with `ls -t` ordering. Then bump both
+- [x] **Step 2: Run, expect FAIL.** `bash scripts/test`
+- [x] **Step 3: Implement** `session-start` per spec §5.6.2, with `ls -t` ordering. Then bump both
   manifests to 1.4.0.
-- [ ] **Step 4: Run, expect PASS.** `bash scripts/test && bash scripts/render --check && claude plugin test . && claude plugin validate .`
-- [ ] **Step 5: Docs.** README and CHANGELOG.
-- [ ] **Step 6: Commit.**
+- [x] **Step 4: Run, expect PASS.** `bash scripts/test && bash scripts/render --check && claude plugin test . && claude plugin validate .`
+- [x] **Step 5: Docs.** README and CHANGELOG.
+- [x] **Step 6: Commit.**
