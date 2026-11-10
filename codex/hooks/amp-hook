@@ -39,6 +39,8 @@ case $json in *$xbs*|*$xq*) exit 0 ;; esac   # raw control bytes are not JSON
 json=${json//"$bs$bs"/$xbs}; json=${json//"$bs$q"/$xq}
 
 # A string field "KEY" right after `{` or `,`: that boundary can't occur inside a string value.
+# Nesting is ignored: Codex's PreToolUse input has no `command` key but tool_input's, and no other
+# `tool_name`, `agent_type` or `cwd` key.
 tool= command= agent= cwd=
 while IFS= read -r line; do
   case $line in t*) tool=${line#t} ;; c*) command=${line#c} ;; a*) agent=${line#a} ;; w*) cwd=${line#w} ;; esac
@@ -56,7 +58,7 @@ s/.*[{,][[:space:]]*"cwd"[[:space:]]*:[[:space:]]*"([^"]*)".*/w\1/p
 # decode VAR: unescape the JSON string in VAR; one with an escape it doesn't handle becomes empty
 decode() {
   local v=${!1}
-  v=${v//$xq/$q}; v=${v//"$bs"n/$nl}; v=${v//"$bs"t/$tab}; v=${v//"$bs"r/$cr}; v=${v//"$bs"\//\/}
+  v=${v//$xq/$q}; v=${v//"$bs"n/$nl}; v=${v//"$bs"t/$tab}; v=${v//"$bs"r/$cr}; v=${v//"$bs/"//}
   case $v in *"$bs"*) v= ;; esac               # \u, \b or \f: counts as absent
   printf -v "$1" '%s' "${v//$xbs/$bs}"
 }
@@ -67,7 +69,8 @@ for f in tool command agent cwd; do decode "$f"; done
 # deny REASON: print the PreToolUse deny and exit (decoded text holds no control bytes but these three)
 deny() {
   local r=$1
-  r=${r//"$bs"/$bs$bs}; r=${r//"$q"/$bs$q}; r=${r//$nl/$bs'n'}; r=${r//$cr/$bs'r'}; r=${r//$tab/$bs't'}
+  local en='\n' er='\r' et='\t'   # variables, not $bs'n': bash 3.2 keeps quotes in a replacement
+  r=${r//"$bs"/$bs$bs}; r=${r//"$q"/$bs$q}; r=${r//$nl/$en}; r=${r//$cr/$er}; r=${r//$tab/$et}
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"%s"}}\n' "$r"
   exit 0
 }
@@ -325,7 +328,7 @@ if [ -n "$role" ]; then
   # read_only WHAT TARGET: the read-only deny
   read_only() { deny "amp read-only: $role may not $1 ($2). Report the finding instead; write only the report file under .amp/ or outside the repo."; }
   case $tool in
-    apply_patch|Edit|Write)
+    apply_patch)
       while IFS= read -r path; do
         [ -n "$path" ] || continue
         where "$path" "$here"

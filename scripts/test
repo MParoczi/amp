@@ -484,8 +484,11 @@ ledger=$hr/.amp/04-x/progress.md
 printf '# amp ledger — 04-x\nStage: build\nBranch: feature/04-x\n' > "$ledger"
 # on BRANCH: check out BRANCH (unborn is fine), or detach HEAD when BRANCH is empty
 on() { if [ -n "$1" ]; then git -C "$hr" symbolic-ref HEAD "refs/heads/$1"; else git -C "$hr" update-ref --no-deref HEAD "$sha"; fi; }
-# js TEXT: TEXT as the body of a JSON string
-js() { local s=${1//\\/\\\\}; s=${s//\"/\\\"}; s=${s//$'\t'/\\t}; s=${s//$'\r'/\\r}; printf '%s' "${s//$'\n'/\\n}"; }
+# js TEXT: TEXT as the body of a JSON string. Variables in the replacements, with patsub_replacement
+# off where it exists, keep the backslashes literal on every bash from 3.2 on (as in amp-hook).
+shopt -u patsub_replacement 2>/dev/null || true
+b='\' dq='"' jt='\t' jr='\r' jn='\n'
+js() { local s=${1//"$b"/$b$b}; s=${s//"$dq"/$b$dq}; s=${s//$'\t'/$jt}; s=${s//$'\r'/$jr}; printf '%s' "${s//$'\n'/$jn}"; }
 jroot=$(js "$hroot")
 # bash_json COMMAND [AGENT]: Codex's PreToolUse input for a shell command (from AGENT's loop)
 bash_json() { printf '{"session_id":"s","cwd":"%s","hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"%s"}%s}' "$jroot" "$(js "$1")" "${2:+,\"agent_type\":\"$2\"}"; }
@@ -538,6 +541,8 @@ hook "$(bash_json 'ls && git reset --hard HEAD')"
 [ "$out" = "$(reason "amp guard: hard reset is blocked during an amp run (git reset --hard HEAD). never discard work; revert or fix forward$suffix")" ] \
   || fail "deny text: $out"
 denies "$(bash_json 'gh pr merge 5 --admin')" ". stop and ask the user$suffix\"}}"
+# the reason is JSON-escaped: a quoted newline, a quote and a backslash in the segment
+denies "$(bash_json $'git commit -n -m "a\nb \\" c\\\\"')" '(git commit -n -m a\nb \" c\\)'
 ok
 
 case=hook-splitter
@@ -552,6 +557,7 @@ guard 'hooks skipped' $'git commit -m x \\\n  -n' $'git commit -m x \\\r\n  -n'
 # escaped quotes in the JSON: extracted, never a deny on a mis-parse (Review Focus 5)
 allows "{\"cwd\":\"$jroot\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git commit -m \\\"a \\\\\\\"b\\\\\\\"\\\"\"}}"
 denies "{\"cwd\":\"$jroot\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git commit -m \\\"a\\\" && git push -f\"}}" 'amp guard: force push'
+denies "{\"cwd\":\"$jroot\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git reset --hard origin\\/main\"}}" '(git reset --hard origin/main)'
 # malformed JSON: allowed, silently
 for j in 'not json' '{"tool_name":"Bash","tool_input":{"command":"git reset --hard"' \
   '{"tool_name":"Bash","tool_input":{"command":"git reset --hard}}'; do allows "$j"; done
@@ -629,4 +635,19 @@ denies "$(bash_json 'git reset --hard')" 'amp guard: hard reset'
 # outside a git repository every check is off
 GIT_CEILING_DIRECTORIES=$tmp allows "$(printf '{"cwd":"%s","tool_name":"apply_patch","tool_input":{"command":"%s"},"agent_type":"amp-reviewer"}' \
   "$(js "$tmp/no repo")" "$(js "$(add a.ts)")")"
+ok
+
+case=hook-ledgers
+# newer candidates that are unreadable, over 4 MiB or merged are skipped: the older run stays active
+on feature/04-x
+touch -t 202001010000 "$ledger"
+mkdir -p "$hr/.amp/05-dir/progress.md" "$hr/.amp/06-big" "$hr/.amp/07-merged"
+dd if=/dev/zero of="$hr/.amp/06-big/progress.md" bs=1024 count=4097 2>/dev/null
+printf '# amp ledger — 07-merged\nStage: ship\nStage: merged — https://x/pull/2\n' > "$hr/.amp/07-merged/progress.md"
+hook "$(bash_json 'git reset --hard')"
+case $out in *'amp guard: hard reset'*"delete .amp/04-x/;"*) ;; *) fail "want the 04-x run's deny, got '$out'" ;; esac
+mv "$ledger" "$ledger.off"
+allows "$(bash_json 'git reset --hard')"
+mv "$ledger.off" "$ledger"
+rm -rf "$hr/.amp/05-dir" "$hr/.amp/06-big" "$hr/.amp/07-merged"
 ok
