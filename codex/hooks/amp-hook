@@ -1,0 +1,401 @@
+#!/usr/bin/env bash
+# amp's Codex hooks (spec 04 §5.6), run by codex/hooks/hooks.json with the hook's JSON on stdin.
+#   pre-tool-use   the read-only roles (§5.5) for any session, then the guardrails (§5.4) while a
+#                  run is active: prints a PreToolUse deny, or nothing
+#   session-start  the resume guard (§5.2): prints hooks/run.ts resumeText for the active run when it
+#                  owns the current branch, or nothing
+# A bash port of hooks/guard.ts (same rule tables, same deny texts) and of hooks/run.ts's ledger
+# reading and resume text, so a change there is a change here. Every path exits 0, and anything it
+# can't parse lets the call through: a guard bug must not brick a session.
+#
+# lean: the guard is a deny-list on spellings, so aliases, `sh -c` wrappers, a lone `&` and `( … )`
+# subshells evade it. It is defense in depth, and the skills remain the contract.
+# lean: no PowerShell here-string (`@'…'@`) handling, as Codex's shell tool runs Bash: one that
+# reaches it is split as Bash splits it, so a git command in its body can be falsely denied, never
+# falsely allowed while Bash runs it. Port guard.ts's here-string branch if a false deny is reported.
+# lean: non-git shell writes (`>`, `sed -i`, `rm`) aren't blocked for read-only roles, because
+# reviewers run test suites that write caches. The guardrails still apply.
+#
+# Usage: amp-hook pre-tool-use|session-start < hook-input.json
+
+export LC_ALL=C                                 # byte-wise sed, awk and patterns, whatever the input
+shopt -u patsub_replacement 2>/dev/null || true # bash 5.2+: `&` in a ${v//p/r} replacement stays literal
+
+nl=$'\n' cr=$'\r' tab=$'\t' bs='\' q='"' us=$'\037' rs=$'\036'
+# placeholders for an escaped backslash and quote: control bytes, which JSON never carries raw
+# (not \001 or \177, which bash uses internally)
+xbs=$'\034' xq=$'\035'
+
+event=${1-}
+case $event in
+  pre-tool-use|session-start) ;;
+  *) echo "usage: amp-hook pre-tool-use|session-start" >&2; exit 1 ;; # 1, not 2: exit 2 would block the tool
+esac
+
+# --- input -----------------------------------------------------------------------------------------
+
+IFS= read -r -d '' json || true
+json=${json//$cr/ }; json=${json//$nl/ }
+case $json in *$xbs*|*$xq*) exit 0 ;; esac   # raw control bytes are not JSON
+[[ $json =~ ^[[:space:]]*\{.*\}[[:space:]]*$ ]] || exit 0
+# Outside strings JSON has no backslash, so `\\` then `\"` are exactly the escaped backslashes and
+# quotes: as placeholders, every string value is `"[^"]*"`.
+json=${json//"$bs$bs"/$xbs}; json=${json//"$bs$q"/$xq}
+
+# A string field "KEY" right after `{` or `,`: that boundary can't occur inside a string value.
+# Nesting is ignored: Codex's PreToolUse input has no `command` key but tool_input's, and no other
+# `tool_name`, `agent_type` or `cwd` key, and its SessionStart input has only the `cwd`.
+tool= command= agent= cwd=
+while IFS= read -r line; do
+  case $line in t*) tool=${line#t} ;; c*) command=${line#c} ;; a*) agent=${line#a} ;; w*) cwd=${line#w} ;; esac
+done <<< "$(sed -nE '
+h
+s/.*[{,][[:space:]]*"tool_name"[[:space:]]*:[[:space:]]*"([^"]*)".*/t\1/p
+g
+s/.*[{,][[:space:]]*"command"[[:space:]]*:[[:space:]]*"([^"]*)".*/c\1/p
+g
+s/.*[{,][[:space:]]*"agent_type"[[:space:]]*:[[:space:]]*"([^"]*)".*/a\1/p
+g
+s/.*[{,][[:space:]]*"cwd"[[:space:]]*:[[:space:]]*"([^"]*)".*/w\1/p
+' <<< "$json")"
+
+# decode VAR: unescape the JSON string in VAR; one with an escape it doesn't handle becomes empty
+decode() {
+  local v=${!1}
+  v=${v//$xq/$q}; v=${v//"$bs"n/$nl}; v=${v//"$bs"t/$tab}; v=${v//"$bs"r/$cr}; v=${v//"$bs/"//}
+  case $v in *"$bs"*) v= ;; esac               # \u, \b or \f: counts as absent
+  printf -v "$1" '%s' "${v//$xbs/$bs}"
+}
+for f in tool command agent cwd; do decode "$f"; done
+
+# --- output ----------------------------------------------------------------------------------------
+
+# deny REASON: print the PreToolUse deny and exit (decoded text holds no control bytes but these three)
+deny() {
+  local r=$1
+  local en='\n' er='\r' et='\t'   # variables, not $bs'n': bash 3.2 keeps quotes in a replacement
+  r=${r//"$bs"/$bs$bs}; r=${r//"$q"/$bs$q}; r=${r//$nl/$en}; r=${r//$cr/$er}; r=${r//$tab/$et}
+  printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"%s"}}\n' "$r"
+  exit 0
+}
+
+# --- git context -----------------------------------------------------------------------------------
+
+G=(git); [ -n "$cwd" ] && G=(git -C "$cwd")
+root=$("${G[@]}" rev-parse --show-toplevel 2>/dev/null) && [ -n "$root" ] || exit 0  # not a repo: idle
+
+# The default branch (origin's HEAD, else init.defaultBranch, else main) and the current one, read
+# once and only when a rule needs them. A failed `git branch` leaves the branch unknown.
+def= branch= branch_read=
+default_branch() {
+  [ -n "$def" ] && return
+  def=$("${G[@]}" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null) && [ -n "$def" ] && { def=${def#origin/}; return; }
+  def=$("${G[@]}" config init.defaultBranch 2>/dev/null) && [ -n "$def" ] || def=main
+}
+on_default() {
+  [ -n "$branch_read" ] || { branch_read=1; branch=$("${G[@]}" branch --show-current 2>/dev/null) || branch=; }
+  [ -n "$branch" ] || return 1
+  default_branch
+  [ "$branch" = "$def" ]
+}
+
+# A ledger read as hooks/run.ts parseLedger reads it (§5.1): the last valid Stage (else unknown)
+# and its note, the last Branch and Plan (or the 1.3.0 header's), and the last task line (the task
+# first seen last, with its latest text), printed as s, n, b, p and t lines.
+IFS= read -r -d '' ledger_awk <<'AWK'
+{ sub(/[[:space:]]+$/, "") }
+index($0, P = "# amp ledger — plan: ") == 1 {
+  rest = substr($0, length(P) + 1); i = index(substr(rest, 2), S = " — branch: ")   # plan: .+? (lazy)
+  if (i && length(rest) > i + length(S)) { plan = substr(rest, 1, i); branch = substr(rest, i + 1 + length(S)); next }
+}
+match($0, /^Stage: [A-Za-z0-9_]+/) && index(" grill gate design plan build ship merged stopped ", " " substr($0, 8, RLENGTH - 7) " ") &&
+  (RLENGTH == length($0) || index(substr($0, RLENGTH + 1), " — ") == 1) {
+  stage = substr($0, 8, RLENGTH - 7); note = substr($0, RLENGTH + 1 + length(" — ")); next
+}
+index($0, "Branch: ") == 1 { branch = substr($0, 9); next }
+index($0, "Plan: ") == 1 { plan = substr($0, 7); next }
+match($0, /^Task [0-9]+[a-z]?: /) {
+  id = substr($0, 6, RLENGTH - 7)
+  if (!(id in text)) order[++tasks] = id
+  text[id] = substr($0, RLENGTH + 1)
+}
+END {
+  printf "s%s\nn%s\nb%s\np%s\n", stage == "" ? "unknown" : stage, note, branch, plan
+  if (tasks) printf "tTask %s: %s\n", order[tasks], text[order[tasks]]
+}
+AWK
+
+# active_run: sets key to the active run (the newest .amp/*/progress.md whose stage isn't merged),
+# and stage, note, run_branch, plan and last from its ledger; a candidate that is no file, can't be
+# read or is over 4 MiB is skipped
+key=
+active_run() {
+  local f size fields line
+  while IFS= read -r f; do
+    [ -f "$f" ] && size=$(wc -c 2>/dev/null < "$f") && [ "$size" -le 4194304 ] 2>/dev/null || continue
+    fields=$(awk "$ledger_awk" < "$f" 2>/dev/null) || continue
+    stage= note= run_branch= plan= last=
+    while IFS= read -r line; do
+      case $line in s*) stage=${line#s} ;; n*) note=${line#n} ;; b*) run_branch=${line#b} ;; p*) plan=${line#p} ;; t*) last=${line#t} ;; esac
+    done <<< "$fields"
+    [ "$stage" = merged ] && continue
+    key=${f%/progress.md}; key=${key##*/}
+    return 0
+  done < <(ls -td "$root"/.amp/*/progress.md 2>/dev/null)
+  return 1
+}
+
+# --- paths -----------------------------------------------------------------------------------------
+
+# resolve PATH CWD: sets resolved to PATH made absolute, `/`-separated, with `.` and `..` collapsed
+resolve() {
+  local p=${1//"$bs"//} part IFS=/
+  case $p in /*|[a-zA-Z]:/*) ;; *) p=${2//"$bs"//}/$p ;; esac
+  local parts out; set -f; parts=($p); set +f; out=()
+  for part in "${parts[@]:1}"; do
+    case $part in
+      ..) [ ${#out[@]} -gt 0 ] && unset "out[$((${#out[@]} - 1))]" ;;
+      .|'') ;;
+      *) out+=("$part") ;;
+    esac
+  done
+  resolved="${parts[0]}/${out[*]}"
+}
+
+# where PATH CWD: sets place to amp (under <root>/.amp/), repo (elsewhere in the repo) or outside;
+# case is ignored when the root starts with a drive letter
+where() {
+  resolve "$1" "$2"; local target=$resolved
+  resolve "$root" "$root"; local base=${resolved%/}
+  case $root in [a-zA-Z]:*) shopt -s nocasematch ;; esac
+  if [[ $target == "$base/.amp" || $target == "$base/.amp/"* ]]; then place=amp
+  elif [[ $target == "$base" || $target == "$base/"* ]]; then place=repo
+  else place=outside
+  fi
+  shopt -u nocasematch
+}
+
+# --- commands --------------------------------------------------------------------------------------
+
+# The command's segments (split on `&&`, `||`, `;`, `|` and newlines outside quotes), each a run of
+# unquoted words, every word ended by \037 and every segment by \036. Heredoc bodies are dropped
+# first: after `<<WORD`, `<<-WORD`, `<<'WORD'` or `<<"WORD"` (not `<<<`) the lines up to WORD
+# (leading tabs stripped for `<<-`) are data, inside `$(…)` too. Inside "…" `\"` and `\\` are
+# escapes; a backslash-newline outside '…' continues the line.
+IFS= read -r -d '' split <<'AWK'
+{ sub(/\r$/, ""); gsub(/[\036\037]/, ""); line[++n] = $0 }
+function endword() { if (inword) seg = seg cur "\037"; cur = ""; inword = 0 }
+function endseg() { endword(); if (seg != "") printf "%s\036", seg; seg = "" }
+END {
+  head = 1; tail = 0; text = ""; kept = 0
+  for (l = 1; l <= n; l++) {
+    s = line[l]
+    if (head <= tail) {
+      t = s
+      if (tabs[head]) sub(/^\t+/, "", t)
+      if (t == word[head]) head++
+      continue
+    }
+    text = (kept++ ? text "\n" : "") s
+    p = 1
+    while (p <= length(s) && match(substr(s, p), /<<-?[[:space:]]*["']?[A-Za-z_][A-Za-z0-9_.-]*/)) {
+      st = p + RSTART - 1; after = st + RLENGTH
+      m = substr(s, st + 2, RLENGTH - 2); dash = substr(m, 1, 1) == "-"
+      if (dash) m = substr(m, 2)
+      sub(/^[[:space:]]*/, "", m)
+      ok = st == 1 || substr(s, st - 1, 1) != "<"
+      c = substr(m, 1, 1)
+      if (c == "'" || c == "\"") { m = substr(m, 2); if (substr(s, after, 1) == c) after++; else ok = 0 }
+      if (ok) { word[++tail] = m; tabs[tail] = dash; p = after } else p = st + 1
+    }
+  }
+  quote = ""; L = length(text)
+  for (i = 1; i <= L; i++) {
+    c = substr(text, i, 1); d = substr(text, i + 1, 1)
+    if (quote == "'") { if (c == "'") quote = ""; else cur = cur c }
+    else if (c == "\\" && d == "\n") i++
+    else if (quote == "\"") {
+      if (c == "\\" && (d == "\"" || d == "\\")) { cur = cur d; i++ }
+      else if (c == "\"") quote = ""
+      else cur = cur c
+    }
+    else if (c == "'" || c == "\"") { quote = c; inword = 1 }
+    else if (c == ";" || c == "|" || c == "\n") endseg()
+    else if (c == "&" && d == "&") { endseg(); i++ }
+    else if (c ~ /[[:space:]]/) endword()
+    else { cur = cur c; inword = 1 }
+  }
+  endseg()
+}
+AWK
+
+# member WORD LIST...: WORD is one of LIST
+member() { local x=$1 y; shift; for y; do [[ $x == "$y" ]] && return 0; done; return 1; }
+# has NAME...: an option word of the parsed segment is one of NAME
+has() { local o; for o in "${opts[@]}"; do member "$o" "$@" && return 0; done; return 1; }
+# short_has LETTER: an option word matching ^-[a-zA-Z]+$ contains LETTER
+short_has() {
+  local o
+  for o in "${opts[@]}"; do
+    case $o in -|-*[!a-zA-Z]*) ;; -*"$1"*) return 0 ;; esac
+  done
+  return 1
+}
+
+# The value-taking options per subcommand: each consumes the next word.
+TAG_VALUES=(--contains --no-contains --points-at --merged --no-merged --sort --format -n -u -m -F -t)
+COMMIT_VALUES=(-m -F -C -c -t --author --date --message --file)
+PUSH_VALUES=(-o --push-option --repo --receive-pack --exec)
+
+# parse_git: when words is a git segment, sets sub, opts (option names: `--opt` of `--opt=v`, `-m`
+# of `-mnote`), pos (positional words) and gpgoff (global `-c commit.gpgsign=false`)
+parse_git() {
+  [[ ${words[0]-} == git ]] || return 1
+  local n=${#words[@]} at=1 w values; values=()
+  gpgoff=
+  while [ "$at" -lt "$n" ]; do
+    w=${words[at]}
+    case $w in -*) ;; *) break ;; esac
+    if [[ $w == -C || $w == -c ]]; then
+      if [[ $w == -c ]]; then
+        shopt -s nocasematch
+        [[ ${words[at + 1]-} == commit.gpgsign=false ]] && gpgoff=1
+        shopt -u nocasematch
+      fi
+      at=$((at + 1))
+    fi
+    at=$((at + 1))
+  done
+  [ "$at" -lt "$n" ] || return 1
+  sub=${words[at]}
+  case $sub in
+    commit) values=("${COMMIT_VALUES[@]}") ;;
+    push) values=("${PUSH_VALUES[@]}") ;;
+    tag|branch) values=("${TAG_VALUES[@]}") ;;
+  esac
+  opts=() pos=()
+  for ((at = at + 1; at < n; at++)); do
+    w=${words[at]}
+    case $w in
+      -*) ;;
+      *) pos+=("$w"); continue ;;
+    esac
+    if [[ $w == --*=* ]]; then opts+=("${w%%=*}")
+    elif [[ $w != --* && ${#w} -gt 2 ]] && member "${w:0:2}" "${values[@]}"; then opts+=("${w:0:2}")
+    else
+      opts+=("$w")
+      member "$w" "${values[@]}" && at=$((at + 1))
+    fi
+  done
+  return 0
+}
+
+INSTEAD_HOOKS='fix the hook failure instead'
+INSTEAD_REWRITE='amp merges, never rewrites published history'
+INSTEAD_DISCARD='never discard work; revert or fix forward'
+FORCE=(--force -f --force-with-lease --force-if-includes --mirror --delete -d)
+
+# broken_rule: sets rule and instead to the §5.4 rule the segment in words breaks, else returns 1
+broken_rule() {
+  rule= instead=
+  if [[ ${words[0]-} == gh && ${words[1]-} == pr && ${words[2]-} == merge ]] && member --admin "${words[@]}"; then
+    rule='admin merge' instead='stop and ask the user'; return 0
+  fi
+  parse_git || return 1
+  local r refspecs
+  case $sub in
+    commit)
+      if has --no-verify || short_has n; then rule='hooks skipped' instead=$INSTEAD_HOOKS
+      elif has --no-gpg-sign || [ -n "$gpgoff" ]; then rule='signing skipped' instead=$INSTEAD_HOOKS
+      elif on_default; then rule='commit on default' instead='create the phase branch first'
+      fi ;;
+    push)
+      refspecs=("${pos[@]:1}")
+      if has "${FORCE[@]}"; then rule='force push'
+      else for r in "${refspecs[@]}"; do case $r in +*|:*) rule='force push' ;; esac; done
+      fi
+      if [ -n "$rule" ]; then instead=$INSTEAD_REWRITE
+      else
+        default_branch
+        for r in "${refspecs[@]}"; do [[ $r == "$def" || $r == *":$def" ]] && rule='push to default'; done
+        [ ${#refspecs[@]} -eq 0 ] && on_default && rule='push to default'
+        [ -n "$rule" ] && instead='push the phase branch and merge through the PR'
+      fi ;;
+    reset) has --hard && rule='hard reset' instead=$INSTEAD_DISCARD ;;
+    stash) member "${pos[0]-}" list show || rule='discard work' ;;
+    checkout) has -- -f --force && rule='discard work' ;;
+    restore) { ! has --staged -S || has --worktree -W; } && rule='discard work' ;;
+    clean) { has --force || short_has f; } && rule='discard work' ;;
+  esac
+  [ "$rule" = 'discard work' ] && instead=$INSTEAD_DISCARD
+  [ -n "$rule" ]
+}
+
+DENY_ALL=(commit push merge rebase reset checkout switch stash add rm mv cherry-pick revert am restore clean pull)
+TAG_WRITE=(-a -s -u -d -f -m -F --annotate --sign --delete --force)
+BRANCH_WRITE=(-d -D -m -M -c -C -f --delete --move --copy --force)
+NOTES_WRITE=(add edit remove copy append merge prune)
+# expands PATH: the shell expands PATH (`$VAR`, `~`, `%VAR%`, `$(…)`, a backtick), so it can't be resolved here
+expands() { case $1 in '$'*|'~'*|'%'*|*'$('*|*'`'*) return 0 ;; esac; return 1; }
+
+# git_writes: the parsed segment writes, for a read-only role (§5.5)
+git_writes() {
+  # A positional word creates a tag or branch, unless it is a list pattern (`--list`, `-l`, `-ln`).
+  local creates=
+  [ ${#pos[@]} -gt 0 ] && ! has --list && ! short_has l && creates=1
+  case $sub in
+    tag) has "${TAG_WRITE[@]}" || [ -n "$creates" ] ;;
+    branch) has "${BRANCH_WRITE[@]}" || [ -n "$creates" ] ;;
+    notes) member "${pos[0]-}" "${NOTES_WRITE[@]}" ;;
+    apply) ! has --check --stat --numstat ;;
+    worktree) [[ ${pos[0]-} == add ]] && [ ${#pos[@]} -gt 1 ] && ! expands "${pos[1]}" && where "${pos[1]}" "$here" && [ "$place" = repo ] ;;
+    *) member "$sub" "${DENY_ALL[@]}" ;;
+  esac
+}
+
+# --- the checks ------------------------------------------------------------------------------------
+
+# The resume guard: the active run owns the branch its Branch names, or the default branch while it
+# has none. The text is hooks/run.ts resumeText's, as plain stdout (Codex adds it to the context).
+if [ "$event" = session-start ]; then
+  active_run || exit 0
+  owner=$run_branch; [ -n "$owner" ] || { default_branch; owner=$def; }
+  branch=$("${G[@]}" branch --show-current 2>/dev/null) && [ -n "$branch" ] && [ "$branch" = "$owner" ] || exit 0
+  printf '# amp run in progress (%s)\nStage: %s%s\nLedger: .amp/%s/progress.md\n' "$key" "$stage" "${note:+ — $note}" "$key"
+  [ -n "$run_branch" ] && printf 'Branch: %s\n' "$run_branch"
+  [ -n "$plan" ] && printf 'Plan: %s\n' "$plan"
+  [ -n "$last" ] && printf 'Last task line: %s\n' "$last"
+  printf "An unfinished amp run owns this branch. When the user asks to continue, resume it with amp:phase %s: the ledger and git log are the ground truth. Don't start unrelated work on this branch without saying so.\n" "$key"
+  exit 0
+fi
+
+here=${cwd:-$root}   # a relative path resolves against the session's directory
+segments=
+[ "$tool" = Bash ] && [ -n "$command" ] && segments=$(awk "$split" <<< "$command")
+
+case $agent in amp-reviewer|amp-checker|amp-scout) role=${agent#amp-} ;; *) role= ;; esac
+if [ -n "$role" ]; then
+  # read_only WHAT TARGET: the read-only deny
+  read_only() { deny "amp read-only: $role may not $1 ($2). Report the finding instead; write only the report file under .amp/ or outside the repo."; }
+  case $tool in
+    apply_patch)
+      while IFS= read -r path; do
+        [ -n "$path" ] || continue
+        where "$path" "$here"
+        [ "$place" = repo ] && read_only 'edit files in the repository' "$path"
+      done <<< "$(sed -nE 's/^[[:space:]]*\*\*\* (Add File|Update File|Delete File|Move to): *(.*[^[:space:]])[[:space:]]*$/\2/p' <<< "$command")" ;;
+    Bash)
+      while IFS=$us read -r -d "$rs" -a words; do
+        parse_git && git_writes || continue
+        what="run git $sub"; [ "$sub" = worktree ] && what="$what add"
+        read_only "$what" "${words[*]}"
+      done <<< "$segments" ;;
+  esac
+fi
+
+[ -n "$segments" ] && active_run || exit 0
+while IFS=$us read -r -d "$rs" -a words; do
+  broken_rule || continue
+  deny "amp guard: $rule is blocked during an amp run (${words[*]}). $instead (If the user says this run is abandoned, they can delete .amp/$key/; never delete it yourself.)"
+done <<< "$segments"
+exit 0

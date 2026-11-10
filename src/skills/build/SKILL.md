@@ -39,7 +39,9 @@ Dispatch templates: `${CLAUDE_SKILL_DIR}/prompts/`.
 1. `WS=$(bash "$S/amp-workspace" <NN>-<slug>)`. amp:phase normally created it already.
 2. **Ledger** `$WS/progress.md`. If it exists, trust it and `git log` over your memory: tasks with
    `Task N: complete` are done, and a task whose last line is a fix round resumes at the next round.
-   Otherwise create it with the first line `# amp ledger — plan: <plan path> — branch: <branch>`.
+   If no ledger exists (amp:build run on its own), create it with the header
+   `# amp ledger — <NN>-<slug>` and the lines `Branch: <branch>` and `Plan: <plan path>`.
+   Either way, append `Stage: build`.
 3. Read the plan once (and the spec sections it leans on). Create one todo per task.
 4. **Preflight conflict scan**, written to the ledger as a table: one row per pair of tasks
    sharing a file or interface (what one produces vs what the other consumes, or both producing the

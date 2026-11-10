@@ -15,6 +15,8 @@ failures.
 Before the first spawn, run only the **Agents:** check of amp:phase's Preflight (step 4), not its git steps, unless it already ran in this session.
 
 Default path: `docs/amp/plans/YYYY-MM-DD-<NN>-<slug>.md` (project configuration may override it).
+Once the path is set, append `Plan: <plan path>` and `Stage: plan` to the ledger,
+only when $WS/progress.md exists (a standalone plan keeps no ledger).
 
 ## Header (mandatory)
 

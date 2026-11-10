@@ -26,6 +26,7 @@ Everything else in this README applies to both tools unless a section says other
 - [Install for Codex](#install-for-codex)
 - [Choosing the models](#choosing-the-models)
 - [Using amp](#using-amp)
+- [What the plugin adds to a session](#what-the-plugin-adds-to-a-session)
 - [Project configuration](#project-configuration)
 - [What runs where](#what-runs-where)
 - [Updating and removing](#updating-and-removing)
@@ -33,9 +34,10 @@ Everything else in this README applies to both tools unless a section says other
 
 ## Requirements
 
-- **Claude Code.** Tested on 2.1.295. The model routing and the settings pane use Claude Code's
-  function-hook plugins (early access). On a build without them the skills and agents still work,
-  and each agent runs on the default model in its definition (see the defaults below).
+- **Claude Code.** Tested on 2.1.295. The model routing, the settings pane and the run hooks (status
+  line, `/amp-run`, resume guard, alerts, dispatch rows) use Claude Code's function-hook plugins
+  (early access). On a build without them the skills and agents still work, and each agent runs on
+  the default model in its definition (see the defaults below).
 - **Or Codex**: the Codex CLI or the desktop app. The IDE extension has no plugins, so it can't
   run amp. Codex support follows Codex's source and documentation but hasn't yet been tested end
   to end against a real Codex binary.
@@ -87,7 +89,12 @@ and then `claude plugin install amp@amp`.
    model pins apply to every project without its own `--project` install. With `--project` they go
    to the repository's `.codex/agents`, which you can commit so collaborators get them too. The
    model flags are described in the next section.
-4. Start a new Codex session, so it loads the agents.
+4. Trust amp's hooks: open `/hooks` in Codex, review amp's two entries and trust them. Codex
+   doesn't run a plugin's hooks until you do. They carry the resume guard, the guardrails and the
+   read-only roles (see [What the plugin adds to a session](#what-the-plugin-adds-to-a-session)). The hooks run
+   `bash`, so on Windows Git Bash's `bash` must come first on PATH, ahead of
+   `C:\Windows\System32\bash.exe`; otherwise Codex reports a hook error.
+5. Start a new Codex session, so it loads the agents.
 
 Every amp skill that spawns agents (`$amp:phase`, `$amp:roadmap`, and `$amp:grill`, `$amp:design`,
 `$amp:plan`, `$amp:build` and `$amp:ship` run on their own) checks the install before its first
@@ -256,6 +263,82 @@ so nothing in it reaches git. If a session ends or its context is compacted, run
 with the same phase. It resumes from the ledger and `git log`. amp deletes the folder after the
 merge, leaving the PR as the record.
 
+## What the plugin adds to a session
+
+In Claude Code, amp's hooks module watches the run's ledger. The **active run** is the newest
+`.amp/<key>/progress.md` whose stage isn't `merged`. Every tool call and every finished turn
+checks for it again, so a run started mid-session shows up at once and a merged one drops out.
+Outside a git repository nothing below appears, and with no ledger only the read-only roles apply.
+A ledger over 4 MiB, or one that can't be read, is skipped.
+
+- **Status line.** While a run is active the status line reads `amp <key> · <stage>`. During the
+  build it adds the task and any fix round, for example
+  `amp 04-workflow-mods · build · task 3/7 · fix r2/5`.
+- **`/amp-run`.** Opens the "amp run" pane: the key and branch, the stage and its note, one row per
+  task with its state, the current fix round, the parked, rulings and fallback counts, the
+  pipeline state and the ledger's last lines. With no run it replies "No amp run in this
+  repository."
+- **Resume guard.** Whenever Claude Code builds the system prompt of a conversation that can
+  dispatch agents while the current branch is one an unfinished run owns (its `Branch:` line, or
+  the default branch while the run has none yet), the prompt tells Claude that the run owns the
+  branch and that it resumes with `amp:phase <key>`. A compaction in the main conversation keeps
+  the same note, so the summary still names the run, its stage and its ledger.
+- **Guardrails.** While a run is active, every Bash and PowerShell command, in the main
+  conversation and in every subagent, is checked before it runs. Each `&&`, `||`, `;`, `|` or
+  newline segment is checked on its own; quoted text and heredoc bodies are data, so
+  `git commit -m "fix; git push -f"` passes. A blocked command is refused with the rule and what
+  to do instead:
+  - **hooks skipped:** `git commit --no-verify` or `-n`
+  - **signing skipped:** `git commit --no-gpg-sign`, or `git -c commit.gpgsign=false commit`
+  - **force push:** `git push` with `--force`, `-f`, `--force-with-lease`, `--force-if-includes`,
+    `--mirror`, `--delete`/`-d`, or a refspec starting with `+` or `:`
+  - **push to default:** a push to the default branch, or a bare `git push` while on it
+  - **hard reset:** `git reset --hard`
+  - **commit on default:** `git commit` while on the default branch
+  - **discard work:** `git stash` (except `list` and `show`), `git checkout --`/`-f`,
+    `git restore` without `--staged` (or with `--worktree`), `git clean -f`
+  - **admin merge:** `gh pr merge --admin`
+
+  What amp's skills run stays allowed: the tag push on the default branch,
+  `git worktree remove --force`, `git branch -D amp-wt-*` and `gh pr merge --merge --delete-branch`.
+  The default branch is origin's HEAD, else `init.defaultBranch`, else `main`. When the current
+  branch can't be read, only the two rules that need it are skipped.
+- **Alerts.** In the main conversation a toast, with a short sound, says when the grill summary
+  is ready (`amp: grill summary ready — confirm to start the run`), when a run stops
+  (`amp stopped: <what is needed>`) and when it merges (`amp: merged — <PR URL>`). A question
+  Claude asks after the grill (during design, plan, build or ship) toasts `amp needs your answer`.
+  A run's stage when the session first sees it raises nothing, so opening a session on a waiting
+  or stopped run stays quiet. The toast shows everywhere; the sound plays on macOS terminals and
+  on hosts that can play audio, and is silent on Windows and Linux terminals.
+- **Dispatch rows.** The row of an `amp:reviewer`, `amp:implementer`, `amp:checker` or `amp:scout`
+  dispatch gets a box beneath it: `amp <role> · <model> · task <N>`, for example
+  `amp implementer · opus · task 3a`. The model is the configured one until the agent reports the
+  model it ran on; the task comes from the first `Task <N>` in the description or the prompt.
+  Once the agent completes, the box adds the first line of its report, such as `- STATUS: DONE`.
+- **Read-only roles.** `amp:reviewer`, `amp:checker` and `amp:scout` may not edit, write or
+  notebook-edit a file inside the repository except under `.amp/`, and may not run a writing git
+  command (commit, push, merge, reset, checkout, stash, add, a new tag or branch, `apply` without
+  `--check`, a `worktree add` inside the repository, and the like). Reading git (`status`, `log`,
+  `diff`, `branch --contains`, `tag -l`) and a temporary worktree outside the repository stay
+  allowed. This holds whether or not a run is active.
+
+On Codex, once you trust amp's hooks in `/hooks`, the resume guard, the guardrails and the
+read-only roles apply too, with the same rules and the same refusals. When a session starts,
+resumes or compacts on a branch an unfinished run owns, `codex/hooks/amp-hook` adds the same
+resume note to its context. It checks every shell command the same way, and for `amp-reviewer`,
+`amp-checker` and `amp-scout` every file an `apply_patch` adds, updates, deletes or moves to.
+Codex's shell tool is named `Bash`, and the hook splits commands as Bash does: it doesn't parse
+PowerShell here-strings (`@'…'@`), and one that reaches it can be refused for a git command in its
+text. A hook input it can't parse lets the call through. The status line, `/amp-run`, the alerts
+and the dispatch rows are Claude Code only.
+
+Known gaps: the guardrails match spellings, so a git alias, an `sh -c` wrapper, a command after a
+lone `&` (background) or one inside a `( … )` subshell slips past them; they are defense in depth,
+and the skills remain the contract. The read-only rule doesn't stop
+non-git shell writes (`>`, `sed -i`, `rm`), because reviewers run test suites that write caches.
+An abandoned run keeps the guardrails on until its `.amp/<key>/` folder is deleted, which every
+refusal says; Claude never deletes it itself.
+
 ## Project configuration
 
 Settings for one project go in its `CLAUDE.md`, under a `## amp configuration` heading, as a
@@ -301,6 +384,13 @@ Example:
 | `amp:checker` | `amp-checker` | agent | fallback re-check when the reviewer can't be resumed: each finding addressed or not, plus any new breakage in the fix |
 | `amp:scout` | `amp-scout` | agent | answers one factual question from primary sources, with citations |
 | `/amp-models` | `codex/install` + `amp-install.json` | command + pane / installer | the model settings |
+| `/amp-run` | — | command + pane | the active run: stage, tasks, fix rounds, parked items |
+| amp status line | — | hook | `amp <key> · <stage>`, plus the task and fix round during the build |
+| amp resume guard | `codex/hooks/amp-hook` | hook | tells a session on a branch an unfinished run owns to resume it with `amp:phase <key>` |
+| amp guardrails | `codex/hooks/amp-hook` | hook | while a run is active, refuses the git and `gh` commands that skip hooks, rewrite or discard work, or bypass the PR |
+| amp read-only roles | `codex/hooks/amp-hook` | hook | refuses repository edits and writing git commands from the reviewer, checker and scout |
+| amp alerts | — | hook | a toast and a sound when the grill summary is ready, a run stops or merges, or a question waits |
+| amp dispatch rows | — | hook | an amp agent's tool row names its role, model and task, then its first report line |
 
 The bundled scripts in `skills/build/scripts/` (`codex/skills/build/scripts/` on Codex) handle the
 run's bookkeeping. `amp-workspace` creates the `.amp/<key>/` folder. `task-brief` extracts one
@@ -349,7 +439,7 @@ between the tools is marked in the `.md` sources:
 ```
 bash scripts/render                   # regenerate the four rendered trees from src/
 bash scripts/render --check           # fail if the rendered trees are out of date
-bash scripts/test                     # renderer, installer and manifest tests
+bash scripts/test                     # renderer, installer, manifest and Codex hook tests
 claude plugin validate --strict .     # manifest, marketplace and hooks module
 claude plugin test .                  # hooks/*.test.ts against the engine
 claude --plugin-dir .                 # a session with this working copy loaded
@@ -357,15 +447,19 @@ claude --plugin-dir .                 # a session with this working copy loaded
 
 On a checkout with `core.filemode=false` (common on Windows), re-apply the scripts' executable bit
 after rendering: `git add -A`, then `git update-index --chmod=+x` on `scripts/render`,
-`scripts/test`, `codex/install` and the files in `src/skills/build/scripts/`,
+`scripts/test`, `codex/install`, `codex/hooks/amp-hook` and the files in `src/skills/build/scripts/`,
 `skills/build/scripts/` and `codex/skills/build/scripts/`.
 
 Layout: `.claude-plugin/` (Claude Code manifest, marketplace), `.codex-plugin/` (Codex manifest),
 `src/` (the sources), the rendered `skills/`, `agents/`, `codex/skills/` and `codex/agents/`,
-`codex/install` (the Codex agent installer), `scripts/` (render and test), and `hooks/` (the
-Claude Code routing and pane module `register.tsx`, plus its tests). The editor types for the hooks
-module appear in `.claude-plugin/types/` the first time a session loads the folder with
-`--plugin-dir`. That folder is git-ignored.
+`codex/install` (the Codex agent installer), `codex/hooks/` (the Codex hooks file `hooks.json` and
+`amp-hook`, the bash port of the guardrails and read-only rules it runs), `scripts/` (render and
+test), and `hooks/` (the
+Claude Code hooks module `register.tsx` for the routing, the panes, the run hooks and the guards;
+`run.ts`, the ledger parser it reads the run with; `guard.ts`, the guardrails and read-only rules
+it checks each command and path with; their tests; and `sounds/`, the alert sound). The editor
+types for the hooks module appear in `.claude-plugin/types/` the first time a session loads the
+folder with `--plugin-dir`. That folder is git-ignored.
 
 ## License
 

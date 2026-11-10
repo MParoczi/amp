@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.4.0 — 2026-11-10
+
+- amp:phase creates the run's ledger (`.amp/<key>/progress.md`) at intake, and every stage
+  appends a `Stage:` line (`grill`, `gate`, `design`, `plan`, `build`, `ship`, `merged`, or
+  `stopped` with what it needs) along with the run's `Branch:` and `Plan:`. The hooks below read
+  it; ledgers written by 1.3.0 still work.
+- In Claude Code, the status line shows the active run, `amp <key> · <stage>`, plus the task and
+  any fix round during the build. `/amp-run` opens a pane with the run's stage, tasks, fix round,
+  parked items, rulings, fallbacks and the ledger's last lines.
+- A resume guard: a session on a branch an unfinished run owns is told that the run owns it and
+  resumes with `amp:phase <key>`, and a compaction keeps that note. On Codex a `SessionStart`
+  hook adds the same note.
+- Guardrails: while a run is active, the git and `gh` commands that skip hooks or signing, force
+  push, push to or commit on the default branch, hard reset, discard work or merge with `--admin`
+  are refused, with what to do instead. `amp:reviewer`, `amp:checker` and `amp:scout` are
+  read-only: no repository edits outside `.amp/` and no writing git commands. On Codex a
+  `PreToolUse` hook enforces both for shell commands and `apply_patch`, once amp's hooks are
+  trusted in `/hooks` (on Windows, Git Bash's `bash` must come first on PATH).
+- Alerts: a toast says when the grill summary is ready, a run stops or merges, or a question
+  waits after the grill, with a short sound on macOS terminals. Each amp dispatch row shows the
+  role, model and task, then the first line of the agent's report. Both are Claude Code only.
+
 ## 1.3.0 — 2026-11-01
 
 - A fix round is re-checked by the task's own reviewer, resumed with the fix diff, instead of a

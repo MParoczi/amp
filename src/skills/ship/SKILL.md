@@ -8,7 +8,9 @@ effort: high
 
 Everything here is **pre-authorized** by the grill confirmation: push the phase branch, open the
 PR, re-run CI, merge after green, tag per project config, and delete the merged branch. Stop only
-for the reasons in amp:phase's autonomy contract.
+for the reasons in amp:phase's autonomy contract, and follow it at every stop below (gh auth,
+verify cap, CI cap, merge protection): first append `Stage: stopped — <what is needed>` to the
+ledger, only when $WS/progress.md exists.
 
 <!-- codex -->
 `<skills>` is the folder that holds this skill's folder (the parent of this SKILL.md's directory); use its absolute path.
@@ -20,6 +22,9 @@ Every `amp-implementer` dispatch below is a `spawn_agent` call with `agent_type:
 <!-- /codex -->
 `D` = default branch: `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, falling
 back to `git symbolic-ref --short refs/remotes/origin/HEAD` without its `origin/` prefix.
+
+As this stage starts, append `Stage: ship` to the ledger, only when $WS/progress.md exists
+(a standalone ship keeps no ledger).
 
 ## 1. Docs sweep and close-out (orchestrator bookkeeping; no product code)
 
@@ -72,6 +77,8 @@ report).
 
 - `gh pr merge <pr> --merge --delete-branch`. The default is a merge commit, which keeps the atomic
   task commits. Use `--squash` or `--rebase` only if the project configuration says so.
+- Right after the merge succeeds, append `Stage: merged — <PR URL>` to the ledger (when it
+  exists), before step 6 deletes the workspace.
 - Blocked by required human review, or other protection the agent can't satisfy → **stop**, say
   exactly what's needed, and give the PR URL.
 - If D moved and the PR is behind, merge D in (step 3), re-verify, push, re-watch, and merge.
