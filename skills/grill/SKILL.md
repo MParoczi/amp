@@ -89,8 +89,9 @@ confirmed or stated. Then present one compact summary:
 - stated assumptions and what is **out of scope**
 - for amp:phase: the branch name `<type>/<NN>-<slug>` and the phase's verification gates
 
-Ask: **"Is this a complete and correct picture? Once you confirm, I run autonomously through
-design, plan, build, PR and merge."** (Standalone, drop the second sentence.) Corrections reopen
+Right before the question, append `Stage: gate` to the ledger, only when $WS/progress.md exists
+(a standalone grill keeps no ledger). Then ask: **"Is this a complete and correct picture? Once
+you confirm, I run autonomously through design, plan, build, PR and merge."** (Standalone, drop the second sentence.) Corrections reopen
 their branch of the tree; ask again only what changed.
 
 This confirmation is the **only** approval gate in an amp run. Nothing is designed, planned or

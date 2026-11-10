@@ -18,6 +18,8 @@ Before the first spawn, run only the **Agents:** check of amp:phase's Preflight 
 
 <!-- /codex -->
 Default path: `docs/amp/plans/YYYY-MM-DD-<NN>-<slug>.md` (project configuration may override it).
+Once the path is set, append `Plan: <plan path>` and `Stage: plan` to the ledger,
+only when $WS/progress.md exists (a standalone plan keeps no ledger).
 
 ## Header (mandatory)
 

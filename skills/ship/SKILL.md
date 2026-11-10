@@ -13,6 +13,9 @@ for the reasons in amp:phase's autonomy contract.
 `D` = default branch: `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`, falling
 back to `git symbolic-ref --short refs/remotes/origin/HEAD` without its `origin/` prefix.
 
+As this stage starts, append `Stage: ship` to the ledger, only when $WS/progress.md exists
+(a standalone ship keeps no ledger).
+
 ## 1. Docs sweep and close-out (orchestrator bookkeeping; no product code)
 
 - Check the spec's **Docs impact** list against the branch: each named doc was updated, and nothing
@@ -64,6 +67,8 @@ report).
 
 - `gh pr merge <pr> --merge --delete-branch`. The default is a merge commit, which keeps the atomic
   task commits. Use `--squash` or `--rebase` only if the project configuration says so.
+- Right after the merge succeeds, append `Stage: merged — <PR URL>` to the ledger (when it
+  exists), before step 6 deletes the workspace.
 - Blocked by required human review, or other protection the agent can't satisfy → **stop**, say
   exactly what's needed, and give the PR URL.
 - If D moved and the PR is behind, merge D in (step 3), re-verify, push, re-watch, and merge.

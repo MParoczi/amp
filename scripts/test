@@ -422,3 +422,17 @@ lacks skills/build/SKILL.md 'never two implementers at once'
 for a in implementer reviewer checker; do holds "agents/$a.md" 'git grep' '.amp/'; done
 holds agents/implementer.md 'git -C'
 ok
+
+case=stage-lines
+# the ledger lifecycle (spec 04 §5.1): amp:phase (or a standalone amp:build) creates the ledger,
+# and each skill appends its Stage line, the later ones only to an existing ledger
+for t in skills codex/skills; do
+  holds "$t/phase/SKILL.md" '# amp ledger — <NN>-<slug>' 'Stage: grill' 'Branch: <branch>' 'Stage: design' \
+    'Stage: stopped — <what is needed>'
+  holds "$t/grill/SKILL.md" 'Stage: gate' 'only when $WS/progress.md exists'
+  holds "$t/plan/SKILL.md" 'Plan: <plan path>' 'Stage: plan' 'only when $WS/progress.md exists'
+  holds "$t/build/SKILL.md" 'Stage: build' 'If no ledger exists (amp:build run on its own), create it'
+  holds "$t/ship/SKILL.md" 'Stage: ship' 'Stage: merged — <PR URL>' 'only when $WS/progress.md exists'
+  lacks "$t/build/SKILL.md" '# amp ledger — plan:'
+done
+ok

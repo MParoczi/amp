@@ -12,6 +12,8 @@ has written the code instead (a transcript). A line that decides nothing is a ga
 failures.
 
 Default path: `docs/amp/plans/YYYY-MM-DD-<NN>-<slug>.md` (project configuration may override it).
+Once the path is set, append `Plan: <plan path>` and `Stage: plan` to the ledger,
+only when $WS/progress.md exists (a standalone plan keeps no ledger).
 
 ## Header (mandatory)
 

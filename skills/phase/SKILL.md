@@ -46,12 +46,16 @@ the grill.
    `gh auth status` and that a remote exists (if not, note it; amp:ship stops there).
 5. `WS=$(bash "${CLAUDE_PLUGIN_ROOT}/skills/build/scripts/amp-workspace" <NN>-<slug>)`. If `$WS/progress.md`
    or `$WS/decisions.md` already exists, **resume** at the stage they show (with `git log` and the
-   branch as ground truth) instead of restarting.
+   branch as ground truth) instead of restarting, and append the `Stage:` line of the stage it
+   continues (creating the ledger first, as below, if only `decisions.md` exists). Otherwise create
+   the ledger `$WS/progress.md` with the header `# amp ledger — <NN>-<slug>` and the line
+   `Stage: grill`.
 
 ## 1–2. Grill, then branch
 
 Run `amp:grill`. After the user confirms: `git switch -c <type>/<NN>-<slug>` from the updated
-default branch. This is the start of autonomy.
+default branch, then append `Branch: <branch>` and `Stage: design` to the ledger. This is the
+start of autonomy.
 
 ## The autonomy contract (after the grill confirmation)
 
@@ -71,8 +75,9 @@ conflicts, ambiguities and plan defects yourself, with the spec as the authority
 4. A plan so broken that every path forward is a guess, or a cap tripped in amp:ship (verify, CI,
    merge protection).
 
-When stopping, send one short message saying exactly what is needed and why. Send a
-PushNotification if that tool is available. Wait, then resume from the ledger.
+When stopping, first append `Stage: stopped — <what is needed>` to the ledger, then send one short
+message saying exactly what is needed and why. Send a PushNotification if that tool is available.
+Wait, then resume from the ledger and append the `Stage:` line of the stage it continues.
 
 ## Model routing
 
