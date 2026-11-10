@@ -6,16 +6,15 @@ import { parseLedger, statusText } from './run'
 /*
  * The host the run hooks see. The kit has no fs, network or process: these test hooks sit beneath
  * the plugin and answer `$.fs`, `$.process.run`, `$.agent.list`, `$.ui.status`, `$.ui.toast`,
- * `$.audio.play`, plus the bottoms a session start, a command, a prompt and a tool call need.
+ * `$.audio.play`, plus the bottoms a session start, a command, a prompt (with the session model)
+ * and a tool call need.
  */
 type Host = {
-  files: Map<string, { text: string; mtimeMs: number }>     // absolute, '/'-separated
+  files: Map<string, { text: string; mtimeMs: number; unreadable?: true }>   // absolute, '/'-separated; unreadable: stat answers, read rejects
   git: Record<string, string | Error>                        // argv.join(' ') → stdout | failure
   agents: { id: string; type: string }[]
   status: (string | undefined)[]; toasts: string[]; sounds: string[]
 }
-
-const MAX_READ = 4 * 1024 * 1024
 
 function fakeHost(on: On, init: Partial<Pick<Host, 'files' | 'git' | 'agents'>> = {}): Host {
   const host: Host = { files: init.files ?? new Map(), git: init.git ?? {}, agents: init.agents ?? [], status: [], toasts: [], sounds: [] }
@@ -42,7 +41,7 @@ function fakeHost(on: On, init: Partial<Pick<Host, 'files' | 'git' | 'agents'>> 
   on('fs.read', (_, e) => {
     const file = host.files.get(norm(e.path))
     if (file === undefined) return missing(e.path)
-    return file.text.length > MAX_READ ? { deny: `EFBIG: ${e.path}` } : { value: file.text }
+    return file.unreadable ? { deny: `EACCES: ${e.path}` } : { value: file.text }
   })
   on('process.run', (_, e) => {
     const out = host.git[e.argv.join(' ')]
@@ -67,6 +66,7 @@ function fakeHost(on: On, init: Partial<Pick<Host, 'files' | 'git' | 'agents'>> 
   on('command.register', (_, e) => ({ value: { command: e.name } }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('prompt.compose', () => ({ sections: [] }))
+  on('session.model', () => ({ value: 'claude-opus-5-5' }))
   on('tool.call', () => ({ result: {} }))
   return host
 }
@@ -90,7 +90,7 @@ const GIT = {
   'git branch --show-current': 'feature/x\n',
 }
 const START = { cwd: ROOT, surface: 'terminal', isInteractive: true } as const
-const COMPOSE = { model: 'm', promptModel: 'm', surfaces: ['terminal'], tools: [], outputStyle: null, traits: [] } as const
+const COMPOSE = { model: 'm', promptModel: 'm', surfaces: ['terminal'], tools: ['Agent'], outputStyle: null, traits: [] } as const
 const MESSAGES = [{ role: 'user' as const, text: 'hi', toolUses: [] }]
 const RUN = { command: 'amp-run', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } } as const
 const PANE = {
@@ -110,10 +110,10 @@ function files(ledgers: Record<string, string>) {
 /** A run still in its grill: no Branch line yet. */
 const NO_BRANCH = '# amp ledger — 04-x\nStage: grill'
 
-/** The ids of the sections the plugin adds to an empty prompt. */
+/** The ids of the sections the plugin adds to an empty prompt of a loop that has the Agent tool, routing aside. */
 async function sectionIds($: Engine) {
   const { sections } = await $.prompt.compose(COMPOSE)
-  return sections.map(s => s.id)
+  return sections.map(s => s.id).filter(id => id !== 'amp:routing')
 }
 
 describe('amp run hooks', () => {
@@ -121,7 +121,7 @@ describe('amp run hooks', () => {
     const host = fakeHost(on, { git: GIT })
     await $.session.start(START)
     await $.tool.call({ tool: 'Bash', command: 'ls' })
-    expect(host.status.at(-1)).toBeUndefined()
+    expect(host.status).toEqual([undefined])
     expect((await $.command.run(RUN)).text).toBe('No amp run in this repository.')
     expect(await sectionIds($)).toEqual([])
   })
@@ -129,7 +129,7 @@ describe('amp run hooks', () => {
   test('a ledger created after session start is picked up at the next tool call', async ($, on) => {
     const host = fakeHost(on, { git: GIT, files: files({}) })
     await $.session.start(START)
-    expect(host.status.at(-1)).toBeUndefined()
+    expect(host.status).toEqual([undefined])
     host.files.set(LEDGER, { text: TEXT, mtimeMs: 200 })
     await $.tool.call({ tool: 'Bash', command: 'ls' })
     expect(host.status.at(-1)).toBe(statusText(parseLedger('04-x', '.amp/04-x/progress.md', TEXT), 7))
@@ -140,8 +140,25 @@ describe('amp run hooks', () => {
     fakeHost(on, { git: GIT, files: files({ '04-x': TEXT }) })
     await $.session.start(START)
     const { sections } = await $.prompt.compose(COMPOSE)
-    expect(sections.map(s => [s.id, s.scope])).toEqual([['amp:resume', 'session']])
-    expect(sections[0]?.text).toContain('# amp run in progress (04-x)')
+    expect(sections.map(s => [s.id, s.scope])).toEqual([['amp:routing', 'session'], ['amp:resume', 'session']])
+    expect(sections[1]?.text).toContain('# amp run in progress (04-x)')
+  })
+
+  test('a loop without the Agent tool gets no resume section', async ($, on) => {
+    fakeHost(on, { git: GIT, files: files({ '04-x': TEXT }) })
+    await $.session.start(START)
+    expect((await $.prompt.compose({ ...COMPOSE, tools: ['Bash'] })).sections).toEqual([])
+  })
+
+  test('the plan total is counted again once the plan is written', async ($, on) => {
+    const planning = ['# amp ledger — 04-x', 'Stage: plan', 'Branch: feature/x', `Plan: ${PLAN}`].join('\n')
+    const host = fakeHost(on, { git: GIT, files: new Map([[LEDGER, { text: planning, mtimeMs: 100 }]]) })
+    await $.session.start(START)
+    expect(host.status.at(-1)).toBe('amp 04-x · plan')
+    host.files.set(`${ROOT}/${PLAN}`, { text: PLAN_TEXT, mtimeMs: 150 })
+    host.files.set(LEDGER, { text: TEXT, mtimeMs: 200 })
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+    expect(host.status.at(-1)).toBe('amp 04-x · build · task 3/7 · fix r2/5')
   })
 
   test('a mismatched branch adds no resume section', async ($, on) => {
@@ -178,7 +195,7 @@ describe('amp run hooks', () => {
 
   test('an oversized and an unreadable candidate are skipped; the valid ledger stays active', async ($, on) => {
     const host = fakeHost(on, { git: GIT, files: files({ '04-x': TEXT, '05-big': `Stage: plan\n${'x'.repeat(5 * 1024 * 1024)}` }) })
-    host.files.set(`${ROOT}/.amp/06-z/notes.md`, { text: 'a run folder with no readable ledger', mtimeMs: 300 })
+    host.files.set(`${ROOT}/.amp/06-z/progress.md`, { text: 'Stage: design', mtimeMs: 300, unreadable: true })
     await $.session.start(START)
     expect(host.status.at(-1)).toBe('amp 04-x · build · task 3/7 · fix r2/5')
   })
@@ -187,7 +204,7 @@ describe('amp run hooks', () => {
     const host = fakeHost(on, { git: { ...GIT, 'git rev-parse --show-toplevel': new Error('not a git repository') }, files: files({ '04-x': TEXT }) })
     await $.session.start(START)
     await $.tool.call({ tool: 'Bash', command: 'ls' })
-    expect(host.status.at(-1)).toBeUndefined()
+    expect(host.status).toEqual([undefined])
     expect(await sectionIds($)).toEqual([])
   })
 

@@ -35,8 +35,9 @@ Everything else in this README applies to both tools unless a section says other
 ## Requirements
 
 - **Claude Code.** Tested on 2.1.295. The model routing, the settings pane and the run hooks (status
-  line, `/amp-run`, resume guard) use Claude Code's function-hook plugins (early access). On a build without them the skills and agents still work,
-  and each agent runs on the default model in its definition (see the defaults below).
+  line, `/amp-run`, resume guard) use Claude Code's function-hook plugins (early access). On a build
+  without them the skills and agents still work, and each agent runs on the default model in its
+  definition (see the defaults below).
 - **Or Codex**: the Codex CLI or the desktop app. The IDE extension has no plugins, so it can't
   run amp. Codex support follows Codex's source and documentation but hasn't yet been tested end
   to end against a real Codex binary.
@@ -272,10 +273,11 @@ that can't be read, is skipped.
   task with its state, the current fix round, the parked, rulings and fallback counts, the
   pipeline state and the ledger's last lines. With no run it replies "No amp run in this
   repository."
-- **Resume guard.** When a session starts on the branch an unfinished run owns (its `Branch:` line,
-  or the default branch while the run has none yet), the system prompt tells Claude that the run
-  owns the branch and that it resumes with `amp:phase <key>`. A compaction in the main
-  conversation keeps the same note, so the summary still names the run, its stage and its ledger.
+- **Resume guard.** Whenever Claude Code builds the system prompt of a conversation that can
+  dispatch agents while the current branch is one an unfinished run owns (its `Branch:` line, or
+  the default branch while the run has none yet), the prompt tells Claude that the run owns the
+  branch and that it resumes with `amp:phase <key>`. A compaction in the main conversation keeps
+  the same note, so the summary still names the run, its stage and its ledger.
 
 ## Project configuration
 

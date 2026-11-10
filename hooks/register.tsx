@@ -68,8 +68,8 @@ export function routingText(options: PluginOptions, plugin: string, sessionModel
 
 const PANE = 'amp-models'
 
-async function openPane($: EngineInterface) {
-  await $.ui.open({ id: PANE, title: 'amp models', focus: true })
+async function openPane($: EngineInterface, id: string, title: string) {
+  await $.ui.open({ id, title, focus: true })
 }
 
 const RUN_PANE = 'amp-run'
@@ -82,8 +82,8 @@ let defaultBranch = 'main'
 let active: Run | undefined
 /** Each ledger read so far, by path, with the mtime it was read at: re-read only when that changes. */
 let ledgers = new Map<string, { mtimeMs: number; run: Run }>()
-/** Plan task totals by plan path; undefined when the plan can't be read or counts none. */
-let totals = new Map<string, number | undefined>()
+/** Plan task totals by plan path, with the plan's mtime; undefined when it counts none. */
+let totals = new Map<string, { mtimeMs: number; total: number | undefined }>()
 
 /** A git command's trimmed stdout, or undefined when it fails, exits non-zero or prints nothing. */
 async function git($: EngineInterface, ...args: string[]): Promise<string | undefined> {
@@ -101,14 +101,22 @@ async function findDefaultBranch($: EngineInterface): Promise<string> {
   return head?.replace(/^origin\//, '') ?? (await git($, 'config', 'init.defaultBranch')) ?? 'main'
 }
 
+/** The plan's task count, re-counted when the plan's mtime changes (`Plan:` is written before the plan). */
 async function planTotal($: EngineInterface, run: Run): Promise<number | undefined> {
   const plan = run.planPath
   if (root === undefined || plan === undefined) return undefined
-  if (!totals.has(plan)) {
-    const path = /^([a-zA-Z]:)?[\\/]/.test(plan) ? plan : `${root}/${plan}`
-    totals.set(plan, await $.fs.read(path).then(text => planTaskCount(text) || undefined, () => undefined))
+  const path = /^([a-zA-Z]:)?[\\/]/.test(plan) ? plan : `${root}/${plan}`
+  try {
+    const { mtimeMs } = await $.fs.stat(path)
+    let known = totals.get(path)
+    if (known?.mtimeMs !== mtimeMs) {
+      known = { mtimeMs, total: planTaskCount(await $.fs.read(path)) || undefined }
+      totals.set(path, known)
+    }
+    return known.total
+  } catch {
+    return undefined
   }
-  return totals.get(plan)
 }
 
 /** The newest candidate ledger whose stage isn't merged; an oversized or unreadable one is skipped. */
@@ -189,11 +197,9 @@ export const register: Register = (on, options) => {
 
   on('prompt.compose', async ($, e, next) => {
     const composed = await next(e)
-    const sections = [...composed.sections]
-    if (e.tools.includes('Agent')) {
-      const text = routingText(options, $.plugin.name, await $.session.model())
-      sections.push({ id: `${$.plugin.name}:routing`, text, scope: 'session' as const })
-    }
+    if (!e.tools.includes('Agent')) return composed
+    const text = routingText(options, $.plugin.name, await $.session.model())
+    const sections = [...composed.sections, { id: `${$.plugin.name}:routing`, text, scope: 'session' as const }]
     const run = await resumable($)
     if (run) sections.push({ id: `${$.plugin.name}:resume`, text: resumeText(run), scope: 'session' as const })
     return { sections }
@@ -232,17 +238,14 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: 'amp-run' }, async $ => {
     const run = await refresh($)
-    await $.ui.open({ id: RUN_PANE, title: 'amp run', focus: true }).catch(() => undefined)
+    await openPane($, RUN_PANE, 'amp run').catch(() => undefined)
     return { text: run ? statusText(run, await planTotal($, run)) : NO_RUN }
   })
 
   on('ui.render', { component: 'Pane', requestId: RUN_PANE }, async ($, e) => {
     const lines = active ? runLines(active, await planTotal($, active)) : [NO_RUN]
-    if (e.surface === 'mobile') {
-      const { Text } = $.ui.resolve(e)
-      return <Text>{lines.join('\n')}</Text>
-    }
     const { Box, Text } = $.ui.resolve(e)
+    if (e.surface === 'mobile') return <Text>{lines.join('\n')}</Text>
     const [heading, ...rest] = lines
     return (
       <Box flexDirection="column">
@@ -257,7 +260,7 @@ export const register: Register = (on, options) => {
   })
 
   on('command.run', { command: 'amp-models' }, async $ => {
-    await openPane($)
+    await openPane($, PANE, 'amp models')
     return { text: 'amp models pane opened: pick a model per task type (also under /config).' }
   })
 
