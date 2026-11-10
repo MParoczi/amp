@@ -13,11 +13,12 @@ type Host = {
   files: Map<string, { text: string; mtimeMs: number; unreadable?: true }>   // absolute, '/'-separated; unreadable: stat answers, read rejects
   git: Record<string, string | Error>                        // argv.join(' ') → stdout | failure
   agents: { id: string; type: string }[]
+  cwd: string                                               // what $.session.cwd() answers
   status: (string | undefined)[]; toasts: string[]; sounds: string[]
 }
 
-function fakeHost(on: On, init: Partial<Pick<Host, 'files' | 'git' | 'agents'>> = {}): Host {
-  const host: Host = { files: init.files ?? new Map(), git: init.git ?? {}, agents: init.agents ?? [], status: [], toasts: [], sounds: [] }
+function fakeHost(on: On, init: Partial<Pick<Host, 'files' | 'git' | 'agents' | 'cwd'>> = {}): Host {
+  const host: Host = { files: init.files ?? new Map(), git: init.git ?? {}, agents: init.agents ?? [], cwd: init.cwd ?? '/repo', status: [], toasts: [], sounds: [] }
   // The engine hands the hooks an absolute path in the platform's spelling (`C:\repo\.amp` on Windows).
   const norm = (path: string) => path.replace(/\\/g, '/').replace(/^[a-zA-Z]:/, '').replace(/\/+$/, '')
   const missing = (path: string) => ({ deny: `ENOENT: ${path}` })
@@ -67,6 +68,7 @@ function fakeHost(on: On, init: Partial<Pick<Host, 'files' | 'git' | 'agents'>> 
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('prompt.compose', () => ({ sections: [] }))
   on('session.model', () => ({ value: 'claude-opus-5-5' }))
+  on('session.cwd', () => ({ value: host.cwd }))
   on('tool.call', () => ({ result: {} }))
   return host
 }
@@ -238,54 +240,56 @@ describe('amp run hooks', () => {
   })
 })
 
-/** The deny a tool call ended with, whichever way the kit reports it. */
-function denied(result: { deny?: string; isError?: boolean; text?: string }) {
-  return result.deny ?? (result.isError ? result.text : undefined)
-}
-
 const SUFFIX = ' (If the user says this run is abandoned, they can delete .amp/04-x/; never delete it yourself.)'
 
 describe('amp guardrails and read-only roles', () => {
   test('during a run a hard reset is denied with the abandoned-run suffix', async ($, on) => {
     fakeHost(on, { git: GIT, files: files({ '04-x': TEXT }) })
     await $.session.start(START)
-    const deny = denied(await $.tool.call({ tool: 'Bash', command: 'git reset --hard' }))
+    const deny = (await $.tool.call({ tool: 'Bash', command: 'git reset --hard' })).deny
     expect(deny).toContain('amp guard: hard reset')
     expect(deny?.endsWith(SUFFIX)).toBe(true)
-    expect(denied(await $.tool.call({ tool: 'PowerShell', command: 'git push -f' }))).toContain('amp guard: force push')
-    expect(denied(await $.tool.call({ tool: 'Bash', command: 'git status' }))).toBeUndefined()
+    expect((await $.tool.call({ tool: 'PowerShell', command: 'git push -f' })).deny).toContain('amp guard: force push')
+    expect((await $.tool.call({ tool: 'Bash', command: 'git status' })).deny).toBeUndefined()
   })
 
   test('without a ledger nothing is guarded', async ($, on) => {
     fakeHost(on, { git: GIT, files: files({}) })
     await $.session.start(START)
-    expect(denied(await $.tool.call({ tool: 'Bash', command: 'git reset --hard' }))).toBeUndefined()
+    expect((await $.tool.call({ tool: 'Bash', command: 'git reset --hard' })).deny).toBeUndefined()
   })
 
   test('a deleted ledger ends the guards at the next call', async ($, on) => {
     const host = fakeHost(on, { git: GIT, files: files({ '04-x': TEXT }) })
     await $.session.start(START)
     host.files.delete(LEDGER)
-    expect(denied(await $.tool.call({ tool: 'Bash', command: 'git reset --hard' }))).toBeUndefined()
+    expect((await $.tool.call({ tool: 'Bash', command: 'git reset --hard' })).deny).toBeUndefined()
   })
 
   test('an unknown branch skips only the branch rules', async ($, on) => {
     const host = fakeHost(on, { git: { ...GIT, 'git branch --show-current': 'main\n' }, files: files({ '04-x': TEXT }) })
     await $.session.start(START)
-    expect(denied(await $.tool.call({ tool: 'Bash', command: 'git commit -m x' }))).toContain('amp guard: commit on default')
+    expect((await $.tool.call({ tool: 'Bash', command: 'git commit -m x' })).deny).toContain('amp guard: commit on default')
     host.git['git branch --show-current'] = new Error('git failed')
-    expect(denied(await $.tool.call({ tool: 'Bash', command: 'git reset --hard' }))).toContain('amp guard: hard reset')
-    expect(denied(await $.tool.call({ tool: 'Bash', command: 'git commit -m x' }))).toBeUndefined()
+    expect((await $.tool.call({ tool: 'Bash', command: 'git reset --hard' })).deny).toContain('amp guard: hard reset')
+    expect((await $.tool.call({ tool: 'Bash', command: 'git commit -m x' })).deny).toBeUndefined()
   })
 
   test('a reviewer may not write in the repo or commit; the main loop may', async ($, on) => {
     fakeHost(on, { git: GIT, agents: [{ id: 'a1', type: 'amp:reviewer' }] })
     await $.session.start(START)
-    const deny = denied(await $.tool.call({ tool: 'Write', file_path: `${ROOT}/src/a.ts`, content: 'x', agentId: 'a1' }))
+    const deny = (await $.tool.call({ tool: 'Write', file_path: `${ROOT}/src/a.ts`, content: 'x', agentId: 'a1' })).deny
     expect(deny).toContain('amp read-only: reviewer')
     expect(deny).not.toContain('abandoned')
-    expect(denied(await $.tool.call({ tool: 'Write', file_path: `${ROOT}/.amp/04-x/r.md`, content: 'x', agentId: 'a1' }))).toBeUndefined()
-    expect(denied(await $.tool.call({ tool: 'Write', file_path: `${ROOT}/src/a.ts`, content: 'x' }))).toBeUndefined()
-    expect(denied(await $.tool.call({ tool: 'Bash', command: 'git commit -m x', agentId: 'a1' }))).toContain('amp read-only: reviewer may not run git commit')
+    expect((await $.tool.call({ tool: 'Write', file_path: `${ROOT}/.amp/04-x/r.md`, content: 'x', agentId: 'a1' })).deny).toBeUndefined()
+    expect((await $.tool.call({ tool: 'Write', file_path: `${ROOT}/src/a.ts`, content: 'x' })).deny).toBeUndefined()
+    expect((await $.tool.call({ tool: 'Bash', command: 'git commit -m x', agentId: 'a1' })).deny).toContain('amp read-only: reviewer may not run git commit')
+  })
+
+  test("a relative worktree path resolves against the session's directory", async ($, on) => {
+    fakeHost(on, { git: GIT, agents: [{ id: 'a1', type: 'amp:reviewer' }], cwd: `${ROOT}/sub` })
+    await $.session.start(START)
+    expect((await $.tool.call({ tool: 'Bash', command: 'git worktree add ../tmp-rev HEAD', agentId: 'a1' })).deny).toContain('may not run git worktree add')
+    expect((await $.tool.call({ tool: 'Bash', command: 'git worktree add ../../tmp-rev HEAD', agentId: 'a1' })).deny).toBeUndefined()
   })
 })

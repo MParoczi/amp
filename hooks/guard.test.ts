@@ -81,6 +81,21 @@ describe('amp guardrails', () => {
     expect(guardViolation('gh pr merge 5 --merge --delete-branch', FEATURE)).toBeUndefined()
     expect(guardViolation('git push -u origin feature/04-x', FEATURE)).toBeUndefined()
     expect(guardViolation('git switch main && git pull --ff-only', ON_MAIN)).toBeUndefined()
+    expect(guardViolation('git push \\\n  origin v1.4.0', ON_MAIN)).toBeUndefined()
+  })
+
+  test('a backslash-newline continues the line, outside single quotes', () => {
+    expect(guardViolation('git commit -m x \\\n  -n', FEATURE)).toContain('amp guard: hooks skipped')
+    expect(guardViolation('git commit -m x \\\r\n  -n', FEATURE)).toContain('amp guard: hooks skipped')
+    expect(splitCommands('a "b\\\nc" \\\nd')).toEqual([['a', 'bc', 'd']])
+    expect(splitCommands("a 'b\\\nc'")).toEqual([['a', 'b\\\nc']])
+  })
+
+  test('a PowerShell here-string is one literal word', () => {
+    const message = "The guard doesn't deny.\nTests pass; git push -f is now blocked"
+    expect(guardViolation(`git commit -m @'\n${message}\n'@`, FEATURE)).toBeUndefined()
+    expect(splitCommands(`git commit -m @'\r\n${message}\r\n'@; git status`)).toEqual([['git', 'commit', '-m', message], ['git', 'status']])
+    expect(splitCommands('x @"\na "b"; c\n"@ && y')).toEqual([['x', 'a "b"; c'], ['y']])
   })
 })
 
@@ -94,7 +109,7 @@ const ROWS: [row: string, denied: string[], allowed: string[]][] = [
   ['tag',
     ['git tag v1', 'git tag -a v1 -m x', 'git tag -s v1', 'git tag -u key v1', 'git tag -d v1', 'git tag -f v1', 'git tag -mnote v1',
       'git tag -F f v1', 'git tag --annotate v1', 'git tag --sign v1', 'git tag --delete v1', 'git tag --force v1'],
-    ['git tag', "git tag -l 'v1.*'", 'git tag --list v1', 'git tag --sort=-v:refname', 'git tag --contains HEAD']],
+    ['git tag', "git tag -l 'v1.*'", "git tag -ln 'v1*'", 'git tag --list v1', 'git tag --sort=-v:refname', 'git tag --contains HEAD']],
   ['notes',
     ['git notes add -m x', 'git notes edit', 'git notes remove', 'git notes copy a b', 'git notes append -m x', 'git notes merge x', 'git notes prune'],
     ['git notes list', 'git notes show']],
@@ -102,7 +117,7 @@ const ROWS: [row: string, denied: string[], allowed: string[]][] = [
   ['branch',
     ['git branch -d x', 'git branch -D x', 'git branch -m a b', 'git branch -M a b', 'git branch -c a b', 'git branch -C a b', 'git branch -f x HEAD',
       'git branch --delete x', 'git branch --move a b', 'git branch --copy a b', 'git branch --force x', 'git branch new'],
-    ['git branch', 'git branch -a', 'git branch --show-current', 'git branch --contains HEAD', 'git branch --merged main', "git branch --list 'amp-*'"]],
+    ['git branch', 'git branch -a', 'git branch --show-current', 'git branch --contains HEAD', 'git branch --merged main', "git branch --list 'amp-*'", 'git branch -al x']],
   ['worktree add',
     ['git worktree add wt HEAD', 'git worktree add /repo/src/wt HEAD', 'git worktree add ./x'],
     ['git worktree add ../tmp-rev HEAD', 'git worktree add /tmp/rev', 'git worktree add .amp/04-x/wt HEAD', 'git worktree list', 'git worktree remove /repo/x', 'git worktree remove --force wt']],

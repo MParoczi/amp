@@ -84,8 +84,6 @@ const MAX_LEDGER = 4 * 1024 * 1024
 /** The repository root (`git rev-parse --show-toplevel`); undefined keeps the run hooks idle. */
 let root: string | undefined
 let defaultBranch = 'main'
-/** The session's directory: a relative path in a read-only role's call resolves against it. */
-let cwd: string | undefined
 let active: Run | undefined
 /** Each ledger read so far, by path, with the mtime it was read at: re-read only when that changes. */
 let ledgers = new Map<string, { mtimeMs: number; run: Run }>()
@@ -186,7 +184,9 @@ async function guard($: EngineInterface, e: ToolCallInput): Promise<string | und
   const path = e.tool === 'Edit' || e.tool === 'Write' ? e.file_path : e.tool === 'NotebookEdit' ? e.notebook_path : undefined
   if (command === undefined && path === undefined) return undefined
   const role = e.agentId === undefined ? undefined : roleOf(await $.agent.list(), e.agentId, $.plugin.name)
-  const readOnly = role && readOnlyViolation(role, { tool: e.tool, command, path, cwd: cwd ?? root }, root)
+  // A relative path resolves against the session's directory, else the root.
+  const cwd = role && (await $.session.cwd().catch(() => undefined))
+  const readOnly = role && readOnlyViolation(role, { tool: e.tool, command, path, cwd: cwd || root }, root)
   if (readOnly) return readOnly
   if (active === undefined || command === undefined) return undefined
   const branch = command.includes('git') ? await git($, 'branch', '--show-current') : undefined
@@ -233,7 +233,6 @@ export const register: Register = (on, options) => {
     await $.command.register({ name: 'amp-models', description: 'Choose the model each amp task type runs on' })
     await $.command.register({ name: 'amp-run', description: 'Show the current amp run: stage, tasks, fix rounds, parked items' })
     root = await git($, 'rev-parse', '--show-toplevel')
-    cwd = e.cwd
     defaultBranch = root === undefined ? 'main' : await findDefaultBranch($)
     ledgers = new Map()
     totals = new Map()
@@ -243,8 +242,11 @@ export const register: Register = (on, options) => {
   })
 
   on('tool.call', async ($, e, next) => {
-    // A failing guard (agent list, git, fs) lets the call through: nothing throws out of a hook.
-    const deny = await guard($, e).catch(() => undefined)
+    // A failing guard (agent list, git, fs) lets the call through, traced in the debug log: nothing throws out of a hook.
+    const deny = await guard($, e).catch((error: unknown) => {
+      $.ui.log(`amp guard skipped for ${e.tool}: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+      return undefined
+    })
     if (deny) return { deny }
     const result = await next(e)
     await refresh($)

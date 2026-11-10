@@ -3,8 +3,8 @@
  * command or a file path. `codex/hooks/amp-hook` ports the same rule tables to bash, so a change
  * here is a change there.
  *
- * lean: the guard is a deny-list on spellings, so aliases and `sh -c` wrappers evade it. It is
- * defense in depth, and the skills remain the contract.
+ * lean: the guard is a deny-list on spellings, so aliases, `sh -c` wrappers, a lone `&` and `( … )`
+ * subshells evade it. It is defense in depth, and the skills remain the contract.
  * lean: PowerShell backtick escapes not parsed, a `" inside a string can mis-split; parse them if a
  * false deny is reported.
  * lean: non-git shell writes (`>`, `sed -i`, `rm`) aren't blocked for read-only roles, because
@@ -51,13 +51,19 @@ export function splitCommands(command: string): string[][] {
     if (quote === "'") {
       if (c === "'") quote = ''
       else add(c)
-    } else if (quote === '"') {
+    } else if (c === '\\' && text[i + 1] === '\n') i++   // a line continuation, outside single quotes
+    else if (quote === '"') {
       if (c === '\\' && (text[i + 1] === '"' || text[i + 1] === '\\')) add(text[++i])
       else if (c === '"') quote = ''
       else add(c)
     } else if (c === "'" || c === '"') {
       quote = c
       add()
+    } else if (c === '@' && (text[i + 1] === "'" || text[i + 1] === '"') && text[i + 2] === '\n' && text.includes(`\n${text[i + 1]}@`, i + 2)) {
+      // A PowerShell here-string, `@'⏎…⏎'@` or `@"⏎…⏎"@`: one literal word.
+      const end = text.indexOf(`\n${text[i + 1]}@`, i + 2)
+      add(text.slice(i + 3, end))
+      i = end + 2
     } else if (c === ';' || c === '|' || c === '\n') endSegment()
     else if (c === '&' && text[i + 1] === '&') {
       endSegment()
@@ -202,8 +208,8 @@ const NOTES_WRITE = ['add', 'edit', 'remove', 'copy', 'append', 'merge', 'prune'
 /** Whether a git segment writes, for a read-only role (§5.5). */
 function gitWrites({ sub, options, positional }: Git, cwd: string, root: string): boolean {
   const has = (names: string[]) => options.some(o => names.includes(o))
-  // A positional word creates a tag or branch, unless it is a `--list` pattern.
-  const creates = positional.length > 0 && !has(['-l', '--list'])
+  // A positional word creates a tag or branch, unless it is a list pattern (`--list`, `-l`, `-ln`).
+  const creates = positional.length > 0 && !has(['--list']) && !options.some(o => short(o) && o.includes('l'))
   switch (sub) {
     case 'tag': return has(TAG_WRITE) || creates
     case 'branch': return has(BRANCH_WRITE) || creates

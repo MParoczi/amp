@@ -305,8 +305,9 @@ A ledger over 4 MiB, or one that can't be read, is skipped.
   `diff`, `branch --contains`, `tag -l`) and a temporary worktree outside the repository stay
   allowed. This holds whether or not a run is active.
 
-Known gaps: the guardrails match spellings, so a git alias or an `sh -c` wrapper slips past them;
-they are defense in depth, and the skills remain the contract. The read-only rule doesn't stop
+Known gaps: the guardrails match spellings, so a git alias, an `sh -c` wrapper, a command after a
+lone `&` (background) or one inside a `( … )` subshell slips past them; they are defense in depth,
+and the skills remain the contract. The read-only rule doesn't stop
 non-git shell writes (`>`, `sed -i`, `rm`), because reviewers run test suites that write caches.
 An abandoned run keeps the guardrails on until its `.amp/<key>/` folder is deleted, which every
 refusal says; Claude never deletes it itself.
