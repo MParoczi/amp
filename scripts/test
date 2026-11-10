@@ -643,7 +643,8 @@ GIT_CEILING_DIRECTORIES=$tmp allows "$(printf '{"cwd":"%s","tool_name":"apply_pa
 ok
 
 case=hook-ledgers
-# newer candidates that are unreadable, over 4 MiB or merged are skipped: the older run stays active
+# newer candidates that are no file (05-dir's progress.md is a directory: ls -td lists it by name
+# and the [ -f ] check skips it), over 4 MiB or merged are skipped: the older run stays active
 on feature/04-x
 touch -t 202001010000 "$ledger"
 mkdir -p "$hr/.amp/05-dir/progress.md" "$hr/.amp/06-big" "$hr/.amp/07-merged"

@@ -327,8 +327,9 @@ read-only roles apply too, with the same rules and the same refusals. When a ses
 resumes or compacts on a branch an unfinished run owns, `codex/hooks/amp-hook` adds the same
 resume note to its context. It checks every shell command the same way, and for `amp-reviewer`,
 `amp-checker` and `amp-scout` every file an `apply_patch` adds, updates, deletes or moves to.
-Codex has no PowerShell tool, so only its shell commands are checked. A hook input it can't parse
-lets the call through. The status line, `/amp-run`, the alerts and the dispatch rows are Claude
+Codex's shell tool runs Bash, so the hook splits commands as Bash does: it doesn't parse PowerShell
+here-strings (`@'…'@`), and one that reaches it can be refused for a git command in its text. A
+hook input it can't parse lets the call through. The status line, `/amp-run`, the alerts and the dispatch rows are Claude
 Code only.
 
 Known gaps: the guardrails match spellings, so a git alias, an `sh -c` wrapper, a command after a

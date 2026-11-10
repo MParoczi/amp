@@ -5,11 +5,14 @@
 #   session-start  the resume guard (§5.2): prints hooks/run.ts resumeText for the active run when it
 #                  owns the current branch, or nothing
 # A bash port of hooks/guard.ts (same rule tables, same deny texts) and of hooks/run.ts's ledger
-# reading and resume text, so a change there is a change here. Every path exits 0, and anything it can't parse lets the call through: a guard bug must not
-# brick a session.
+# reading and resume text, so a change there is a change here. Every path exits 0, and anything it
+# can't parse lets the call through: a guard bug must not brick a session.
 #
 # lean: the guard is a deny-list on spellings, so aliases, `sh -c` wrappers, a lone `&` and `( … )`
 # subshells evade it. It is defense in depth, and the skills remain the contract.
+# lean: no PowerShell here-string (`@'…'@`) handling, as Codex's shell tool runs Bash: one that
+# reaches it is split as Bash splits it, so a git command in its body can be falsely denied, never
+# falsely allowed while Bash runs it. Port guard.ts's here-string branch if a false deny is reported.
 # lean: non-git shell writes (`>`, `sed -i`, `rm`) aren't blocked for read-only roles, because
 # reviewers run test suites that write caches. The guardrails still apply.
 #
@@ -107,7 +110,7 @@ index($0, P = "# amp ledger — plan: ") == 1 {
 }
 match($0, /^Stage: [A-Za-z0-9_]+/) && index(" grill gate design plan build ship merged stopped ", " " substr($0, 8, RLENGTH - 7) " ") &&
   (RLENGTH == length($0) || index(substr($0, RLENGTH + 1), " — ") == 1) {
-  stage = substr($0, 8, RLENGTH - 7); note = substr($0, RLENGTH + 6); next
+  stage = substr($0, 8, RLENGTH - 7); note = substr($0, RLENGTH + 1 + length(" — ")); next
 }
 index($0, "Branch: ") == 1 { branch = substr($0, 9); next }
 index($0, "Plan: ") == 1 { plan = substr($0, 7); next }
