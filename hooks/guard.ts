@@ -152,7 +152,7 @@ function brokenRule(words: string[], ctx: GuardCtx): string | undefined {
   if (sub === 'reset' && has('--hard')) return 'hard reset'
   if ((sub === 'stash' && !['list', 'show'].includes(positional[0] ?? ''))
     || (sub === 'checkout' && has('--', '-f', '--force'))
-    || (sub === 'restore' && (!has('--staged') || has('--worktree', '-W')))
+    || (sub === 'restore' && (!has('--staged', '-S') || has('--worktree', '-W')))
     || (sub === 'clean' && (has('--force') || options.some(o => short(o) && o.includes('f'))))) return 'discard work'
   return undefined
 }
@@ -200,10 +200,12 @@ export function insideRoot(path: string, cwd: string, root: string): 'repo' | 'a
 
 export type ReadOnlyCall = { tool: string; command?: string; path?: string; cwd: string }
 
-const DENY_ALL = ['commit', 'push', 'merge', 'rebase', 'reset', 'checkout', 'switch', 'stash', 'add', 'rm', 'mv', 'cherry-pick', 'revert', 'am', 'restore', 'clean']
+const DENY_ALL = ['commit', 'push', 'merge', 'rebase', 'reset', 'checkout', 'switch', 'stash', 'add', 'rm', 'mv', 'cherry-pick', 'revert', 'am', 'restore', 'clean', 'pull']
 const TAG_WRITE = ['-a', '-s', '-u', '-d', '-f', '-m', '-F', '--annotate', '--sign', '--delete', '--force']
 const BRANCH_WRITE = ['-d', '-D', '-m', '-M', '-c', '-C', '-f', '--delete', '--move', '--copy', '--force']
 const NOTES_WRITE = ['add', 'edit', 'remove', 'copy', 'append', 'merge', 'prune']
+/** A path the shell expands (`$VAR`, `~`, `%VAR%`, `$(…)`, a backtick): it can't be resolved here. */
+const expands = (path: string) => /^[$~%]|\$\(|`/.test(path)
 
 /** Whether a git segment writes, for a read-only role (§5.5). */
 function gitWrites({ sub, options, positional }: Git, cwd: string, root: string): boolean {
@@ -215,7 +217,7 @@ function gitWrites({ sub, options, positional }: Git, cwd: string, root: string)
     case 'branch': return has(BRANCH_WRITE) || creates
     case 'notes': return NOTES_WRITE.includes(positional[0] ?? '')
     case 'apply': return !has(['--check', '--stat', '--numstat'])
-    case 'worktree': return positional[0] === 'add' && positional[1] !== undefined && insideRoot(positional[1], cwd, root) === 'repo'
+    case 'worktree': return positional[0] === 'add' && positional[1] !== undefined && !expands(positional[1]) && insideRoot(positional[1], cwd, root) === 'repo'
     default: return DENY_ALL.includes(sub)
   }
 }

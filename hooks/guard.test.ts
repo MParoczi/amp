@@ -32,9 +32,9 @@ const RULES: [rule: string, denied: [string, GuardCtx][], allowed: [string, Guar
   ['discard work',
     [['git stash', FEATURE], ['git stash pop', FEATURE], ['git stash -u', FEATURE], ['git checkout -- a.ts', FEATURE],
       ['git checkout -f x', FEATURE], ['git checkout --force x', FEATURE], ['git restore a.ts', FEATURE],
-      ['git restore --staged --worktree a.ts', FEATURE], ['git restore --staged -W a.ts', FEATURE],
+      ['git restore --staged --worktree a.ts', FEATURE], ['git restore --staged -W a.ts', FEATURE], ['git restore -S -W a.ts', FEATURE],
       ['git clean -fd', FEATURE], ['git clean -xf', FEATURE], ['git clean --force', FEATURE]],
-    [['git stash list', FEATURE], ['git stash show', FEATURE], ['git restore --staged a.ts', FEATURE],
+    [['git stash list', FEATURE], ['git stash show', FEATURE], ['git restore --staged a.ts', FEATURE], ['git restore -S a.ts', FEATURE],
       ['git checkout feature/x', FEATURE], ['git clean -n', FEATURE]]],
   ['admin merge',
     [['gh pr merge 5 --admin', FEATURE], ['gh pr merge 5 --merge --admin', FEATURE]],
@@ -101,7 +101,7 @@ describe('amp guardrails', () => {
 
 const ROOT = '/repo'
 const bash = (command: string): ReadOnlyCall => ({ tool: 'Bash', command, cwd: ROOT })
-const DENY_ALL = ['commit', 'push', 'merge', 'rebase', 'reset', 'checkout', 'switch', 'stash', 'add', 'rm', 'mv', 'cherry-pick', 'revert', 'am', 'restore', 'clean']
+const DENY_ALL = ['commit', 'push', 'merge', 'rebase', 'reset', 'checkout', 'switch', 'stash', 'add', 'rm', 'mv', 'cherry-pick', 'revert', 'am', 'restore', 'clean', 'pull']
 
 /** Each §5.5 row: denied and allowed git commands. */
 const ROWS: [row: string, denied: string[], allowed: string[]][] = [
@@ -119,8 +119,11 @@ const ROWS: [row: string, denied: string[], allowed: string[]][] = [
       'git branch --delete x', 'git branch --move a b', 'git branch --copy a b', 'git branch --force x', 'git branch new'],
     ['git branch', 'git branch -a', 'git branch --show-current', 'git branch --contains HEAD', 'git branch --merged main', "git branch --list 'amp-*'", 'git branch -al x']],
   ['worktree add',
-    ['git worktree add wt HEAD', 'git worktree add /repo/src/wt HEAD', 'git worktree add ./x'],
-    ['git worktree add ../tmp-rev HEAD', 'git worktree add /tmp/rev', 'git worktree add .amp/04-x/wt HEAD', 'git worktree list', 'git worktree remove /repo/x', 'git worktree remove --force wt']],
+    ['git worktree add wt HEAD', 'git worktree add /repo/src/wt HEAD', 'git worktree add ./x', 'git worktree add ../repo/src/wt HEAD', 'git worktree add src/$X'],
+    ['git worktree add ../tmp-rev HEAD', 'git worktree add /tmp/rev', 'git worktree add .amp/04-x/wt HEAD', 'git worktree list', 'git worktree remove /repo/x', 'git worktree remove --force wt',
+      // a target the shell expands can't be resolved here, so it passes
+      'git worktree add "$TMPDIR/rev" HEAD', 'git worktree add "$(mktemp -d)"', 'git worktree add ~/rev', 'git worktree add $env:TEMP\\rev',
+      'git worktree add %TEMP%\\rev', 'git worktree add "`mktemp -d`"', 'git worktree add "/x/$(mktemp -u)"']],
 ]
 
 describe('amp read-only roles', () => {

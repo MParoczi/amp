@@ -321,17 +321,19 @@ broken_rule() {
     reset) has --hard && rule='hard reset' instead=$INSTEAD_DISCARD ;;
     stash) member "${pos[0]-}" list show || rule='discard work' ;;
     checkout) has -- -f --force && rule='discard work' ;;
-    restore) { ! has --staged || has --worktree -W; } && rule='discard work' ;;
+    restore) { ! has --staged -S || has --worktree -W; } && rule='discard work' ;;
     clean) { has --force || short_has f; } && rule='discard work' ;;
   esac
   [ "$rule" = 'discard work' ] && instead=$INSTEAD_DISCARD
   [ -n "$rule" ]
 }
 
-DENY_ALL=(commit push merge rebase reset checkout switch stash add rm mv cherry-pick revert am restore clean)
+DENY_ALL=(commit push merge rebase reset checkout switch stash add rm mv cherry-pick revert am restore clean pull)
 TAG_WRITE=(-a -s -u -d -f -m -F --annotate --sign --delete --force)
 BRANCH_WRITE=(-d -D -m -M -c -C -f --delete --move --copy --force)
 NOTES_WRITE=(add edit remove copy append merge prune)
+# expands PATH: the shell expands PATH (`$VAR`, `~`, `%VAR%`, `$(…)`, a backtick), so it can't be resolved here
+expands() { case $1 in '$'*|'~'*|'%'*|*'$('*|*'`'*) return 0 ;; esac; return 1; }
 
 # git_writes: the parsed segment writes, for a read-only role (§5.5)
 git_writes() {
@@ -343,7 +345,7 @@ git_writes() {
     branch) has "${BRANCH_WRITE[@]}" || [ -n "$creates" ] ;;
     notes) member "${pos[0]-}" "${NOTES_WRITE[@]}" ;;
     apply) ! has --check --stat --numstat ;;
-    worktree) [[ ${pos[0]-} == add ]] && [ ${#pos[@]} -gt 1 ] && where "${pos[1]}" "$here" && [ "$place" = repo ] ;;
+    worktree) [[ ${pos[0]-} == add ]] && [ ${#pos[@]} -gt 1 ] && ! expands "${pos[1]}" && where "${pos[1]}" "$here" && [ "$place" = repo ] ;;
     *) member "$sub" "${DENY_ALL[@]}" ;;
   esac
 }

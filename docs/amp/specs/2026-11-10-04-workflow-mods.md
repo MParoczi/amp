@@ -223,7 +223,7 @@ changed, re-parses the ledger, updates the status line (clearing it with `undefi
 | push to default | `push` with a refspec equal to the default branch or ending in `:<default>`, or `push` with no refspec while on the default branch | `git push origin v1.4.0` while on main |
 | hard reset | `reset` with `--hard` | `git reset --soft HEAD~1` |
 | commit on default | `commit` while the current branch is the default branch | — |
-| discard work | `stash` (any form except `list` and `show`); `checkout` with `--`, `-f` or `--force`; `restore` without `--staged`, or with `--worktree`/`-W`; `clean` with a short-flag word containing `f`, or `--force` | `git stash list`, `git restore --staged a.ts`, `git checkout feature/x` |
+| discard work | `stash` (any form except `list` and `show`); `checkout` with `--`, `-f` or `--force`; `restore` without `--staged`/`-S`, or with `--worktree`/`-W`; `clean` with a short-flag word containing `f`, or `--force` | `git stash list`, `git restore --staged a.ts`, `git checkout feature/x` |
 | admin merge | a `gh pr merge` segment with `--admin` | `gh pr merge 5 --merge --delete-branch` |
 
 Everything amp's skills run stays allowed: `worktree remove --force`, `branch -D amp-wt-*`,
@@ -279,12 +279,12 @@ one of the following.
 
 | Subcommand | Denied | Allowed |
 |---|---|---|
-| `commit`, `push`, `merge`, `rebase`, `reset`, `checkout`, `switch`, `stash`, `add`, `rm`, `mv`, `cherry-pick`, `revert`, `am`, `restore`, `clean` | any form | — |
+| `commit`, `push`, `merge`, `rebase`, `reset`, `checkout`, `switch`, `stash`, `add`, `rm`, `mv`, `cherry-pick`, `revert`, `am`, `restore`, `clean`, `pull` | any form | — |
 | `tag` | any of `-a -s -u -d -f -m -F --annotate --sign --delete --force`, or a positional word without `-l`/`--list` | `git tag`, `git tag -l 'v1.*'`, `git tag --sort=-v:refname`, `git tag --contains HEAD` |
 | `notes` | `add`, `edit`, `remove`, `copy`, `append`, `merge`, `prune` | `git notes list`, `git notes show` |
 | `apply` | any form without `--check`, `--stat` or `--numstat` | `git apply --check x.patch` |
 | `branch` | `-d -D -m -M -c -C -f --delete --move --copy --force`, or a positional word (that creates a branch) | `git branch`, `git branch -a`, `git branch --show-current`, `git branch --contains HEAD`, `git branch --merged main` |
-| `worktree add` | a target path inside the root and not under `<root>/.amp/` | a path outside the repo (reviewer.md's temporary worktree), `worktree list`, `worktree remove` |
+| `worktree add` | a target path inside the root and not under `<root>/.amp/` | a path outside the repo, a target the shell expands (starting with `$`, `~` or `%`, or holding `$(` or a backtick) (reviewer.md's temporary worktree), `worktree list`, `worktree remove` |
 
 The deny text is `amp read-only: <role> may not <what> (<target>). Report the finding instead;
 write only the report file under .amp/ or outside the repo.`
