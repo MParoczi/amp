@@ -26,6 +26,7 @@ Everything else in this README applies to both tools unless a section says other
 - [Install for Codex](#install-for-codex)
 - [Choosing the models](#choosing-the-models)
 - [Using amp](#using-amp)
+- [What the plugin adds to a session](#what-the-plugin-adds-to-a-session)
 - [Project configuration](#project-configuration)
 - [What runs where](#what-runs-where)
 - [Updating and removing](#updating-and-removing)
@@ -33,8 +34,8 @@ Everything else in this README applies to both tools unless a section says other
 
 ## Requirements
 
-- **Claude Code.** Tested on 2.1.295. The model routing and the settings pane use Claude Code's
-  function-hook plugins (early access). On a build without them the skills and agents still work,
+- **Claude Code.** Tested on 2.1.295. The model routing, the settings pane and the run hooks (status
+  line, `/amp-run`, resume guard) use Claude Code's function-hook plugins (early access). On a build without them the skills and agents still work,
   and each agent runs on the default model in its definition (see the defaults below).
 - **Or Codex**: the Codex CLI or the desktop app. The IDE extension has no plugins, so it can't
   run amp. Codex support follows Codex's source and documentation but hasn't yet been tested end
@@ -256,6 +257,26 @@ so nothing in it reaches git. If a session ends or its context is compacted, run
 with the same phase. It resumes from the ledger and `git log`. amp deletes the folder after the
 merge, leaving the PR as the record.
 
+## What the plugin adds to a session
+
+In Claude Code, amp's hooks module watches the run's ledger. The **active run** is the newest
+`.amp/<key>/progress.md` whose stage isn't `merged`. Every tool call and every finished turn
+checks for it again, so a run started mid-session shows up at once and a merged one drops out.
+Outside a git repository, or with no ledger, nothing below appears. A ledger over 4 MiB, or one
+that can't be read, is skipped.
+
+- **Status line.** While a run is active the status line reads `amp <key> · <stage>`. During the
+  build it adds the task and any fix round, for example
+  `amp 04-workflow-mods · build · task 3/7 · fix r2/5`.
+- **`/amp-run`.** Opens the "amp run" pane: the key and branch, the stage and its note, one row per
+  task with its state, the current fix round, the parked, rulings and fallback counts, the
+  pipeline state and the ledger's last lines. With no run it replies "No amp run in this
+  repository."
+- **Resume guard.** When a session starts on the branch an unfinished run owns (its `Branch:` line,
+  or the default branch while the run has none yet), the system prompt tells Claude that the run
+  owns the branch and that it resumes with `amp:phase <key>`. A compaction in the main
+  conversation keeps the same note, so the summary still names the run, its stage and its ledger.
+
 ## Project configuration
 
 Settings for one project go in its `CLAUDE.md`, under a `## amp configuration` heading, as a
@@ -301,6 +322,8 @@ Example:
 | `amp:checker` | `amp-checker` | agent | fallback re-check when the reviewer can't be resumed: each finding addressed or not, plus any new breakage in the fix |
 | `amp:scout` | `amp-scout` | agent | answers one factual question from primary sources, with citations |
 | `/amp-models` | `codex/install` + `amp-install.json` | command + pane / installer | the model settings |
+| `/amp-run` | — | command + pane | the active run: stage, tasks, fix rounds, parked items |
+| amp status line | — | hook | `amp <key> · <stage>`, plus the task and fix round during the build |
 
 The bundled scripts in `skills/build/scripts/` (`codex/skills/build/scripts/` on Codex) handle the
 run's bookkeeping. `amp-workspace` creates the `.amp/<key>/` folder. `task-brief` extracts one
@@ -363,7 +386,8 @@ after rendering: `git add -A`, then `git update-index --chmod=+x` on `scripts/re
 Layout: `.claude-plugin/` (Claude Code manifest, marketplace), `.codex-plugin/` (Codex manifest),
 `src/` (the sources), the rendered `skills/`, `agents/`, `codex/skills/` and `codex/agents/`,
 `codex/install` (the Codex agent installer), `scripts/` (render and test), and `hooks/` (the
-Claude Code routing and pane module `register.tsx`, plus its tests). The editor types for the hooks
+Claude Code hooks module `register.tsx` for the routing, the panes and the run hooks; `run.ts`, the
+ledger parser it reads the run with; and their tests). The editor types for the hooks
 module appear in `.claude-plugin/types/` the first time a session loads the folder with
 `--plugin-dir`. That folder is git-ignored.
 
