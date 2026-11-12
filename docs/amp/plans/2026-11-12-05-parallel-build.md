@@ -81,7 +81,7 @@ and `Run.parallelOff?: string`. Removes `Run.fixRound` and `Run.pipelineOff`.
 **Commit:** `feat(hooks): track state, fix round and worktree per task; show every active task`
 **Depends on:** none
 
-- [ ] **Step 1: Failing tests** in `hooks/run.test.ts`.
+- [x] **Step 1: Failing tests** in `hooks/run.test.ts`.
   - FIXTURE's last line becomes `Parallel: off — conflict`. In the first test:
     - `fixRound` → `run.tasks[2]?.round` is 2
     - `pipelineOff` → `parallelOff` is `'conflict'`
@@ -123,14 +123,14 @@ and `Run.parallelOff?: string`. Removes `Run.fixRound` and `Run.pipelineOff`.
       becomes `'amp 04-x · build · tasks 3a r2, 4 · 2/7 done'`
     - the pane test expects rows matching `/Task 3a · fixing r2/` and `/Task 4 · started · wt-4/`
     - it expects a `Parallel: on` text, and no `fix round 2/5` row
-- [ ] **Step 2: Run, expect FAIL** `claude plugin test .` → the new expectations fail.
-- [ ] **Step 3: Implement** spec §5.6 and §5.7 in `run.ts`. A non-state line updates only the
+- [x] **Step 2: Run, expect FAIL** `claude plugin test .` → the new expectations fail.
+- [x] **Step 3: Implement** spec §5.6 and §5.7 in `run.ts`. A non-state line updates only the
   text, and a new row defaults to `started`. Active = `started` or `fixing`, in first-seen order.
   `register.tsx` row: `  Task <id> · <state>[ r<R>][ · <basename of worktree>]`, plus
   `Parallel: on` or `Parallel: off — <why>`.
-- [ ] **Step 4: Run, expect PASS** `claude plugin test .` and `bash scripts/test`.
-- [ ] **Step 5: Docs** README lines named above.
-- [ ] **Step 6: Commit**
+- [x] **Step 4: Run, expect PASS** `claude plugin test .` and `bash scripts/test`.
+- [x] **Step 5: Docs** README lines named above.
+- [x] **Step 6: Commit**
 
 ### Task 2: `Depends on` in plans and plan review
 
@@ -145,7 +145,7 @@ Modify `scripts/test` (the `case=pipeline` plan holds, L415–417) · rendered t
 **Commit:** `feat(plan): every task names the tasks it depends on`
 **Depends on:** none
 
-- [ ] **Step 1: Failing test** In `scripts/test`, insert a new `case=depends` block directly
+- [x] **Step 1: Failing test** In `scripts/test`, insert a new `case=depends` block directly
   before the `case=pipeline` line, with:
   - `holds skills/plan/SKILL.md '**Depends on:** none' 'only setup, config or docs'`
   - `holds skills/build/prompts/document-review.md 'Depends on' 'only setup, config or docs'`
@@ -155,8 +155,8 @@ Modify `scripts/test` (the `case=pipeline` plan holds, L415–417) · rendered t
   Then delete the old plan `holds … '**Independent:** yes' …` line and the document-review
   `'only setup, config or docs'` holds line from the `case=pipeline` block. The block's
   build-skill and phase-skill `holds` lines stay for Task 3.
-- [ ] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: depends: …`
-- [ ] **Step 3: Implement**
+- [x] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: depends: …`
+- [x] **Step 3: Implement**
   - The template line becomes `**Depends on:** none | Task <a>, Task <b> <the earlier tasks whose output this task consumes>`.
   - The paragraph states spec §5.1 rules, minus the build-side legacy handling: every task has
     one; it depends on every earlier task whose Produces it consumes or whose created file it
@@ -166,9 +166,9 @@ Modify `scripts/test` (the `case=pipeline` plan holds, L415–417) · rendered t
   - document-review Mode plan adds: "every `Depends on` line names only earlier tasks and misses
     no consumed interface or touched created file".
   - Then `bash scripts/render`.
-- [ ] **Step 4: Run, expect PASS** `bash scripts/render --check` and `bash scripts/test`.
-- [ ] **Step 5: Docs** none.
-- [ ] **Step 6: Commit**
+- [x] **Step 4: Run, expect PASS** `bash scripts/render --check` and `bash scripts/test`.
+- [x] **Step 5: Docs** none.
+- [x] **Step 6: Commit**
 
 ### Task 3: The parallel scheduler in amp:build
 
@@ -199,7 +199,7 @@ Modify `scripts/test` (the `case=pipeline` plan holds, L415–417) · rendered t
 **Commit:** `feat(build): run independent tasks in parallel worktrees; release 1.5.0`
 **Depends on:** Task 1, Task 2
 
-- [ ] **Step 1: Failing test** In `scripts/test`, replace the remaining `case=pipeline` block (its
+- [x] **Step 1: Failing test** In `scripts/test`, replace the remaining `case=pipeline` block (its
   comment and the build- and phase-skill `holds` lines) with a `case=parallel` block, and bump
   `case=manifests` to `"version": "1.5.0"`. The old block's `lacks … 'never two implementers at
   once'` check and its agent checks (`'git grep' '.amp/'`, `'git -C'`) move into the new block
@@ -229,8 +229,8 @@ Modify `scripts/test` (the `case=pipeline` plan holds, L415–417) · rendered t
   - `lacks` on `agents/reviewer.md`, `agents/implementer.md` and `agents/checker.md` for
     `pipelined worktree`
   - `holds skills/build/SKILL.md 'no `Depends on` line'` (the legacy rule)
-- [ ] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: manifests: …` (it runs first), then `FAIL: parallel: …`
-- [ ] **Step 3: Implement** spec §3 and §5.2–5.8 in the build skill, in its existing terse style:
+- [x] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: manifests: …` (it runs first), then `FAIL: parallel: …`
+- [x] **Step 3: Implement** spec §3 and §5.2–5.8 in the build skill, in its existing terse style:
   - Setup step 4 is §5.2, preceded by the legacy rules from spec §5.1 paragraph 2:
     - a plan with no `Depends on` line: each task depends on the one before it
     - a plan with only some lines: rule each missing line as depending on the previous task,
@@ -250,7 +250,7 @@ Modify `scripts/test` (the `case=pipeline` plan holds, L415–417) · rendered t
   - Agents and phase skill, per spec §4.
   - The `lean:` marker isn't needed.
   - Then `bash scripts/render`.
-- [ ] **Step 4: Run, expect PASS** `bash scripts/render --check`, `bash scripts/test`,
+- [x] **Step 4: Run, expect PASS** `bash scripts/render --check`, `bash scripts/test`,
   `claude plugin validate .` and `claude plugin test .` (the last task, so run the full gates).
-- [ ] **Step 5: Docs** README, CHANGELOG and the manifests, as listed on the Docs line.
-- [ ] **Step 6: Commit**
+- [x] **Step 5: Docs** README, CHANGELOG and the manifests, as listed on the Docs line.
+- [x] **Step 6: Commit**

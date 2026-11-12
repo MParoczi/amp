@@ -160,7 +160,8 @@ the ruling is ledgered. The run continues.
 Only one task integrates at a time. Others queue in the order they became ready to integrate.
 
 1. `git -C "$WT" status --porcelain` must be empty. If it isn't, resume the implementer to commit
-   or discard its leftovers, then run this check again.
+   or discard its leftovers (a leftover commit is a fix round, reviewed as usual), then run this
+   check again.
 2. If the phase branch head ≠ BASE: `git -C "$WT" rebase <phase branch>`. On failure, run
    `git -C "$WT" rebase --abort` (ignore its error) and **drop**. On success, set
    `BASE=$(git rev-parse <phase branch>)` and ledger `Task N: rebased (base <BASE>)`. Then resume
