@@ -63,7 +63,8 @@ Dispatch templates: `${CLAUDE_SKILL_DIR}/prompts/`.
      its code, and its created files match its later touches).
 
    Rule on every conflict, with the spec as the authority:
-   `Ruling: <decision> — <why> — <cost if wrong>`.
+   `Ruling: <decision> — <why> — <cost if wrong>`. When the **Scheduling** cap is 1, ledger
+   `Parallel: off — Parallel tasks: 1`.
 
 ## The task loop (per task, in its tree; never two implementers in the same tree)
 
@@ -158,7 +159,9 @@ A worktree task integrates once its review is clean or its breaker has ruled.
 Only one task integrates at a time. Others queue in the order they became ready to integrate.
 
 1. `git -C "$WT" status --porcelain` must be empty. If it isn't, resume the implementer to commit
-   or discard its leftovers, then run this check again.
+   or discard its leftovers, then run this check again. Committing them is a fix round of the same
+   loop, counted against the same 5-round cap and re-reviewed as usual (the task leaves the queue
+   as in step 2); discarding them needs no review.
 2. If the phase branch head ≠ BASE: `git -C "$WT" rebase <phase branch>`. On failure, run
    `git -C "$WT" rebase --abort` (ignore its error) and **drop**. On success, set
    `BASE=$(git rev-parse <phase branch>)`, ledger `Task N: rebased (base <BASE>)`, and resume the
@@ -187,7 +190,8 @@ A task is **in flight** when its last state line is `started`, `rebased` or a fi
 is the one on its last `started` or `rebased` line. For each in-flight task, the first case that
 holds:
 
-1. **Main-tree task:** resume from its last line, as in Setup step 2.
+1. **Main-tree task** (a task with no `started (worktree` line, such as one a 1.4.0 ledger
+   holds): resume from its last line, as in Setup step 2.
 2. **Worktree task, already merged:** `amp-wt-<N>` exists,
    `git rev-list --count <BASE>..amp-wt-<N>` ≥ 1 and
    `git merge-base --is-ancestor amp-wt-<N> HEAD`; or the branch is gone and
