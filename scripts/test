@@ -412,10 +412,16 @@ lacks skills/design/SKILL.md 'Model fallback applies'
 holds skills/phase/SKILL.md 'amp model routing' 'Fallback (automatic, no question)'
 ok
 
+case=depends
+# plans fold setup-only tasks; every task names the earlier tasks it depends on (spec 05 §5.1)
+holds skills/plan/SKILL.md '**Depends on:** none' 'only setup, config or docs'
+holds skills/build/prompts/document-review.md 'Depends on' 'only setup, config or docs'
+lacks skills/plan/SKILL.md '**Independent:**'
+lacks codex/skills/plan/SKILL.md '**Independent:**'
+ok
+
 case=pipeline
-# plans fold setup-only tasks; amp:build pipelines Independent tasks in a worktree under the workspace
-holds skills/plan/SKILL.md '**Independent:** yes' 'only setup, config or docs'
-holds skills/build/prompts/document-review.md 'only setup, config or docs'
+# amp:build pipelines Independent tasks in a worktree under the workspace
 holds skills/build/SKILL.md 'amp-wt-' 'git worktree add' 'merge --ff-only' 'worktree remove --force' 'branch -D' 'merged (base' 'Pipeline: off' 'git grep'
 holds skills/build/SKILL.md 'rev-list --count' '`Task N+1: pipeline dropped` or `Pipeline: off` line' 'worktree prune' 'On any rebase failure'
 holds codex/skills/build/SKILL.md 'amp-wt-'
