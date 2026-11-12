@@ -217,7 +217,7 @@ you chose in the grill.
    the default branch, then writes the spec and the plan (each reviewed independently). The spec
    starts from a survey: existing code is reused or extended before anything new is written, and
    code nothing references and no doc or roadmap phase claims is scheduled for deletion. It builds
-   the plan task by task, with one atomic commit and one review per task, then runs a final review.
+   the plan, with one atomic commit and one review per task, then runs a final review.
    Each implementer runs its focused tests, and the full suite only when its task touches shared
    code (code other modules import, a public interface, config or build files) or is the last one.
    A task is never only setup, config or docs: those fold into the task that needs them.

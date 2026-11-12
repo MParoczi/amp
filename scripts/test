@@ -422,7 +422,7 @@ ok
 
 case=parallel
 # amp:build schedules ready tasks, each in its own worktree when others run (spec 05 §5.2–5.8)
-holds skills/build/SKILL.md '**Depends on:**' 'Parallel tasks' 'amp-wt-' 'git worktree add' 'merge --ff-only'   'rebase --abort' 'worktree remove --force' 'branch -D' 'worktree prune' 'started (worktree' 'rebased (base'   'dropped — resume' 'Parallel: off' 'git grep' 'Only one task integrates at a time' 'no `Depends on` line'
+holds skills/build/SKILL.md '**Depends on:**' 'Parallel tasks' 'amp-wt-' 'git worktree add' 'merge --ff-only' 'rebase --abort' 'worktree remove --force' 'branch -D' 'worktree prune' 'started (worktree' 'rebased (base' 'dropped — resume' 'Parallel: off' 'git grep' 'Only one task integrates at a time' 'no `Depends on` line'
 holds codex/skills/build/SKILL.md 'amp-wt-' 'thread limit'
 holds skills/phase/SKILL.md 'amp-wt-' 'Parallel tasks'
 holds skills/build/prompts/task-review.md 'Tree:'

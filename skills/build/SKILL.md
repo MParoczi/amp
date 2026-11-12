@@ -122,10 +122,8 @@ and count as one task in scheduling.
   `Parallel: off — <why>`, and run every task not yet started sequentially in the main tree once
   the in-flight tasks finish (cap 1 from then on).
 - **Dispatches:** the implementer gets `Work in: <WT> on branch amp-wt-<N>`, and the reviewer and
-  checker get `Tree: <WT>`. The task head is `amp-wt-<N>`: the review package is
-  `review-package $WS <BASE> amp-wt-<N>`, and fix rounds use `FIX_BASE=$(git rev-parse amp-wt-<N>)`
-  and `review-package $WS $FIX_BASE amp-wt-<N>`. Every dispatch while other tasks are in flight
-  states that `.amp/` holds other tasks' worktrees, outside its scope.
+  checker get `Tree: <WT>`. The task head is `amp-wt-<N>`. Every dispatch while other tasks are
+  in flight states that `.amp/` holds other tasks' worktrees, outside its scope.
 - The worktrees sit under the git-ignored `.amp/`, which some tools don't honor. While worktree
   tasks are in flight, reference and dead-code checks use `git grep` (tracked files only), and a
   test or lint failure whose path is under `.amp/` (outside the task's own tree) is another task's

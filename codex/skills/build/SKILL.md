@@ -17,8 +17,8 @@ Every dispatch below is a `spawn_agent` call made as amp:phase, Model routing sa
 `agent_type: "amp-<role>"`, the filled template as `message`, `reasoning_effort: "medium"` for
 `amp-checker` and `"high"` for `amp-implementer` and `amp-reviewer` (`"xhigh"` on escalation),
 `model` only when `amp-install.json` pins the role, and in v2 also a `task_name` from amp:phase's
-naming scheme (`implementer_<N>`, `checker_<N>_r<R>`, `reviewer_final`, …; a redone task's
-spawns add `_redo`) and `fork_turns: "none"`.
+naming scheme (`implementer_<N>`, `checker_<N>_r<R>`, `reviewer_final`, …) and
+`fork_turns: "none"`.
 Collect each contract with `wait_agent` (in v2 it arrives as a message; wait again until it has).
 Resume a live implementer or reviewer with `followup_task` (v2) or `send_input` (v1). Where
 `close_agent` exists, close a task's reviewer and implementer when the task is complete (after
@@ -142,10 +142,8 @@ and count as one task in scheduling.
   `Parallel: off — <why>`, and run every task not yet started sequentially in the main tree once
   the in-flight tasks finish (cap 1 from then on).
 - **Dispatches:** the implementer gets `Work in: <WT> on branch amp-wt-<N>`, and the reviewer and
-  checker get `Tree: <WT>`. The task head is `amp-wt-<N>`: the review package is
-  `review-package $WS <BASE> amp-wt-<N>`, and fix rounds use `FIX_BASE=$(git rev-parse amp-wt-<N>)`
-  and `review-package $WS $FIX_BASE amp-wt-<N>`. Every dispatch while other tasks are in flight
-  states that `.amp/` holds other tasks' worktrees, outside its scope.
+  checker get `Tree: <WT>`. The task head is `amp-wt-<N>`. Every dispatch while other tasks are
+  in flight states that `.amp/` holds other tasks' worktrees, outside its scope.
 - The worktrees sit under the git-ignored `.amp/`, which some tools don't honor. While worktree
   tasks are in flight, reference and dead-code checks use `git grep` (tracked files only), and a
   test or lint failure whose path is under `.amp/` (outside the task's own tree) is another task's

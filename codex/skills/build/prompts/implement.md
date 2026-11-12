@@ -34,6 +34,8 @@ Fix round <R>/5 for Task <N>. The review found these open issues (verbatim):
 Fix them, re-run the tests covering the amended code, append a fix report (changes, tests run,
 command, output) to <WORKSPACE>/task-<N>-report.md, commit as a new follow-up commit (never amend
 or rebase: the review ranges depend on the existing commits), and reply with the contract.
+Work in: <repo root | worktree> on branch <phase branch | amp-wt-<N>>.
+<while other tasks are in flight: ".amp/ holds other tasks' worktrees, outside your scope.">
 ```
 
 Rounds 4–5 add: "A prior implementer attempted this task <R-1> times; you own it now. Read the
