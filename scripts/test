@@ -416,8 +416,8 @@ case=depends
 # plans fold setup-only tasks; every task names the earlier tasks it depends on (spec 05 §5.1)
 holds skills/plan/SKILL.md '**Depends on:** none' 'only setup, config or docs'
 holds skills/build/prompts/document-review.md 'Depends on' 'only setup, config or docs'
-lacks skills/plan/SKILL.md '**Independent:**'
-lacks codex/skills/plan/SKILL.md '**Independent:**'
+lacks skills/plan/SKILL.md '**Independent:**' 'Pipelining'
+lacks codex/skills/plan/SKILL.md '**Independent:**' 'Pipelining'
 ok
 
 case=parallel
