@@ -620,6 +620,9 @@ add() { printf '*** Begin Patch\n*** Add File: %s\n+x\n*** End Patch' "$1"; }
 hook "$(patch_json "$(add src/a.ts)" amp-reviewer)"
 [ "$out" = "$(reason "amp read-only: reviewer may not edit files in the repository (src/a.ts). $ro_tail")" ] || fail "deny text: $out"
 allows "$(patch_json "$(add .amp/04-x/r.md)" amp-reviewer)"
+# a task worktree under .amp/ holds the code under review; a report beside it does not
+denies "$(patch_json "$(add .amp/x/wt-2/file)" amp-reviewer)" 'may not edit files in the repository (.amp/x/wt-2/file)'
+allows "$(patch_json "$(add .amp/x/task-2-report.md)" amp-reviewer)"
 denies "$(patch_json $'*** Begin Patch\n*** Add File: .amp/04-x/r.md\n+x\n*** Update File: src/b.ts\n@@\n-a\n+b\n*** End Patch' amp-reviewer)" \
   'may not edit files in the repository (src/b.ts)'
 denies "$(patch_json $'*** Begin Patch\n*** Update File: .amp/04-x/r.md\n*** Move to: src/c.ts\n@@\n-a\n+b\n*** End Patch' amp-checker)" '(src/c.ts)'
@@ -630,6 +633,7 @@ case $hroot in [a-zA-Z]:*) win=$(printf '%s' "$hroot" | tr '[:lower:]' '[:upper:
 win=$(printf '%s' "$win" | tr / '\\')
 denies "$(patch_json "$(add "$win\\src\\a.ts")" amp-reviewer)" 'may not edit files in the repository'
 allows "$(patch_json "$(add "$win\\.amp\\04-x\\r.md")" amp-reviewer)"
+denies "$(patch_json "$(add "$win\\.amp\\x\\wt-2\\a.ts")" amp-reviewer)" 'may not edit files in the repository'
 allows "$(patch_json "$(add /tmp/x.md)" amp-reviewer)"
 allows "$(patch_json "$(add src/a.ts)")"
 ok

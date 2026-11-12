@@ -19,6 +19,8 @@
   state, fix round and worktree, plus `Parallel: on` or `Parallel: off — <why>`.
 - On Codex the parallel cap is at most half the session's thread limit (3 at the default 6), and a
   task's implementer and reviewer stay open until the task is complete or dropped.
+- The read-only roles treat a task worktree (`.amp/<key>/wt-*`) as the repository, so a reviewer
+  or checker can't edit the code it reviews there; report files under `.amp/` stay writable.
 - The opt-in pipelining from 1.3.0 and its `**Independent:** yes` mark are gone. A plan with no
   `Depends on` lines runs one task at a time.
 

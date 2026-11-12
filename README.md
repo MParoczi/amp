@@ -321,7 +321,8 @@ A ledger over 4 MiB, or one that can't be read, is skipped.
   model it ran on; the task comes from the first `Task <N>` in the description or the prompt.
   Once the agent completes, the box adds the first line of its report, such as `- STATUS: DONE`.
 - **Read-only roles.** `amp:reviewer`, `amp:checker` and `amp:scout` may not edit, write or
-  notebook-edit a file inside the repository except under `.amp/`, and may not run a writing git
+  notebook-edit a file inside the repository except under `.amp/` (a task worktree there,
+  `.amp/<key>/wt-*`, counts as the repository), and may not run a writing git
   command (commit, push, merge, reset, checkout, stash, add, a new tag or branch, `apply` without
   `--check`, a `worktree add` inside the repository, and the like). Reading git (`status`, `log`,
   `diff`, `branch --contains`, `tag -l`) and a temporary worktree outside the repository stay

@@ -152,6 +152,10 @@ describe('amp read-only roles', () => {
       expect(readOnlyViolation('reviewer', { tool, path: '/repo/src/a.ts', cwd: ROOT }, ROOT)).toContain('may not edit files in the repository')
       expect(readOnlyViolation('reviewer', { tool, path: 'src/a.ts', cwd: ROOT }, ROOT)).toContain('may not edit')
       expect(readOnlyViolation('reviewer', { tool, path: '/repo/.amp/04-x/r.md', cwd: ROOT }, ROOT)).toBeUndefined()
+      expect(readOnlyViolation('reviewer', { tool, path: '/repo/.amp/x/task-2-report.md', cwd: ROOT }, ROOT)).toBeUndefined()
+      // a task worktree under .amp/ holds the code under review
+      expect(readOnlyViolation('reviewer', { tool, path: '/repo/.amp/x/wt-2/file', cwd: ROOT }, ROOT)).toContain('may not edit files in the repository')
+      expect(readOnlyViolation('checker', { tool, path: 'src/a.ts', cwd: '/repo/.amp/x/wt-2' }, ROOT)).toContain('may not edit')
       expect(readOnlyViolation('reviewer', { tool, path: '/tmp/x.md', cwd: ROOT }, ROOT)).toBeUndefined()
     }
     expect(readOnlyViolation('reviewer', { tool: 'Read', path: '/repo/src/a.ts', cwd: ROOT }, ROOT)).toBeUndefined()
@@ -169,6 +173,9 @@ describe('amp read-only roles', () => {
     expect(insideRoot('/repo2/a.ts', ROOT, ROOT)).toBe('outside')
     expect(insideRoot('/Repo/a.ts', ROOT, ROOT)).toBe('outside')
     expect(insideRoot('/repo/.amplify/a', ROOT, ROOT)).toBe('repo')
+    expect(insideRoot('/repo/.amp/x/wt-2', ROOT, ROOT)).toBe('repo')
+    expect(insideRoot('C:\\Repo\\.amp\\X\\WT-2\\a.ts', 'c:/x', 'c:/repo')).toBe('repo')
+    expect(insideRoot('/repo/.amp/x/task-2-report.md', ROOT, ROOT)).toBe('amp')
   })
 
   test('roleOf: the agent type must be the plugin read-only role', () => {

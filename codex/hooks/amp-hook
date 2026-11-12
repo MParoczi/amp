@@ -163,12 +163,14 @@ resolve() {
 }
 
 # where PATH CWD: sets place to amp (under <root>/.amp/), repo (elsewhere in the repo) or outside;
-# case is ignored when the root starts with a drive letter
+# case is ignored when the root starts with a drive letter. A task worktree, .amp/<key>/wt-* and
+# below, holds code under review: it is repo.
 where() {
   resolve "$1" "$2"; local target=$resolved
-  resolve "$root" "$root"; local base=${resolved%/}
+  resolve "$root" "$root"; local base=${resolved%/} wt='^[^/]+/wt-[^/]*(/|$)'
   case $root in [a-zA-Z]:*) shopt -s nocasematch ;; esac
-  if [[ $target == "$base/.amp" || $target == "$base/.amp/"* ]]; then place=amp
+  if [[ $target == "$base/.amp/"* && ${target:${#base}+6} =~ $wt ]]; then place=repo
+  elif [[ $target == "$base/.amp" || $target == "$base/.amp/"* ]]; then place=amp
   elif [[ $target == "$base" || $target == "$base/"* ]]; then place=repo
   else place=outside
   fi
