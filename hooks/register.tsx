@@ -269,10 +269,9 @@ function runLines(run: Run, total: number | undefined): string[] {
     `amp run ${run.key} · ${run.branch ?? 'no branch yet'}`,
     `Stage: ${run.stage}${run.note ? ` — ${run.note}` : ''}`,
     `Tasks: ${done} complete of ${total === undefined ? `${run.tasks.length} started` : `${total} planned`}`,
-    ...run.tasks.map(t => `  Task ${t.id} · ${t.state}`),
-    ...(run.fixRound ? [`fix round ${run.fixRound.round}/5 · task ${run.fixRound.task}`] : []),
+    ...run.tasks.map(t => `  Task ${t.id} · ${t.state}${t.round === undefined ? '' : ` r${t.round}`}${t.worktree ? ` · ${t.worktree.split(/[\\/]/).at(-1)}` : ''}`),
     `Parked ${run.parked} · rulings ${run.rulings} · fallbacks ${run.fallbacks.length}`,
-    `Pipeline: ${run.pipelineOff === undefined ? 'on' : `off — ${run.pipelineOff}`}`,
+    `Parallel: ${run.parallelOff === undefined ? 'on' : `off — ${run.parallelOff}`}`,
     'Last ledger lines:',
     ...run.tail.map(line => `  ${line}`),
   ]

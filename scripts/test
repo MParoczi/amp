@@ -675,7 +675,7 @@ printf '%s\r\n' '# amp ledger — 04-x' 'Stage: grill' 'free text the parser ign
   'Branch: feature/04-x' 'Plan: docs/amp/plans/p.md' 'Task 1: complete (commits a..b, review clean)' \
   'Task 2: minor (deferred): x' 'Task 2: complete (commits c..d, review clean | 2 parked)' '' \
   'Task 3a: fix round 2/5 (1 addressed, 1 open — y; commits e..f)' 'Ruling: r — w — c' \
-  'Fallback: reviewer → sonnet (429)' 'Pipeline: off — conflict' > "$ledger"
+  'Fallback: reviewer → sonnet (429)' 'Parallel: off — conflict' > "$ledger"
 on feature/04-x
 start
 [ "$out" = "# amp run in progress (04-x)

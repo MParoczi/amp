@@ -272,11 +272,12 @@ Outside a git repository nothing below appears, and with no ledger only the read
 A ledger over 4 MiB, or one that can't be read, is skipped.
 
 - **Status line.** While a run is active the status line reads `amp <key> · <stage>`. During the
-  build it adds the task and any fix round, for example
-  `amp 04-workflow-mods · build · task 3/7 · fix r2/5`.
+  build it adds every active task with its fix round, then the done count, for example
+  `amp 05-parallel-build · build · tasks 2, 3 r2, 5 · 1/7 done`, or
+  `amp 04-workflow-mods · build · task 3 · fix r2/5 · 2/7 done` with one task active.
 - **`/amp-run`.** Opens the "amp run" pane: the key and branch, the stage and its note, one row per
-  task with its state, the current fix round, the parked, rulings and fallback counts, the
-  pipeline state and the ledger's last lines. With no run it replies "No amp run in this
+  task with its state, fix round and worktree, the parked, rulings and fallback counts, the
+  `Parallel:` state and the ledger's last lines. With no run it replies "No amp run in this
   repository."
 - **Resume guard.** Whenever Claude Code builds the system prompt of a conversation that can
   dispatch agents while the current branch is one an unfinished run owns (its `Branch:` line, or
@@ -385,7 +386,7 @@ Example:
 | `amp:scout` | `amp-scout` | agent | answers one factual question from primary sources, with citations |
 | `/amp-models` | `codex/install` + `amp-install.json` | command + pane / installer | the model settings |
 | `/amp-run` | — | command + pane | the active run: stage, tasks, fix rounds, parked items |
-| amp status line | — | hook | `amp <key> · <stage>`, plus the task and fix round during the build |
+| amp status line | — | hook | `amp <key> · <stage>`, plus the active tasks and their fix rounds during the build |
 | amp resume guard | `codex/hooks/amp-hook` | hook | tells a session on a branch an unfinished run owns to resume it with `amp:phase <key>` |
 | amp guardrails | `codex/hooks/amp-hook` | hook | while a run is active, refuses the git and `gh` commands that skip hooks, rewrite or discard work, or bypass the PR |
 | amp read-only roles | `codex/hooks/amp-hook` | hook | refuses repository edits and writing git commands from the reviewer, checker and scout |
