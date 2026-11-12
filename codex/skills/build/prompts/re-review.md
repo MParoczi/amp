@@ -14,6 +14,8 @@ Findings under verification (verbatim):
 <one bullet each>
 Fix report (appended at the end): <WORKSPACE>/task-<N>-report.md
 Fix diff: <PACKAGE_PATH> (base <FIX_BASE_SHA> = the head the previous review saw · head <HEAD_SHA>)
+Tree: <repo root | worktree> — read, grep and run any focused test here.
+<while other tasks are in flight: ".amp/ holds other tasks' worktrees, outside your scope.">
 
 Return:
 ### Finding verdicts

@@ -21,8 +21,9 @@ From earlier tasks (the brief cannot know these):
 
 Ambiguities I resolved: <your rulings on anything unclear in the brief; or "none">
 
-Work in: <repo root> on branch <branch>. Write your full report to <WORKSPACE>/task-<N>-report.md
-and reply with the status contract only.
+Work in: <repo root | worktree> on branch <phase branch | amp-wt-<N>>.
+<while other tasks are in flight: ".amp/ holds other tasks' worktrees, outside your scope.">
+Write your full report to <WORKSPACE>/task-<N>-report.md and reply with the status contract only.
 ```
 
 ## Fix-round variant (rounds 1–3: resume the same agent via SendMessage; if it can't be resumed, dispatch fresh with the brief and report paths)
@@ -37,6 +38,13 @@ or rebase: the review ranges depend on the existing commits), and reply with the
 
 Rounds 4–5 add: "A prior implementer attempted this task <R-1> times; you own it now. Read the
 report file for what was tried."
+
+## Re-test variant (integration rebased the task: resume the same agent via SendMessage)
+
+```
+The phase branch moved under your task; your commits were rebased onto it. Re-run your task's
+tests in <WT> and reply with the contract; change and commit nothing. Report any failure.
+```
 
 ## Final-review and CI fix variants
 

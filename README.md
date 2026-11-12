@@ -221,11 +221,15 @@ you chose in the grill.
    Each implementer runs its focused tests, and the full suite only when its task touches shared
    code (code other modules import, a public interface, config or build files) or is the last one.
    A task is never only setup, config or docs: those fold into the task that needs them.
-   Pipelining is opt-in: when the plan marks a task `**Independent:** yes` (it uses nothing the
-   previous task produces and shares no file with it), amp implements it in a git worktree under
-   `.amp/` while the previous task is under review, then merges it and reviews it as usual. That
-   saves the wait for each marked task's implementation; on a rebase conflict, or setup the
-   project doesn't document, amp falls back to one task at a time.
+   Every plan task names the tasks it builds on (`**Depends on:** none` or `Task 2, Task 4`).
+   amp starts each task once those are complete (reviewed and merged) and it shares no file, docs
+   included, with a task already running, up to `Parallel tasks` at once (3 by default). A task
+   alone runs in the main tree; when several run, each gets its own git worktree under `.amp/`
+   and runs its whole implement, review and fix cycle there. A finished task is rebased onto the
+   phase branch (its tests re-run if the rebase moved it) and fast-forwarded in, one at a time. A
+   rebase conflict or a failed merge drops the task: amp redoes it alone from scratch, and the PR
+   lists the drop as a ruling. If a worktree can't be set up, the rest of the run goes one task
+   at a time. A plan with no `Depends on` lines runs one task at a time.
    Finally it updates the docs, verifies, pushes, opens the PR, waits for green CI, merges with a
    merge commit, tags if your project says to, and syncs your local default branch.
 3. **Rulings, not questions.** When amp meets an ambiguity, it decides against the spec and writes
@@ -354,6 +358,7 @@ is optional:
 | Dispatch skills | none | your project's skills that every implementer, reviewer and checker loads (may be conditional: "`ui-rules` when touching screens") |
 | Verify | the repo's documented test, lint, typecheck and build | the command or skill that proves a change |
 | Design process | none | steps `amp:design` runs for UX work |
+| Parallel tasks | 3 | how many plan tasks `amp:build` runs at once; use 1 for test suites that hold fixed shared resources (ports, a database, fixed temp paths) |
 | Merge method | merge commit | or squash or rebase |
 | Close-out | roadmap status row → Complete | version bump, changelog, … |
 | Versioning / tags | none | for example "patch per phase, minor and an annotated tag per milestone" |
