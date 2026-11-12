@@ -85,6 +85,7 @@ const TEXT = [
   'Task 1: complete (commits a..b, review clean)',
   'Task 2: complete (commits c..d, review clean)',
   'Task 3a: fix round 2/5 (1 addressed, 1 open — y; commits e..f)',
+  'Task 4: started (worktree .amp/04-x/wt-4, base a)',
 ].join('\n')
 const PLAN_TEXT = [1, 2, '3a', '3b', 4, 5, 6].map(n => `### Task ${n}: t`).join('\n')
 const GIT = {
@@ -136,7 +137,7 @@ describe('amp run hooks', () => {
     host.files.set(LEDGER, { text: TEXT, mtimeMs: 200 })
     await $.tool.call({ tool: 'Bash', command: 'ls' })
     expect(host.status.at(-1)).toBe(statusText(parseLedger('04-x', '.amp/04-x/progress.md', TEXT), 7))
-    expect(host.status.at(-1)).toBe('amp 04-x · build · task 3/7 · fix r2/5')
+    expect(host.status.at(-1)).toBe('amp 04-x · build · tasks 3a r2, 4 · 2/7 done')
   })
 
   test('the resume section needs the run branch to be the current one', async ($, on) => {
@@ -161,7 +162,7 @@ describe('amp run hooks', () => {
     host.files.set(`${ROOT}/${PLAN}`, { text: PLAN_TEXT, mtimeMs: 150 })
     host.files.set(LEDGER, { text: TEXT, mtimeMs: 200 })
     await $.tool.call({ tool: 'Bash', command: 'ls' })
-    expect(host.status.at(-1)).toBe('amp 04-x · build · task 3/7 · fix r2/5')
+    expect(host.status.at(-1)).toBe('amp 04-x · build · tasks 3a r2, 4 · 2/7 done')
   })
 
   test('a mismatched branch adds no resume section', async ($, on) => {
@@ -200,7 +201,7 @@ describe('amp run hooks', () => {
     const host = fakeHost(on, { git: GIT, files: files({ '04-x': TEXT, '05-big': `Stage: plan\n${'x'.repeat(5 * 1024 * 1024)}` }) })
     host.files.set(`${ROOT}/.amp/06-z/progress.md`, { text: 'Stage: design', mtimeMs: 300, unreadable: true })
     await $.session.start(START)
-    expect(host.status.at(-1)).toBe('amp 04-x · build · task 3/7 · fix r2/5')
+    expect(host.status.at(-1)).toBe('amp 04-x · build · tasks 3a r2, 4 · 2/7 done')
   })
 
   test('outside a git repository the hooks are idle', async ($, on) => {
@@ -227,15 +228,17 @@ describe('amp run hooks', () => {
     expect(seen[1]).toBe('Focus on x')
   })
 
-  test('the /amp-run pane shows the stage, the tasks and the fix round', async ($, on) => {
+  test('the /amp-run pane shows the stage, each task with its fix round and worktree, and parallel mode', async ($, on) => {
     fakeHost(on, { git: GIT, files: files({ '04-x': TEXT }) })
     await $.session.start(START)
-    expect((await $.command.run(RUN)).text).toBe('amp 04-x · build · task 3/7 · fix r2/5')
+    expect((await $.command.run(RUN)).text).toBe('amp 04-x · build · tasks 3a r2, 4 · 2/7 done')
     for (const surface of ['terminal', 'desktop'] as const) {
       const ui = await $.ui.mount({ ...PANE, surface, props: PANE.props as never })
       expect(await ui.find({ type: 'Text', text: /build — tasks/ })).toBeDefined()
-      expect(await ui.find({ type: 'Text', text: /3a/ })).toBeDefined()
-      expect(await ui.find({ type: 'Text', text: 'fix round 2/5' })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: /Task 3a · fixing r2/ })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: /Task 4 · started · wt-4/ })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: 'Parallel: on' })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: /^fix round/ })).toBeUndefined()
       await ui.unmount()
     }
   })

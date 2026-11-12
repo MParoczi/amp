@@ -82,7 +82,7 @@ conflicts, ambiguities and plan defects yourself, with the spec as the authority
 2. A destructive or irreversible operation **outside** the pre-authorized set. Pre-authorized:
    create the phase branch, commit, push the phase branch, open the PR, re-run CI, merge after
    green, tag per project config, delete the merged phase branch, and rebase, remove and delete
-   amp:build's own pipeline worktrees (`$WS/wt-*`) and `amp-wt-*` branches.
+   amp:build's own task worktrees (`$WS/wt-*`) and `amp-wt-*` branches.
 3. A security-sensitive action, or a project-specific stop rule from the amp configuration.
 4. A plan so broken that every path forward is a guess, or a cap tripped in amp:ship (verify, CI,
    merge protection).
@@ -145,10 +145,10 @@ role. Spawn independent agents (parallel scouts) before waiting on any of them. 
 
 - **v2** (`followup_task` exists): every spawn also passes `task_name: "<role>_<task id>"` and
   `fork_turns: "none"`. A name uses only lowercase letters, digits and `_` (task `3a` stays `3a`)
-  and never repeats: add `_r<R>` in fix round R and `_retry<k>` for the k-th BLOCKED retry. For
-  example `implementer_3`, `reviewer_3`, `checker_3_r2`, `implementer_3_r4`, `scout_<short_slug>`,
-  `reviewer_spec`, `reviewer_plan`, `reviewer_roadmap`, `reviewer_final`, `implementer_final`,
-  `checker_final`, `implementer_ci_<k>` (the k-th CI fix). Without `fork_turns: "none"` the spawn
+  and never repeats: add `_r<R>` in fix round R, `_retry<k>` for the k-th BLOCKED retry and
+  `_redo` for a dropped task's redo. For example `implementer_3`, `reviewer_3`, `checker_3_r2`,
+  `implementer_3_r4`, `scout_<short_slug>`, `reviewer_spec`, `reviewer_plan`, `reviewer_roadmap`,
+  `reviewer_final`, `implementer_final`, `checker_final`, `implementer_ci_<k>` (the k-th CI fix). Without `fork_turns: "none"` the spawn
   forks your whole history into the agent, which breaks reviewer independence and multiplies
   context cost; the brief is the agent's only context. `wait_agent` only reports that a wait finished, and each agent's status contract
   arrives as a message: call `wait_agent` again until every spawned agent's message has arrived.
@@ -165,9 +165,9 @@ that resume fails is a fresh agent spawned: `amp-checker` for a fix round (`chec
 `checker_final`), `amp-reviewer` for a document (`reviewer_<mode>_r1`).
 
 **Closing.** Where `close_agent` exists, close each checker and scout as soon as its result is
-read, and each reviewer when its task's fix loop or its document's confirmation ends
-(at once when nothing loops). Close the implementer when its task's fix loop ends, or before any
-fresh implementer spawn for the same task (round 4, a BLOCKED retry).
+read, each reviewer when its task is complete or dropped, or when its document's confirmation
+ends (at once when nothing loops), and each implementer when its task is complete or dropped, or before
+any fresh implementer spawn for the same task (round 4, a BLOCKED retry).
 
 **Escalation** (fix rounds 4–5, a BLOCKED retry): spawn a fresh `amp-implementer` with
 `reasoning_effort: "xhigh"`, keeping any pinned `model`. Ledger `Escalation: implementer → xhigh`.
@@ -194,6 +194,7 @@ key → value. Every key is optional and has a default:
 | Dispatch skills | none. Project skills every implementer/reviewer/checker loads (may be conditional, e.g. "X when touching drivers") |
 | Verify | the repo's documented test + lint + typecheck + build commands |
 | Design process | none. Steps amp:design runs for UX-bearing work |
+| Parallel tasks | 3. How many plan tasks amp:build runs at once; 1 runs them one at a time |
 | Merge method | merge commit |
 | Close-out | roadmap status row → Complete |
 | Versioning / tags | none |

@@ -19,9 +19,25 @@ const FIXTURE = [
   'Task 3a: fix round 2/5 (1 addressed, 1 open — y; commits e..f)',
   'Ruling: r — w — c',
   'Fallback: reviewer → sonnet (429)',
-  'Pipeline: off — conflict',
+  'Parallel: off — conflict',
   '',
 ].join('\r\n')
+
+/** Four tasks in worktrees, their lines interleaved: fix rounds, a completion, a drop and a rebase. */
+const PARALLEL = [
+  'Stage: build',
+  'Task 1: started (worktree .amp/k/wt-1, base a1)',
+  'Task 2: started (worktree .amp/k/wt-2, base a1)',
+  'Task 3: started (worktree .amp/k/wt-3, base a1)',
+  'Task 4: started (worktree .amp/k/wt-4, base a1)',
+  'Task 1: fix round 2/5 (…)',
+  'Task 3: fix round 1/5 (…)',
+  'Task 4: fix round 1/5 (…)',
+  'Task 2: complete (commits a..b, review clean)',
+  'Task 2: minor (deferred): x',
+  'Task 3: dropped — conflict',
+  'Task 4: rebased (base c3)',
+].join('\n')
 
 describe('amp ledger parser', () => {
   test('every line form is read, the last value winning', async () => {
@@ -35,27 +51,29 @@ describe('amp ledger parser', () => {
     expect(run.tasks.map(t => t.id)).toEqual(['1', '2', '3a'])
     expect(run.tasks.map(t => t.state)).toEqual(['complete', 'complete', 'fixing'])
     expect(run.tasks[2]?.text).toBe('fix round 2/5 (1 addressed, 1 open — y; commits e..f)')
-    expect(run.fixRound).toEqual({ task: '3a', round: 2 })
+    expect(run.tasks[2]?.round).toBe(2)
     expect(run.parked).toBe(3)
     expect(run.rulings).toBe(1)
     expect(run.fallbacks.length).toBe(1)
-    expect(run.pipelineOff).toBe('conflict')
+    expect(run.parallelOff).toBe('conflict')
     expect(run.tail.length).toBe(5)
-    expect(run.tail[4]).toBe('Pipeline: off — conflict')
+    expect(run.tail[4]).toBe('Parallel: off — conflict')
   })
 
-  test('the remaining task states, and a later task line ends the fix round', async () => {
-    const run = parseLedger('k', LEDGER, [
-      'Stage: build',
-      'Task 1: fix round 1/5 (1 addressed, 0 open; commits a..b)',
-      'Task 2: pipelined (wt-2)',
-      'Task 3: merged (base a..b)',
-      'Task 4: pipeline dropped — conflict',
-      'Task 5: dispatched',
-    ].join('\n'))
-    expect(run.tasks.map(t => t.state)).toEqual(['fixing', 'pipelined', 'merged', 'dropped', 'started'])
-    expect(run.fixRound).toBeUndefined()
+  test('parallel tasks keep their own state, fix round and worktree', async () => {
+    const run = parseLedger('k', LEDGER, PARALLEL)
+    expect(run.tasks.map(t => t.state)).toEqual(['fixing', 'complete', 'dropped', 'started'])
+    expect(run.tasks[0]).toMatchObject({ round: 2, worktree: '.amp/k/wt-1' })
+    expect(run.tasks[1]?.worktree).toBeUndefined()
+    expect(run.tasks[2]?.round).toBeUndefined()
+    expect(run.tasks[2]?.worktree).toBeUndefined()
+    expect(run.tasks[3]?.round).toBeUndefined()
+    expect(run.tasks[3]?.worktree).toBe('.amp/k/wt-4')
     expect(run.note).toBe('')
+  })
+
+  test('a line that sets no state starts a new row as started', async () => {
+    expect(parseLedger('k', LEDGER, 'Task 5: minor (deferred): x').tasks.map(t => [t.id, t.state])).toEqual([['5', 'started']])
   })
 
   test('the old header gives plan and branch; a stage-less ledger is unknown', async () => {
@@ -67,11 +85,15 @@ describe('amp ledger parser', () => {
     expect(run.parked).toBe(0)
   })
 
-  test('the status line counts tasks and shows the fix round', async () => {
+  test('the status line names the active tasks with their fix rounds', async () => {
     const run = parseLedger('04-x', LEDGER, FIXTURE)
-    expect(statusText(run, 7)).toBe('amp 04-x · build · task 3/7 · fix r2/5')
-    expect(statusText(run)).toContain('task 3 ·')
-    expect(statusText(run, 2)).toBe('amp 04-x · build · task 2/2 · fix r2/5')
+    expect(statusText(run, 7)).toBe('amp 04-x · build · task 3a · fix r2/5 · 2/7 done')
+    expect(statusText(run)).toBe('amp 04-x · build · task 3a · fix r2/5')
+    const one = ['Stage: build', 'Task 2: complete (…)', 'Task 3: complete (…)', 'Task 1: started (main tree, base a)'].join('\n')
+    expect(statusText(parseLedger('k', LEDGER, one), 7)).toBe('amp k · build · task 1 · 2/7 done')
+    expect(statusText(parseLedger('k', LEDGER, 'Stage: build\nTask 1: complete (…)'), 7)).toBe('amp k · build · task 2/7')
+    expect(statusText(parseLedger('k', LEDGER, PARALLEL), 7)).toBe('amp k · build · tasks 1 r2, 4 · 1/7 done')
+    expect(statusText(parseLedger('k', LEDGER, PARALLEL))).toBe('amp k · build · tasks 1 r2, 4')
     expect(statusText(parseLedger('04-x', LEDGER, 'Stage: gate'), 7)).toBe('amp 04-x · gate')
   })
 

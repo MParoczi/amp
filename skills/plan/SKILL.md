@@ -59,7 +59,7 @@ tracer-bullet vertical slices. Each task ends green and committable.
 **Interfaces:** Consumes <exact names/signatures from earlier tasks> · Produces <exact names, params, return types later tasks rely on>
 **Docs:** <docs this task updates, or "none">
 **Commit:** `<type>(<scope>): <imperative summary>`
-**Independent:** yes <optional: only when it holds, see below; otherwise omit the line>
+**Depends on:** none | Task <a>, Task <b> <the earlier tasks whose output this task consumes>
 
 - [ ] **Step 1: Failing test** `<test name>`, with its assertions as code, using the spec's exact values
 - [ ] **Step 2: Run, expect FAIL** `<command>` → `<expected failure>`
@@ -73,9 +73,10 @@ Commit types: `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`,
 or the project's own convention if it defines one. **One task, one atomic commit.** A task that
 genuinely needs two commits (e.g. an expand–contract step) names both.
 
-`**Independent:** yes` marks a task that consumes nothing the previous task produces and shares no
-file with it. amp:build may then implement it in a worktree while the previous task is reviewed.
-Absent means no; mark it only when both hold.
+Every task has a `**Depends on:**` line, ids as in the headings (`3a` allowed). A task depends on
+every earlier task whose Interfaces Produces it consumes, or whose created file it touches, and
+never on a later task. amp:build runs tasks whose dependencies are complete and that share no file
+with a running task, in parallel.
 
 Batch same-shape trivial edits (the same one-line change across files) into ONE task that lists
 every file.
@@ -93,7 +94,7 @@ every file.
 6. **DRY:** no two tasks create the same thing, every spec Deletion has a task, and each Reuse
    line names what the task builds on or says why nothing fits.
 7. **Sizing:** no task is only setup, config or docs (unless the phase is docs-only), and every
-   `Independent` mark holds.
+   `Depends on` line is complete and names only earlier tasks.
 
 ## Review and commit
 

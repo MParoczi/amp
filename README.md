@@ -217,15 +217,19 @@ you chose in the grill.
    the default branch, then writes the spec and the plan (each reviewed independently). The spec
    starts from a survey: existing code is reused or extended before anything new is written, and
    code nothing references and no doc or roadmap phase claims is scheduled for deletion. It builds
-   the plan task by task, with one atomic commit and one review per task, then runs a final review.
+   the plan, with one atomic commit and one review per task, then runs a final review.
    Each implementer runs its focused tests, and the full suite only when its task touches shared
    code (code other modules import, a public interface, config or build files) or is the last one.
    A task is never only setup, config or docs: those fold into the task that needs them.
-   Pipelining is opt-in: when the plan marks a task `**Independent:** yes` (it uses nothing the
-   previous task produces and shares no file with it), amp implements it in a git worktree under
-   `.amp/` while the previous task is under review, then merges it and reviews it as usual. That
-   saves the wait for each marked task's implementation; on a rebase conflict, or setup the
-   project doesn't document, amp falls back to one task at a time.
+   Every plan task names the tasks it builds on (`**Depends on:** none` or `Task 2, Task 4`).
+   amp starts each task once those are complete (reviewed and merged) and it shares no file, docs
+   included, with a task already running, up to `Parallel tasks` at once (3 by default). A task
+   alone runs in the main tree; when several run, each gets its own git worktree under `.amp/`
+   and runs its whole implement, review and fix cycle there. A finished task is rebased onto the
+   phase branch (its tests re-run if the rebase moved it) and fast-forwarded in, one at a time. A
+   rebase conflict or a failed merge drops the task: amp redoes it alone from scratch, and the PR
+   lists the drop as a ruling. If a worktree can't be set up, the rest of the run goes one task
+   at a time. A plan with no `Depends on` lines runs one task at a time.
    Finally it updates the docs, verifies, pushes, opens the PR, waits for green CI, merges with a
    merge commit, tags if your project says to, and syncs your local default branch.
 3. **Rulings, not questions.** When amp meets an ambiguity, it decides against the spec and writes
@@ -272,11 +276,12 @@ Outside a git repository nothing below appears, and with no ledger only the read
 A ledger over 4 MiB, or one that can't be read, is skipped.
 
 - **Status line.** While a run is active the status line reads `amp <key> · <stage>`. During the
-  build it adds the task and any fix round, for example
-  `amp 04-workflow-mods · build · task 3/7 · fix r2/5`.
+  build it adds every active task with its fix round, then the done count, for example
+  `amp 05-parallel-build · build · tasks 2, 3 r2, 5 · 1/7 done`, or
+  `amp 04-workflow-mods · build · task 3 · fix r2/5 · 2/7 done` with one task active.
 - **`/amp-run`.** Opens the "amp run" pane: the key and branch, the stage and its note, one row per
-  task with its state, the current fix round, the parked, rulings and fallback counts, the
-  pipeline state and the ledger's last lines. With no run it replies "No amp run in this
+  task with its state, fix round and worktree, the parked, rulings and fallback counts, the
+  `Parallel:` state and the ledger's last lines. With no run it replies "No amp run in this
   repository."
 - **Resume guard.** Whenever Claude Code builds the system prompt of a conversation that can
   dispatch agents while the current branch is one an unfinished run owns (its `Branch:` line, or
@@ -316,7 +321,8 @@ A ledger over 4 MiB, or one that can't be read, is skipped.
   model it ran on; the task comes from the first `Task <N>` in the description or the prompt.
   Once the agent completes, the box adds the first line of its report, such as `- STATUS: DONE`.
 - **Read-only roles.** `amp:reviewer`, `amp:checker` and `amp:scout` may not edit, write or
-  notebook-edit a file inside the repository except under `.amp/`, and may not run a writing git
+  notebook-edit a file inside the repository except under `.amp/` (a task worktree there,
+  `.amp/<key>/wt-*`, counts as the repository), and may not run a writing git
   command (commit, push, merge, reset, checkout, stash, add, a new tag or branch, `apply` without
   `--check`, a `worktree add` inside the repository, and the like). Reading git (`status`, `log`,
   `diff`, `branch --contains`, `tag -l`) and a temporary worktree outside the repository stay
@@ -353,6 +359,7 @@ is optional:
 | Dispatch skills | none | your project's skills that every implementer, reviewer and checker loads (may be conditional: "`ui-rules` when touching screens") |
 | Verify | the repo's documented test, lint, typecheck and build | the command or skill that proves a change |
 | Design process | none | steps `amp:design` runs for UX work |
+| Parallel tasks | 3 | how many plan tasks `amp:build` runs at once; use 1 for test suites that hold fixed shared resources (ports, a database, fixed temp paths) |
 | Merge method | merge commit | or squash or rebase |
 | Close-out | roadmap status row → Complete | version bump, changelog, … |
 | Versioning / tags | none | for example "patch per phase, minor and an annotated tag per milestone" |
@@ -385,7 +392,7 @@ Example:
 | `amp:scout` | `amp-scout` | agent | answers one factual question from primary sources, with citations |
 | `/amp-models` | `codex/install` + `amp-install.json` | command + pane / installer | the model settings |
 | `/amp-run` | — | command + pane | the active run: stage, tasks, fix rounds, parked items |
-| amp status line | — | hook | `amp <key> · <stage>`, plus the task and fix round during the build |
+| amp status line | — | hook | `amp <key> · <stage>`, plus the active tasks and their fix rounds during the build |
 | amp resume guard | `codex/hooks/amp-hook` | hook | tells a session on a branch an unfinished run owns to resume it with `amp:phase <key>` |
 | amp guardrails | `codex/hooks/amp-hook` | hook | while a run is active, refuses the git and `gh` commands that skip hooks, rewrite or discard work, or bypass the PR |
 | amp read-only roles | `codex/hooks/amp-hook` | hook | refuses repository edits and writing git commands from the reviewer, checker and scout |

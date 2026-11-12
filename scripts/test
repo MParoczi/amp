@@ -214,7 +214,7 @@ inst
 [ "$rc" -eq 0 ] || fail "exit $rc: $out"
 for r in $roles; do [ -f "$dir/amp-$r.toml" ] || fail "amp-$r.toml missing"; done
 [ "$(ls "$dir" | wc -l)" -eq 5 ] || fail "files: $(ls "$dir")"
-grep -qF '"version": "1.4.0"' "$dir/amp-install.json" || fail "json: $(cat "$dir/amp-install.json")"
+grep -qF '"version": "1.5.0"' "$dir/amp-install.json" || fail "json: $(cat "$dir/amp-install.json")"
 [ "$(grep -oF ': null' "$dir/amp-install.json" | wc -l)" -eq 4 ] || fail "json: $(cat "$dir/amp-install.json")"
 count 'installed: ' 4
 has "wrote: $dir/amp-install.json"
@@ -277,7 +277,7 @@ cx=$ROOT/.codex-plugin/plugin.json
 grep -qF '"skills": "./codex/skills"' "$cx" || fail "no skills path"
 grep -qF '"hooks": "./codex/hooks/hooks.json"' "$cx" || fail "no hooks path"
 for m in "$ROOT/.claude-plugin/plugin.json" "$cx"; do
-  grep -qF '"version": "1.4.0"' "$m" || fail "$m: version is not 1.4.0"
+  grep -qF '"version": "1.5.0"' "$m" || fail "$m: version is not 1.5.0"
 done
 d=$(grep -F '"description":' "$ROOT/.claude-plugin/plugin.json" | head -n 1)
 [ "$d" = "$(grep -F '"description":' "$cx" | head -n 1)" ] || fail "plugin.json descriptions differ"
@@ -412,16 +412,24 @@ lacks skills/design/SKILL.md 'Model fallback applies'
 holds skills/phase/SKILL.md 'amp model routing' 'Fallback (automatic, no question)'
 ok
 
-case=pipeline
-# plans fold setup-only tasks; amp:build pipelines Independent tasks in a worktree under the workspace
-holds skills/plan/SKILL.md '**Independent:** yes' 'only setup, config or docs'
-holds skills/build/prompts/document-review.md 'only setup, config or docs'
-holds skills/build/SKILL.md 'amp-wt-' 'git worktree add' 'merge --ff-only' 'worktree remove --force' 'branch -D' 'merged (base' 'Pipeline: off' 'git grep'
-holds skills/build/SKILL.md 'rev-list --count' '`Task N+1: pipeline dropped` or `Pipeline: off` line' 'worktree prune' 'On any rebase failure'
-holds codex/skills/build/SKILL.md 'amp-wt-'
-holds skills/phase/SKILL.md 'amp-wt-'
+case=depends
+# plans fold setup-only tasks; every task names the earlier tasks it depends on (spec 05 §5.1)
+holds skills/plan/SKILL.md '**Depends on:** none' 'only setup, config or docs'
+holds skills/build/prompts/document-review.md 'Depends on' 'only setup, config or docs'
+lacks skills/plan/SKILL.md '**Independent:**' 'Pipelining'
+lacks codex/skills/plan/SKILL.md '**Independent:**' 'Pipelining'
+ok
+
+case=parallel
+# amp:build schedules ready tasks, each in its own worktree when others run (spec 05 §5.2–5.8)
+holds skills/build/SKILL.md '**Depends on:**' 'Parallel tasks' 'amp-wt-' 'git worktree add' 'merge --ff-only' 'rebase --abort' 'worktree remove --force' 'branch -D' 'worktree prune' 'started (worktree' 'rebased (base' 'dropped — resume' 'Parallel: off' 'git grep' 'Only one task integrates at a time' 'no `Depends on` line'
+holds codex/skills/build/SKILL.md 'amp-wt-' 'thread limit'
+holds skills/phase/SKILL.md 'amp-wt-' 'Parallel tasks'
+holds skills/build/prompts/task-review.md 'Tree:'
+holds skills/build/prompts/re-review.md 'Tree:'
+for f in skills/build/SKILL.md codex/skills/build/SKILL.md; do lacks "$f" 'Pipelining' '**Independent:**'; done
 lacks skills/build/SKILL.md 'never two implementers at once'
-for a in implementer reviewer checker; do holds "agents/$a.md" 'git grep' '.amp/'; done
+for a in implementer reviewer checker; do holds "agents/$a.md" 'git grep' '.amp/'; lacks "agents/$a.md" 'pipelined worktree'; done
 holds agents/implementer.md 'git -C'
 ok
 
@@ -612,6 +620,9 @@ add() { printf '*** Begin Patch\n*** Add File: %s\n+x\n*** End Patch' "$1"; }
 hook "$(patch_json "$(add src/a.ts)" amp-reviewer)"
 [ "$out" = "$(reason "amp read-only: reviewer may not edit files in the repository (src/a.ts). $ro_tail")" ] || fail "deny text: $out"
 allows "$(patch_json "$(add .amp/04-x/r.md)" amp-reviewer)"
+# a task worktree under .amp/ holds the code under review; a report beside it does not
+denies "$(patch_json "$(add .amp/x/wt-2/file)" amp-reviewer)" 'may not edit files in the repository (.amp/x/wt-2/file)'
+allows "$(patch_json "$(add .amp/x/task-2-report.md)" amp-reviewer)"
 denies "$(patch_json $'*** Begin Patch\n*** Add File: .amp/04-x/r.md\n+x\n*** Update File: src/b.ts\n@@\n-a\n+b\n*** End Patch' amp-reviewer)" \
   'may not edit files in the repository (src/b.ts)'
 denies "$(patch_json $'*** Begin Patch\n*** Update File: .amp/04-x/r.md\n*** Move to: src/c.ts\n@@\n-a\n+b\n*** End Patch' amp-checker)" '(src/c.ts)'
@@ -622,6 +633,7 @@ case $hroot in [a-zA-Z]:*) win=$(printf '%s' "$hroot" | tr '[:lower:]' '[:upper:
 win=$(printf '%s' "$win" | tr / '\\')
 denies "$(patch_json "$(add "$win\\src\\a.ts")" amp-reviewer)" 'may not edit files in the repository'
 allows "$(patch_json "$(add "$win\\.amp\\04-x\\r.md")" amp-reviewer)"
+denies "$(patch_json "$(add "$win\\.amp\\x\\wt-2\\a.ts")" amp-reviewer)" 'may not edit files in the repository'
 allows "$(patch_json "$(add /tmp/x.md)" amp-reviewer)"
 allows "$(patch_json "$(add src/a.ts)")"
 ok
@@ -675,7 +687,7 @@ printf '%s\r\n' '# amp ledger — 04-x' 'Stage: grill' 'free text the parser ign
   'Branch: feature/04-x' 'Plan: docs/amp/plans/p.md' 'Task 1: complete (commits a..b, review clean)' \
   'Task 2: minor (deferred): x' 'Task 2: complete (commits c..d, review clean | 2 parked)' '' \
   'Task 3a: fix round 2/5 (1 addressed, 1 open — y; commits e..f)' 'Ruling: r — w — c' \
-  'Fallback: reviewer → sonnet (429)' 'Pipeline: off — conflict' > "$ledger"
+  'Fallback: reviewer → sonnet (429)' 'Parallel: off — conflict' > "$ledger"
 on feature/04-x
 start
 [ "$out" = "# amp run in progress (04-x)

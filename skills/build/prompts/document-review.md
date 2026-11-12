@@ -19,7 +19,8 @@ Flag only what would cause real problems downstream:
 - Mode plan: every spec requirement and Deletion → a task; step granularity (no gaps, no
   transcribed bodies); names and signatures consistent across tasks; no two tasks build the same
   thing; each task one atomic commit; docs steps present; no task that is
-  only setup, config or docs (unless the phase is docs-only)
+  only setup, config or docs (unless the phase is docs-only); every `Depends on` line names only
+  earlier tasks and misses no consumed interface or touched created file
 - Mode roadmap: covers the whole vision A→Z; phases are vertical, shippable, one-session-sized;
   dependencies and order sound (risk early); each prompt self-contained and runnable by
   /amp:phase in a fresh session; branch types correct; verification gates concrete

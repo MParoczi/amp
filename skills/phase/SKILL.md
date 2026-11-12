@@ -70,7 +70,7 @@ conflicts, ambiguities and plan defects yourself, with the spec as the authority
 2. A destructive or irreversible operation **outside** the pre-authorized set. Pre-authorized:
    create the phase branch, commit, push the phase branch, open the PR, re-run CI, merge after
    green, tag per project config, delete the merged phase branch, and rebase, remove and delete
-   amp:build's own pipeline worktrees (`$WS/wt-*`) and `amp-wt-*` branches.
+   amp:build's own task worktrees (`$WS/wt-*`) and `amp-wt-*` branches.
 3. A security-sensitive action, or a project-specific stop rule from the amp configuration.
 4. A plan so broken that every path forward is a guess, or a cap tripped in amp:ship (verify, CI,
    merge protection).
@@ -120,6 +120,7 @@ key → value. Every key is optional and has a default:
 | Dispatch skills | none. Project skills every implementer/reviewer/checker loads (may be conditional, e.g. "X when touching drivers") |
 | Verify | the repo's documented test + lint + typecheck + build commands |
 | Design process | none. Steps amp:design runs for UX-bearing work |
+| Parallel tasks | 3. How many plan tasks amp:build runs at once; 1 runs them one at a time |
 | Merge method | merge commit |
 | Close-out | roadmap status row → Complete |
 | Versioning / tags | none |

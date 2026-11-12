@@ -1,5 +1,29 @@
 # Changelog
 
+## 1.5.0 — 2026-11-12
+
+- amp:build runs plan tasks in parallel. Every plan task carries a `**Depends on:**` line naming
+  the earlier tasks it builds on, and the plan review checks it. A task starts once its
+  dependencies are complete (reviewed and merged) and it shares no file, docs included, with a
+  running task, up to the `Parallel tasks` configuration key at once (default 3; use 1 for test
+  suites that hold fixed shared resources). A task alone runs in the main tree. When several run,
+  each runs its whole implement, review and fix cycle in its own git worktree under `.amp/` on an
+  `amp-wt-<N>` branch, then is rebased onto the phase branch (its tests re-run if the rebase moved
+  it) and fast-forwarded in, one task at a time.
+- A rebase conflict, a failed fast-forward or a lost worktree drops the task: amp redoes it alone
+  from scratch and ledgers a ruling, so the PR lists it. Worktree setup failure turns parallel
+  mode off for the rest of the run. After a crash, a task that was already merged is completed and
+  never redone.
+- The status line lists every active task with its fix round
+  (`amp 05-x · build · tasks 2, 3 r2, 5 · 1/7 done`), and the `/amp-run` pane shows each task's
+  state, fix round and worktree, plus `Parallel: on` or `Parallel: off — <why>`.
+- On Codex the parallel cap is at most half the session's thread limit (3 at the default 6), and a
+  task's implementer and reviewer stay open until the task is complete or dropped.
+- The read-only roles treat a task worktree (`.amp/<key>/wt-*`) as the repository, so a reviewer
+  or checker can't edit the code it reviews there; report files under `.amp/` stay writable.
+- The opt-in pipelining from 1.3.0 and its `**Independent:** yes` mark are gone. A plan with no
+  `Depends on` lines runs one task at a time.
+
 ## 1.4.0 — 2026-11-10
 
 - amp:phase creates the run's ledger (`.amp/<key>/progress.md`) at intake, and every stage

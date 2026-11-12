@@ -189,12 +189,16 @@ function resolve(path: string, cwd: string): string {
   return `${head}/${parts.join('/')}`
 }
 
-/** Where a path lands: under `<root>/.amp/`, elsewhere in the repo, or outside it (case ignored on a drive root). */
+/**
+ * Where a path lands: under `<root>/.amp/`, elsewhere in the repo, or outside it (case ignored on a
+ * drive root). A task worktree, `.amp/<key>/wt-*` and below, holds code under review: it is `repo`.
+ */
 export function insideRoot(path: string, cwd: string, root: string): 'repo' | 'amp' | 'outside' {
   const fold = /^[a-zA-Z]:/.test(root) ? (p: string) => p.toLowerCase() : (p: string) => p
   const target = fold(resolve(path, cwd))
   const base = fold(resolve(root, root)).replace(/\/$/, '')
-  if (target === `${base}/.amp` || target.startsWith(`${base}/.amp/`)) return 'amp'
+  if (target === `${base}/.amp`) return 'amp'
+  if (target.startsWith(`${base}/.amp/`)) return /^[^/]+\/wt-[^/]*(\/|$)/.test(target.slice(base.length + 6)) ? 'repo' : 'amp'
   return target === base || target.startsWith(`${base}/`) ? 'repo' : 'outside'
 }
 

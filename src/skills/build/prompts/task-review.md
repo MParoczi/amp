@@ -17,6 +17,8 @@ Global Constraints (your attention lens):
 Implementer's claims (unverified): <WORKSPACE>/task-<N>-report.md
 Diff under review (read once; its context lines are the changed files): <PACKAGE_PATH>
 Base <BASE_SHA> · Head <HEAD_SHA>
+Tree: <repo root | worktree> — read, grep and run any focused test here.
+<while other tasks are in flight: ".amp/ holds other tasks' worktrees, outside your scope.">
 
 Return, in this order, with file:line evidence for every finding:
 
