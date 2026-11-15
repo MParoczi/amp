@@ -433,6 +433,19 @@ for a in implementer reviewer checker; do holds "agents/$a.md" 'git grep' '.amp/
 holds agents/implementer.md 'git -C'
 ok
 
+case=steps-off
+# a project turns steps off in its amp configuration (spec 06 §5)
+tests_off='Tests: off — write no new tests; fix an existing test the change breaks in the same commit; missing tests are not a finding.'
+for t in skills codex/skills; do
+  holds "$t/phase/SKILL.md" '## Steps a project can turn off' '| Grill |' '| Tests |' '| Document reviews |' '| Task reviews |' '| Final review |' '| CI |' \
+    'Off: none' 'Steps off for this project:' 'read as on — only on and off are valid — the step runs' "doesn't repeat the notice" \
+    'wins over the table' 'overrides any sentence' "$tests_off" 'When `Grill` is off' 'from intake when `Grill` is off' 'every reading is a guess'
+done
+for f in skills/roadmap/templates/CLAUDE.md codex/skills/roadmap/templates/AGENTS.md; do
+  holds "$f" '| Grill | on |' '| Tests | on |' '| Document reviews | on |' '| Task reviews | on |' '| Final review | on |' '| CI | on |'
+done
+ok
+
 case=stage-lines
 # the ledger lifecycle (spec 04 §5.1): amp:phase (or a standalone amp:build) creates the ledger,
 # and each skill appends its Stage line, the later ones only to an existing ledger

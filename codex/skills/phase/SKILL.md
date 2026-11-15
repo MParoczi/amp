@@ -39,7 +39,8 @@ the grill.
    Branch line, else `feature` (new capability), `bugfix` (defect fix), `hotfix` (urgent fix of
    something released or broken on the default branch), or `framework` (tooling, build, CI,
    scaffolding, process, docs structure). **Slug**: kebab-case, 2–5 words.
-3. **Read the project's amp configuration** (see below) and `AGENTS.md` (else `CLAUDE.md`). Prerequisites: if the
+3. **Read the project's amp configuration** (see below), including the steps it turns off (see
+   Steps a project can turn off), and `AGENTS.md` (else `CLAUDE.md`). Prerequisites: if the
    roadmap shows earlier phases incomplete, tell the user and stop unless they say to proceed.
 4. **Preflight:** `git status` must be clean (otherwise **stop**: never stash or discard the user's
    work). Then `git fetch`, switch to the default branch, `git pull --ff-only`. Check
@@ -55,7 +56,10 @@ the grill.
    branch as ground truth) instead of restarting, and append the `Stage:` line of the stage it
    continues (creating the ledger first, as below, if only `decisions.md` exists). Otherwise create
    the ledger `$WS/progress.md` with the header `# amp ledger — <NN>-<slug>` and the line
-   `Stage: grill`.
+   `Stage: grill`. Right after creating the ledger, append `Off: <names>` (the steps that are off,
+   in the order of Steps a project can turn off, joined by ", ") or `Off: none`. With at least one
+   step off, tell the user `Steps off for this project: <names>.` The line is written once, at
+   ledger creation: a resumed run never rewrites it and doesn't repeat the notice.
 
 ## 1–2. Grill, then branch
 
@@ -63,7 +67,16 @@ Run `amp:grill`. After the user confirms: `git switch -c <type>/<NN>-<slug>` fro
 default branch, then append `Branch: <branch>` and `Stage: design` to the ledger. This is the
 start of autonomy.
 
-## The autonomy contract (after the grill confirmation)
+When `Grill` is off, don't run amp:grill and ask nothing; for a bug or hotfix, still run the
+amp:debug investigation first. Write `$WS/decisions.md` yourself from the request and the sources
+amp:grill §0 names, settling each decision they leave open with a ruling, ledgered as usual
+(`Ruling: <decision> — <why> — <cost if wrong>`), so amp:ship lists it in the PR. No
+`Stage: gate` line is written; branch and append `Branch:` and `Stage: design` as above. The
+project's `Grill | off` row is the approval: autonomy starts at intake, with the same
+pre-authorized set and every stop. A request so vague that every reading is a guess is stop 4,
+not a ruling. amp:grill run directly and amp:roadmap ignore this switch.
+
+## The autonomy contract (after the grill confirmation, or from intake when `Grill` is off)
 
 No check-ins, no "should I continue?", no progress questions. **Rulings, not stalls:** decide
 conflicts, ambiguities and plan defects yourself, with the spec as the authority. Ledger each as
@@ -78,8 +91,8 @@ conflicts, ambiguities and plan defects yourself, with the spec as the authority
    green, tag per project config, delete the merged phase branch, and rebase, remove and delete
    amp:build's own task worktrees (`$WS/wt-*`) and `amp-wt-*` branches.
 3. A security-sensitive action, or a project-specific stop rule from the amp configuration.
-4. A plan so broken that every path forward is a guess, or a cap tripped in amp:ship (verify, CI,
-   merge protection).
+4. A plan so broken that every path forward is a guess; when `Grill` is off, a request so vague
+   that every reading is a guess; or a cap tripped in amp:ship (verify, CI, merge protection).
 
 When stopping, first append `Stage: stopped — <what is needed>` to the ledger, then send one short
 message saying exactly what is needed and why.
@@ -157,7 +170,13 @@ key → value. Every key is optional and has a default:
 | Phase prompts | `docs/roadmap/prompts/` |
 | Specs / Plans | `docs/amp/specs/` · `docs/amp/plans/` |
 | Dispatch skills | none. Project skills every implementer/reviewer/checker loads (may be conditional, e.g. "X when touching drivers") |
-| Verify | the repo's documented test + lint + typecheck + build commands |
+| Verify | the repo's documented test + lint + typecheck + build commands; `off` skips amp:ship's verify step |
+| Grill | on. `off`: see Steps a project can turn off |
+| Tests | on. `off`: see Steps a project can turn off |
+| Document reviews | on. `off`: see Steps a project can turn off |
+| Task reviews | on. `off`: see Steps a project can turn off |
+| Final review | on. `off`: see Steps a project can turn off |
+| CI | on. `off`: see Steps a project can turn off |
 | Design process | none. Steps amp:design runs for UX-bearing work |
 | Parallel tasks | 3. How many plan tasks amp:build runs at once; 1 runs them one at a time |
 | Merge method | merge commit |
@@ -165,11 +184,44 @@ key → value. Every key is optional and has a default:
 | Versioning / tags | none |
 | Stop rules | none. Extra project-specific stop conditions |
 
+## Steps a project can turn off
+
+Every step is on unless the project's amp configuration sets its row to `off`. Spec, plan, PR,
+merge, docs sweep and close-out always run.
+
+| Step | Off: what does not run | Owner |
+|---|---|---|
+| Grill | the interview and its gate; intake writes `decisions.md` and rules on what is open | amp:phase |
+| Tests | new tests: plans carry no test steps and implementers write none | amp:plan, amp:build |
+| Verify | the local verify run before the PR and every re-verify | amp:ship |
+| Document reviews | the independent spec, plan and roadmap reviews; the self-reviews stay | amp:design, amp:plan, amp:roadmap |
+| Task reviews | the per-task review and its fix loop: an implementer's `DONE` completes the task | amp:build |
+| Final review | the whole-branch review; parked findings reach the PR untriaged | amp:build |
+| CI | the CI watch: the PR merges without waiting for checks | amp:ship |
+
+**Values.** Compare after trimming whitespace and backticks, ignoring letter case. A missing row
+or `on` is on; `off` is off. Any other value of the six on/off rows is read as on and ledgered as
+`Ruling: <Key> "<value>" read as on — only on and off are valid — the step runs`; a stage run
+without a ledger states that ruling in its final report. `Verify` has no invalid value: anything
+but `off` is the command.
+
+**Where a stage reads them.** A step is off when the ledger's `Off:` line (intake step 5) names
+it. When the ledger has no `Off:` line, or there is no ledger (a stage skill run on its own), the
+step is off when the table sets it to `off`. An `Off:` line wins over the table, so a table edit
+made during a run takes effect on the next run.
+
+**The `Tests: off` line.** With `Tests` off, the plan's Global Constraints and every implementer
+dispatch that carries none end with this line, verbatim:
+
+`Tests: off — write no new tests; fix an existing test the change breaks in the same commit; missing tests are not a finding.`
+
+A step turned off overrides any sentence in an amp skill that describes it as always happening.
+
 ## Red flags
 
 | Thought | Reality |
 |---|---|
-| "Small change, skip the grill" | Grill what is open, even if it's one round. The summary gate always happens. |
+| "Small change, skip the grill" | Grill what is open, even if it's one round. The summary gate always happens. Only the project's `Grill` row at `off` skips it. |
 | "I'll write this bit of code myself" | Product code comes from amp-implementer, reviewed. |
 | "CI is slow, merge anyway" | Merge only after green, or stop at the cap. |
 | "Better ask before merging" | The grill confirmation pre-authorized it. Merge on green. |
