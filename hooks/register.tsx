@@ -2,6 +2,7 @@ import type { EngineInterface, PluginOptions, Register, RenderPropsOf, ToolCallI
 
 import { guardViolation, readOnlyViolation, roleOf } from './guard'
 import { parseLedger, planTaskCount, resumeText, statusText, type Run, type Stage } from './run'
+import { STEPS, STEP_HELP, hasStepRows, readSteps, setStep, type Step, type Switch } from './steps'
 
 /*
  * amp model routing. The plugin's `userConfig` holds one model per task type (the `/config` rows
@@ -23,6 +24,9 @@ import { parseLedger, planTaskCount, resumeText, statusText, type Run, type Stag
  * Alerts (spec §5.3): in the main loop, a toast and a sound when a run reaches gate, stopped or
  * merged, and when a question is asked after the grill. An amp agent's tool row names its role,
  * model and task, and its first result line once it completes.
+ *
+ * The `/amp-steps` pane (spec 08 §5.2): one picker per step switch of `<root>/CLAUDE.md`, written at
+ * once through hooks/steps.ts, and a button that commits only that file. Git runs as `git -C <root>`.
  */
 
 export const MODELS = ['inherit', 'fable', 'opus', 'sonnet', 'haiku'] as const
@@ -278,6 +282,56 @@ function runLines(run: Run, total: number | undefined): string[] {
   ]
 }
 
+const STEPS_PANE = 'amp-steps'
+const SWITCH_OPTIONS = (['on', 'off'] as const).map(value => ({ value, label: value }))
+/** The `/amp-steps` picks, applied one after another so none is lost. */
+let picks = Promise.resolve()
+
+/** An error's message. */
+function reason(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+/** `<root>/CLAUDE.md`'s text (undefined when there is no file), or why it can't be read: a failed read is never a missing file. */
+async function readClaudeMd($: EngineInterface): Promise<{ text: string | undefined } | { error: string }> {
+  if (root === undefined) return { error: 'not in a git repository' }
+  const path = `${root}/CLAUDE.md`
+  try {
+    return { text: (await $.fs.exists(path)) ? await $.fs.read(path) : undefined }
+  } catch (error) {
+    return { error: reason(error) }
+  }
+}
+
+/** Sets one step in CLAUDE.md from a fresh read; a pick of the current value writes nothing. */
+async function pickStep($: EngineInterface, step: Step, value: Switch) {
+  const file = await readClaudeMd($)
+  if ('error' in file) return $.ui.toast(`amp steps: CLAUDE.md can't be read: ${file.error}`)
+  if (readSteps(file.text)[step] === value) return
+  const changed = setStep(file.text, step, value)
+  if (changed === (file.text ?? '')) return $.ui.toast(`amp steps: could not change ${step}; edit CLAUDE.md by hand`)
+  try {
+    await $.fs.write(`${root}/CLAUDE.md`, changed)
+    $.ui.invalidate('ui.render')
+  } catch (error) {
+    $.ui.toast(`amp steps: could not write CLAUDE.md: ${reason(error)}`)
+  }
+}
+
+/** Commits only `<root>/CLAUDE.md` on the current branch (the pathspec keeps anything else staged out); never pushes. */
+async function commitClaudeMd($: EngineInterface, root: string) {
+  try {
+    for (const args of [['add', '--', 'CLAUDE.md'], ['commit', '-m', 'chore(amp): update step switches', '--', 'CLAUDE.md']]) {
+      const { exitCode, stdout, stderr } = await $.process.run(['git', '-C', root, ...args])
+      if (exitCode !== 0) return $.ui.toast(`amp steps: commit failed: ${(stderr.trim() || stdout.trim()).split(/\r?\n/)[0]}`)
+    }
+    $.ui.toast('amp steps: committed CLAUDE.md')
+    $.ui.invalidate('ui.render')
+  } catch (error) {
+    $.ui.toast(`amp steps: commit failed: ${reason(error)}`)
+  }
+}
+
 export const register: Register = (on, options) => {
   on('agent.spawn', ($, e, next) => {
     if (e.model !== undefined) return next(e)
@@ -298,6 +352,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'amp-models', description: 'Choose the model each amp task type runs on' })
     await $.command.register({ name: 'amp-run', description: 'Show the current amp run: stage, tasks, fix rounds, parked items' })
+    await $.command.register({ name: 'amp-steps', description: 'Turn amp steps on or off for this project (CLAUDE.md)' })
     root = await git($, 'rev-parse', '--show-toplevel')
     defaultBranch = root === undefined ? 'main' : await findDefaultBranch($)
     ledgers = new Map()
@@ -311,7 +366,7 @@ export const register: Register = (on, options) => {
   on('tool.call', async ($, e, next) => {
     // A failing guard (agent list, git, fs) lets the call through, traced in the debug log: nothing throws out of a hook.
     const deny = await guard($, e).catch((error: unknown) => {
-      $.ui.log(`amp guard skipped for ${e.tool}: ${error instanceof Error ? error.message : String(error)}`, { to: 'debug' })
+      $.ui.log(`amp guard skipped for ${e.tool}: ${reason(error)}`, { to: 'debug' })
       return undefined
     })
     if (deny) return { deny }
@@ -350,6 +405,62 @@ export const register: Register = (on, options) => {
       <Box flexDirection="column">
         <Text bold>{heading}</Text>
         {rest.map((line, at) => <Text key={`line-${at}`}>{line}</Text>)}
+      </Box>
+    )
+  })
+
+  on('command.run', { command: 'amp-steps' }, async $ => {
+    if (root === undefined) return { text: 'amp steps: not in a git repository.' }
+    await openPane($, STEPS_PANE, 'amp steps')
+    return { text: 'amp steps pane opened: turn steps on or off for this project.' }
+  })
+
+  on('ui.render', { component: 'Pane', requestId: STEPS_PANE }, async ($, e) => {
+    const { Box, Text, Select, Button } = $.ui.resolve(e)
+    const file = await readClaudeMd($)
+    const values = 'error' in file ? undefined : readSteps(file.text)
+    const notice = 'error' in file ? undefined
+      : file.text === undefined ? 'CLAUDE.md does not exist: the first change creates it.'
+      : hasStepRows(file.text) ? undefined : 'The first change adds the amp configuration rows.'
+    // The root the commit button commits in, when CLAUDE.md differs from HEAD.
+    const commitIn = values !== undefined && root !== undefined && (await git($, '-C', root, 'status', '--porcelain', '--', 'CLAUDE.md')) !== undefined ? root : undefined
+
+    return (
+      <Box flexDirection="column">
+        <Text bold>amp steps</Text>
+        <Text dimColor>Written to CLAUDE.md, under "## amp configuration".</Text>
+        {'error' in file && <Text>{`CLAUDE.md can't be read: ${file.error}`}</Text>}
+        {notice !== undefined && <Text>{notice}</Text>}
+        {values !== undefined && STEPS.map((step, at) => (
+          <Box key={step} flexDirection="column" marginTop={1}>
+            <Select
+              key={`step-${step}`}
+              label={`${step}: `}
+              options={SWITCH_OPTIONS}
+              value={values[step]}
+              autoFocus={at === 0 ? true : undefined}
+              onSelect={(value: string) => {
+                picks = picks.then(() => pickStep($, step, value === 'off' ? 'off' : 'on'))
+              }}
+            />
+            <Text dimColor>  {STEP_HELP[step]}</Text>
+          </Box>
+        ))}
+        {values !== undefined && active !== undefined && (
+          <Box marginTop={1}>
+            <Text>A run is in progress: changes apply from the next run.</Text>
+          </Box>
+        )}
+        {commitIn !== undefined && (
+          <Box flexDirection="column" marginTop={1}>
+            <Button key="commit" label="Commit CLAUDE.md" onPress={() => void commitClaudeMd($, commitIn)} />
+            <Text dimColor>/amp:phase needs a clean working tree. This commits only CLAUDE.md on the current branch and does not push.</Text>
+            <Text dimColor>The repository's commit hooks do not run for this commit.</Text>
+          </Box>
+        )}
+        <Box marginTop={1}>
+          <Text dimColor>Esc closes.</Text>
+        </Box>
       </Box>
     )
   })

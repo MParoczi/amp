@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.1.0 — 2026-11-15
+
+- `/amp-steps` opens the "amp steps" pane: one `on`/`off` picker per step a project can turn off
+  (`Grill`, `Tests`, `Verify`, `Document reviews`, `Task reviews`, `Final review`, `CI`), each
+  written at once to the `## amp configuration` table of the repository's `CLAUDE.md`. The first
+  change adds whatever is missing (the file, the section, the table or the six on/off rows) and
+  keeps the rest of the file byte for byte. Turning `Verify` off remembers its command in an HTML
+  comment under the table, and turning it on restores it. While `CLAUDE.md` differs from the last
+  commit, a "Commit CLAUDE.md" button commits that file alone on the current branch
+  (`chore(amp): update step switches`), without the repository's commit hooks and without
+  pushing. While a run is active the pane says the change applies from the next run.
+
 ## 2.0.0 — 2026-11-15
 
 - **Breaking:** Codex support is removed. The Codex manifest, the rendered Codex skills and

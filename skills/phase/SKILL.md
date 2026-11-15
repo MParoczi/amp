@@ -149,7 +149,7 @@ key → value. Every key is optional and has a default:
 ## Steps a project can turn off
 
 Every step is on unless the project's amp configuration sets its row to `off`. Spec, plan, PR,
-merge, docs sweep and close-out always run.
+merge, docs sweep and close-out always run. The user's `/amp-steps` pane edits these rows.
 
 | Step | Off: what does not run | Owner |
 |---|---|---|

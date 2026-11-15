@@ -2,23 +2,29 @@ import { describe, expect, test, type Engine } from 'claude-code/testing'
 import type { AgentInfo, FsEntry, On } from 'claude-code'
 
 import { parseLedger, statusText } from './run'
+import { STEPS, STEP_HELP, setStep } from './steps'
 
 /*
  * The host the run hooks see. The kit has no fs, network or process: these test hooks sit beneath
  * the plugin and answer `$.fs`, `$.process.run`, `$.agent.list`, `$.ui.status`, `$.ui.toast`,
- * `$.audio.play`, plus the bottoms a session start, a command, a prompt (with the session model),
- * a tool call and a finished turn need.
+ * `$.ui.open`, `$.audio.play`, plus the bottoms a session start, a command, a prompt (with the
+ * session model), a tool call and a finished turn need.
  */
+type Exit = { exitCode: number; stdout?: string; stderr?: string }
 type Host = {
   files: Map<string, { text: string; mtimeMs: number; unreadable?: true }>   // absolute, '/'-separated; unreadable: stat answers, read rejects
-  git: Record<string, string | Error>                        // argv.join(' ') → stdout | failure
+  git: Record<string, string | Error | Exit>                 // argv.join(' ') → stdout (exit 0) | failure | exit
   agents: { id: string; type: string }[]
   cwd: string                                               // what $.session.cwd() answers
+  runs: string[][]; writes: { path: string; text: string }[]; opened: string[]   // every process.run argv, fs.write and ui.open id, in order
   status: (string | undefined)[]; toasts: string[]; sounds: string[]
 }
 
 function fakeHost(on: On, init: Partial<Pick<Host, 'files' | 'git' | 'agents' | 'cwd'>> = {}): Host {
-  const host: Host = { files: init.files ?? new Map(), git: init.git ?? {}, agents: init.agents ?? [], cwd: init.cwd ?? '/repo', status: [], toasts: [], sounds: [] }
+  const host: Host = {
+    files: init.files ?? new Map(), git: init.git ?? {}, agents: init.agents ?? [], cwd: init.cwd ?? '/repo',
+    runs: [], writes: [], opened: [], status: [], toasts: [], sounds: [],
+  }
   // The engine hands the hooks an absolute path in the platform's spelling (`C:\repo\.amp` on Windows).
   const norm = (path: string) => path.replace(/\\/g, '/').replace(/^[a-zA-Z]:/, '').replace(/\/+$/, '')
   const missing = (path: string) => ({ deny: `ENOENT: ${path}` })
@@ -42,13 +48,21 @@ function fakeHost(on: On, init: Partial<Pick<Host, 'files' | 'git' | 'agents' | 
   on('fs.read', (_, e) => {
     const file = host.files.get(norm(e.path))
     if (file === undefined) return missing(e.path)
-    return file.unreadable ? { deny: `EACCES: ${e.path}` } : { value: file.text }
+    return file.unreadable ? { deny: 'EACCES: permission denied' } : { value: file.text }
+  })
+  on('fs.exists', (_, e) => ({ value: host.files.has(norm(e.path)) }))
+  on('fs.write', (_, e) => {
+    host.writes.push({ path: norm(e.path), text: e.text })
+    host.files.set(norm(e.path), { text: e.text, mtimeMs: 1000 + host.writes.length })
+    return { value: undefined }
   })
   on('process.run', (_, e) => {
+    host.runs.push([...e.argv])
     const out = host.git[e.argv.join(' ')]
-    return typeof out === 'string'
-      ? { value: { exitCode: 0, stdout: out, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
-      : { deny: out?.message ?? `no fake for ${e.argv.join(' ')}` }
+    const exit = typeof out === 'string' ? { exitCode: 0, stdout: out } : out instanceof Error ? undefined : out
+    return exit
+      ? { value: { stdout: '', stderr: '', ...exit, isStdoutTruncated: false, isStderrTruncated: false } }
+      : { deny: out instanceof Error ? out.message : `no fake for ${e.argv.join(' ')}` }
   })
   on('agent.list', () => ({ value: host.agents.map((a): AgentInfo => ({ ...a, description: '', status: 'running' })) }))
   on('ui.status', (_, e) => {
@@ -65,7 +79,10 @@ function fakeHost(on: On, init: Partial<Pick<Host, 'files' | 'git' | 'agents' | 
   })
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('command.register', (_, e) => ({ value: { command: e.name } }))
-  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('ui.open', (_, e) => {
+    host.opened.push(e.id)
+    return { value: { isPlaced: true } }
+  })
   on('prompt.compose', () => ({ sections: [] }))
   on('session.model', () => ({ value: 'claude-opus-5-5' }))
   on('session.cwd', () => ({ value: host.cwd }))
@@ -412,5 +429,140 @@ describe('amp guardrails and read-only roles', () => {
     await $.session.start(START)
     expect((await $.tool.call({ tool: 'Bash', command: 'git worktree add ../tmp-rev HEAD', agentId: 'a1' })).deny).toContain('may not run git worktree add')
     expect((await $.tool.call({ tool: 'Bash', command: 'git worktree add ../../tmp-rev HEAD', agentId: 'a1' })).deny).toBeUndefined()
+  })
+})
+
+const CLAUDE = `${ROOT}/CLAUDE.md`
+const CONFIG = ['# Project', '', '## amp configuration', '', '| Key | Value |', '|---|---|', '| Task reviews | off |', ''].join('\n')
+const FULL_BLOCK = ['## amp configuration', '', '| Key | Value |', '|---|---|', '| Grill | off |', '| Tests | on |',
+  '| Document reviews | on |', '| Task reviews | on |', '| Final review | on |', '| CI | on |', ''].join('\n')
+const STATUS = `git -C ${ROOT} status --porcelain -- CLAUDE.md`
+const ADD = ['git', '-C', ROOT, 'add', '--', 'CLAUDE.md']
+const COMMIT = ['git', '-C', ROOT, 'commit', '-m', 'chore(amp): update step switches', '--', 'CLAUDE.md']
+const STEPS_RUN = { ...RUN, command: 'amp-steps' } as const
+const STEPS_PANE = { ...PANE, requestId: 'amp-steps', props: { ...PANE.props, title: 'amp steps' } } as const
+/** The message `$.fs.read` rejects with when the fake denies a read. */
+const READ_ERROR = 'amp: $.fs.read: EACCES: permission denied'
+
+/** A files map holding only CLAUDE.md with the given text. */
+function claudeMd(text: string, unreadable?: true) {
+  return new Map([[CLAUDE, { text, mtimeMs: 1, ...(unreadable && { unreadable }) }]])
+}
+
+/** The `/amp-steps` pane drawn on a surface. */
+function mountSteps($: Engine, surface: 'terminal' | 'desktop' = 'terminal') {
+  return $.ui.mount({ ...STEPS_PANE, surface, props: STEPS_PANE.props as never })
+}
+
+describe('amp steps pane', () => {
+  for (const surface of ['terminal', 'desktop'] as const) {
+    test(`the pane draws one Select per step with the file's values (${surface})`, async ($, on) => {
+      const host = fakeHost(on, { git: GIT, files: claudeMd(CONFIG) })
+      await $.session.start(START)
+      expect((await $.command.run(STEPS_RUN)).text).toBe('amp steps pane opened: turn steps on or off for this project.')
+      expect(host.opened).toEqual(['amp-steps'])
+      const ui = await mountSteps($, surface)
+      expect((await ui.findAll({ type: 'Select' })).map(s => s.key)).toEqual(STEPS.map(step => `step-${step}`))
+      expect((await ui.find({ key: 'step-Task reviews' }))?.props.value).toBe('off')
+      expect((await ui.find({ key: 'step-CI' }))?.props.value).toBe('on')
+      expect(await ui.find({ type: 'Text', text: STEP_HELP['Task reviews'] })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: 'Written to CLAUDE.md, under "## amp configuration".' })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: 'The first change adds the amp configuration rows.' })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: 'Esc closes.' })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: /run is in progress/ })).toBeUndefined()
+      await ui.unmount()
+    })
+  }
+
+  test('a pick writes the setStep result to <root>/CLAUDE.md', async ($, on) => {
+    const host = fakeHost(on, { git: GIT, files: claudeMd(CONFIG) })
+    await $.session.start(START)
+    const ui = await mountSteps($)
+    await ui.select({ key: 'step-CI', value: 'off' })
+    expect(host.writes).toEqual([{ path: CLAUDE, text: setStep(CONFIG, 'CI', 'off') }])
+    await ui.unmount()
+  })
+
+  test('no file: the pane says the first change creates it; off writes the full block, a current on nothing', async ($, on) => {
+    const host = fakeHost(on, { git: GIT })
+    await $.session.start(START)
+    const ui = await mountSteps($)
+    expect(await ui.find({ type: 'Text', text: 'CLAUDE.md does not exist: the first change creates it.' })).toBeDefined()
+    await ui.select({ key: 'step-CI', value: 'on' })
+    expect(host.writes).toEqual([])
+    await ui.select({ key: 'step-Grill', value: 'off' })
+    expect(host.writes).toEqual([{ path: CLAUDE, text: FULL_BLOCK }])
+    await ui.unmount()
+  })
+
+  test("a file that can't be read shows the error and no Select", async ($, on) => {
+    const host = fakeHost(on, { git: { ...GIT, [STATUS]: ' M CLAUDE.md\n' }, files: claudeMd(CONFIG, true) })
+    await $.session.start(START)
+    const ui = await mountSteps($)
+    expect(await ui.find({ type: 'Text', text: `CLAUDE.md can't be read: ${READ_ERROR}` })).toBeDefined()
+    expect(await ui.findAll({ type: 'Select' })).toEqual([])
+    expect(await ui.find({ key: 'commit' })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: 'Esc closes.' })).toBeDefined()
+    expect(host.writes).toEqual([])
+    await ui.unmount()
+  })
+
+  test('a read that fails after the draw toasts on a pick and writes nothing', async ($, on) => {
+    const host = fakeHost(on, { git: GIT, files: claudeMd(CONFIG) })
+    await $.session.start(START)
+    const ui = await mountSteps($)
+    host.files.set(CLAUDE, { text: CONFIG, mtimeMs: 2, unreadable: true })
+    await ui.select({ key: 'step-CI', value: 'off' })
+    expect(host.toasts).toEqual([`amp steps: CLAUDE.md can't be read: ${READ_ERROR}`])
+    expect(host.writes).toEqual([])
+    await ui.unmount()
+  })
+
+  for (const cwd of [ROOT, `${ROOT}/sub`]) {
+    test(`the commit button shows only when CLAUDE.md differs and commits only it (cwd ${cwd})`, async ($, on) => {
+      const host = fakeHost(on, { git: { ...GIT, [STATUS]: '', [ADD.join(' ')]: '', [COMMIT.join(' ')]: '[feature/x 1a2b3c] chore\n' }, files: claudeMd(CONFIG), cwd })
+      await $.session.start({ ...START, cwd })
+      let ui = await mountSteps($)
+      expect(await ui.find({ key: 'commit' })).toBeUndefined()
+      await ui.unmount()
+      host.git[STATUS] = ' M CLAUDE.md\n'
+      ui = await mountSteps($)
+      expect((await ui.find({ key: 'commit' }))?.props.label).toBe('Commit CLAUDE.md')
+      expect(await ui.find({ type: 'Text', text: '/amp:phase needs a clean working tree. This commits only CLAUDE.md on the current branch and does not push.' })).toBeDefined()
+      expect(await ui.find({ type: 'Text', text: "The repository's commit hooks do not run for this commit." })).toBeDefined()
+      const before = host.runs.length
+      await ui.press({ key: 'commit' })
+      expect(host.runs.slice(before).filter(argv => argv.join(' ') !== STATUS)).toEqual([ADD, COMMIT])
+      expect(host.runs.some(argv => argv.includes('push'))).toBe(false)
+      expect(host.toasts).toEqual(['amp steps: committed CLAUDE.md'])
+      await ui.unmount()
+    })
+  }
+
+  test('a failing commit toasts the first line of its stderr', async ($, on) => {
+    const host = fakeHost(on, { git: { ...GIT, [STATUS]: '?? CLAUDE.md\n', [ADD.join(' ')]: '', [COMMIT.join(' ')]: { exitCode: 1, stderr: 'nothing\nmore' } }, files: claudeMd(CONFIG) })
+    await $.session.start(START)
+    const ui = await mountSteps($)
+    await ui.press({ key: 'commit' })
+    expect(host.toasts).toEqual(['amp steps: commit failed: nothing'])
+    await ui.unmount()
+  })
+
+  test('during an active run the pane says changes apply from the next run', async ($, on) => {
+    const map = files({ '04-x': TEXT })
+    map.set(CLAUDE, { text: CONFIG, mtimeMs: 1 })
+    fakeHost(on, { git: GIT, files: map })
+    await $.session.start(START)
+    const ui = await mountSteps($)
+    expect(await ui.find({ type: 'Text', text: 'A run is in progress: changes apply from the next run.' })).toBeDefined()
+    await ui.unmount()
+  })
+
+  test('outside a git repository /amp-steps says so and opens no pane', async ($, on) => {
+    const host = fakeHost(on, { git: { ...GIT, 'git rev-parse --show-toplevel': new Error('not a git repository') }, files: claudeMd(CONFIG) })
+    await $.session.start(START)
+    expect((await $.command.run(STEPS_RUN)).text).toBe('amp steps: not in a git repository.')
+    expect(host.opened).toEqual([])
+    expect(host.writes).toEqual([])
   })
 })
