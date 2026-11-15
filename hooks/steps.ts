@@ -30,7 +30,7 @@ type Doc = { bom: string; nl: string; lines: Line[]; heading?: number; table?: {
 
 /** Splits the text into lines and locates the section heading and its table (spec §5.1, Lines and Finding the table). */
 function parse(text: string): Doc {
-  const bom = text.startsWith('﻿') ? '﻿' : ''
+  const bom = text.startsWith('\uFEFF') ? '\uFEFF' : ''
   const parts = text.slice(bom.length).split('\n')
   const lines = parts.map((part, i) => {
     const eol = i === parts.length - 1 ? '' : part.endsWith('\r') ? '\r\n' : '\n'

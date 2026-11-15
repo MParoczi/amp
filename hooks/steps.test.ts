@@ -101,9 +101,9 @@ describe('amp step switches', () => {
   })
 
   test('setStep keeps a leading byte-order mark', async () => {
-    expect(setStep('﻿' + BLOCK, 'CI', 'off')).toBe('﻿' + BLOCK.replace('| CI | on |', '| CI | off |'))
-    expect(readSteps('﻿' + BLOCK.replace('| CI | on |', '| CI | off |')).CI).toBe('off')
-    expect(setStep('﻿# P\n', 'CI', 'off')).toBe('﻿# P\n\n' + BLOCK.replace('| CI | on |', '| CI | off |'))
+    expect(setStep('\uFEFF' + BLOCK, 'CI', 'off')).toBe('\uFEFF' + BLOCK.replace('| CI | on |', '| CI | off |'))
+    expect(readSteps('\uFEFF' + BLOCK.replace('| CI | on |', '| CI | off |')).CI).toBe('off')
+    expect(setStep('\uFEFF# P\n', 'CI', 'off')).toBe('\uFEFF# P\n\n' + BLOCK.replace('| CI | on |', '| CI | off |'))
   })
 
   test('setStep edits the first of duplicate rows and rewrites an invalid value', async () => {
