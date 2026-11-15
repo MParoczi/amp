@@ -272,6 +272,7 @@ function runLines(run: Run, total: number | undefined): string[] {
     ...run.tasks.map(t => `  Task ${t.id} · ${t.state}${t.round === undefined ? '' : ` r${t.round}`}${t.worktree ? ` · ${t.worktree.split(/[\\/]/).at(-1)}` : ''}`),
     `Parked ${run.parked} · rulings ${run.rulings} · fallbacks ${run.fallbacks.length}`,
     `Parallel: ${run.parallelOff === undefined ? 'on' : `off — ${run.parallelOff}`}`,
+    `Steps off: ${run.off === undefined ? 'not recorded (the CLAUDE.md table applies)' : run.off.join(', ') || 'none'}`,
     'Last ledger lines:',
     ...run.tail.map(line => `  ${line}`),
   ]

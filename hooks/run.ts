@@ -8,7 +8,7 @@ export type TaskRow = { id: string; state: 'started' | 'fixing' | 'complete' | '
 export type Run = {
   key: string; ledgerPath: string; stage: Stage; note: string; branch?: string; planPath?: string
   tasks: TaskRow[]; parked: number; rulings: number
-  fallbacks: string[]; parallelOff?: string; tail: string[]   // tail = last 5 non-blank lines
+  fallbacks: string[]; parallelOff?: string; off?: string[]; tail: string[]   // tail = last 5 non-blank lines
 }
 
 const STAGES: readonly Stage[] = ['grill', 'gate', 'design', 'plan', 'build', 'ship', 'merged', 'stopped']
@@ -59,6 +59,7 @@ export function parseLedger(key: string, ledgerPath: string, text: string): Run 
     } else if (line.startsWith('Ruling: ')) run.rulings++
     else if ((value = after(line, 'Fallback: '))) run.fallbacks.push(value)
     else if ((value = after(line, 'Parallel: off — '))) run.parallelOff = value
+    else if ((value = after(line, 'Off: '))) run.off = value === 'none' ? [] : value.split(', ')
   }
   run.tail = lines.slice(-5)
   return run

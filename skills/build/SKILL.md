@@ -23,7 +23,8 @@ Dispatch templates: `${CLAUDE_SKILL_DIR}/prompts/`.
    If no ledger exists (amp:build run on its own), create it with the header
    `# amp ledger — <NN>-<slug>` and the lines `Branch: <branch>` and `Plan: <plan path>`.
    Either way, append `Stage: build`.
-3. Read the plan once (and the spec sections it leans on). Create one todo per task.
+3. Read the plan once (and the spec sections it leans on). Create one task per plan task in the
+   session's task list (TaskCreate, or TodoWrite where that is the tool).
 4. **Preflight**, written to the ledger as a table. Each task's `**Depends on:**` line names the
    earlier tasks it needs. A plan with no `Depends on` line (an older plan): each task depends on
    the one before it, with no rulings. A plan with only some lines: rule each missing line as

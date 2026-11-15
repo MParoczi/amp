@@ -242,6 +242,23 @@ describe('amp run hooks', () => {
       await ui.unmount()
     }
   })
+
+  test('the /amp-run pane shows the steps a run has off, or that the ledger has not recorded them', async ($, on) => {
+    const host = fakeHost(on, { git: GIT, files: files({ '04-x': TEXT }) })
+    await $.session.start(START)
+    const cases = [
+      ['Off: Task reviews, CI', 'Steps off: Task reviews, CI'],
+      ['Off: none', 'Steps off: none'],
+      ['', 'Steps off: not recorded (the CLAUDE.md table applies)'],
+    ] as const
+    for (const [at, [off, line]] of cases.entries()) {
+      host.files.set(LEDGER, { text: `${TEXT}\n${off}`, mtimeMs: 200 + at })
+      await $.command.run(RUN)
+      const ui = await $.ui.mount({ ...PANE, surface: 'terminal', props: PANE.props as never })
+      expect(await ui.find({ type: 'Text', text: line })).toBeDefined()
+      await ui.unmount()
+    }
+  })
 })
 
 const ALERT = 'hooks/sounds/alert.wav'
