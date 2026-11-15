@@ -203,10 +203,10 @@ merge, leaving the PR as the record.
 ## What the plugin adds to a session
 
 amp's hooks module watches the run's ledger. The **active run** is the newest
-`.amp/<key>/progress.md` whose stage isn't `merged`. Every tool call and every finished turn
-checks for it again, so a run started mid-session shows up at once and a merged one drops out.
-Outside a git repository nothing below appears, and with no ledger only the read-only roles apply.
-A ledger over 4 MiB, or one that can't be read, is skipped.
+`.amp/<key>/progress.md` whose stage isn't `merged`. Every tool call and every finished turn checks
+for it again, so a run started mid-session shows up at once and a merged one drops out. Outside a
+git repository nothing below appears, and with no ledger only the read-only roles apply. A ledger
+over 4 MiB, or one that can't be read, is skipped.
 
 - **Status line.** While a run is active the status line reads `amp <key> · <stage>`. During the
   build it adds every active task with its fix round, then the done count, for example
@@ -214,8 +214,10 @@ A ledger over 4 MiB, or one that can't be read, is skipped.
   `amp 04-workflow-mods · build · task 3 · fix r2/5 · 2/7 done` with one task active.
 - **`/amp-run`.** Opens the "amp run" pane: the key and branch, the stage and its note, one row per
   task with its state, fix round and worktree, the parked, rulings and fallback counts, the
-  `Parallel:` state and the ledger's last lines. With no run it replies "No amp run in this
-  repository."
+  `Parallel:` state, a `Steps off:` line and the ledger's last lines. `Steps off:` names the steps
+  the ledger's `Off:` line has off (`Steps off: none` when every step is on), or reads
+  `Steps off: not recorded (the CLAUDE.md table applies)` for a ledger without that line, such as
+  a standalone amp:build's. With no run it replies "No amp run in this repository."
 - **Resume guard.** Whenever Claude Code builds the system prompt of a conversation that can
   dispatch agents while the current branch is one an unfinished run owns (its `Branch:` line, or
   the default branch while the run has none yet), the prompt tells Claude that the run owns the
@@ -341,7 +343,7 @@ or `off` counts as on: the step runs, and amp records that as a ruling.
 | `amp:checker` | agent | fallback re-check when the reviewer can't be resumed: each finding addressed or not, plus any new breakage in the fix |
 | `amp:scout` | agent | answers one factual question from primary sources, with citations |
 | `/amp-models` | command + pane | the model settings |
-| `/amp-run` | command + pane | the active run: stage, tasks, fix rounds, parked items |
+| `/amp-run` | command + pane | the active run: stage, tasks, fix rounds, parked items, steps off |
 | amp status line | hook | `amp <key> · <stage>`, plus the active tasks and their fix rounds during the build |
 | amp resume guard | hook | tells a session on a branch an unfinished run owns to resume it with `amp:phase <key>` |
 | amp guardrails | hook | while a run is active, refuses the git and `gh` commands that skip hooks, rewrite or discard work, or bypass the PR |
@@ -349,8 +351,9 @@ or `off` counts as on: the step runs, and amp records that as a ruling.
 | amp alerts | hook | a toast and a sound when the grill summary is ready, a run stops or merges, or a question waits |
 | amp dispatch rows | hook | an amp agent's tool row names its role, model and task, then its first report line |
 
-The bundled scripts in `skills/build/scripts/` handle the run's bookkeeping. `amp-workspace` creates the `.amp/<key>/` folder. `task-brief` extracts one
-task from the plan. `review-package` writes a commit range as one diff file for a reviewer.
+The bundled scripts in `skills/build/scripts/` handle the run's bookkeeping. `amp-workspace`
+creates the `.amp/<key>/` folder. `task-brief` extracts one task from the plan. `review-package`
+writes a commit range as one diff file for a reviewer.
 
 ## Updating and removing
 

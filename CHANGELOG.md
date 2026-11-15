@@ -11,6 +11,9 @@
 - The skills name Claude Code's tools where they spoke generically: amp:build keeps one task per
   plan task in the session's task list (TaskCreate, or TodoWrite), and amp:ship runs the CI watch
   with the Bash tool's `run_in_background`.
+- The `/amp-run` pane shows the steps a run has off, from the ledger's `Off:` line, after its
+  `Parallel:` line: `Steps off: none` when every step is on, and
+  `Steps off: not recorded (the CLAUDE.md table applies)` for a ledger without an `Off:` line.
 
 ## 1.6.0 — 2026-11-15
 

@@ -72,6 +72,13 @@ describe('amp ledger parser', () => {
     expect(run.note).toBe('')
   })
 
+  test('Off: lines give the steps off, none giving none and the last line winning', async () => {
+    expect(parseLedger('k', 'p', 'Stage: build\nOff: Tests, CI\n').off).toEqual(['Tests', 'CI'])
+    expect(parseLedger('k', 'p', 'Off: none\n').off).toEqual([])
+    expect(parseLedger('k', 'p', 'Stage: build\n').off).toBeUndefined()
+    expect(parseLedger('k', 'p', 'Off: Tests\nOff: none\n').off).toEqual([])
+  })
+
   test('a line that sets no state starts a new row as started', async () => {
     expect(parseLedger('k', LEDGER, 'Task 5: minor (deferred): x').tasks.map(t => [t.id, t.state])).toEqual([['5', 'started']])
   })
