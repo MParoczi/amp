@@ -450,7 +450,7 @@ for t in skills codex/skills; do
   holds "$t/lean/SKILL.md" 'unless the project turned the step off' 'Tests: off'
   holds "$t/debug/SKILL.md" 'Tests: off'
   holds "$t/build/SKILL.md" 'the tests run'
-  holds "$t/build/prompts/implement.md" 'Tests: off'
+  holds "$t/build/prompts/implement.md" 'Tests: off' 'A fresh dispatch (rounds 4–5, or a failed resume) also ends with the `Tests: off` line'
   holds "$t/build/prompts/document-review.md" 'Tests: off'
   lacks "$t/plan/SKILL.md" "$tests_off"
 done
