@@ -112,9 +112,9 @@ Dispatch templates: `${CLAUDE_SKILL_DIR}/prompts/`.
      Adjudicate only at the cap; every adjudication is a ledger line and nothing is discarded
      silently.
 6. **Complete:** a worktree task goes through **Integration**, which writes its line. A main-tree
-   task ledgers `Task N: complete (commits <BASE7>..<head7>, review clean | K parked)`. Then tick
-   the task's checkboxes in the plan file and go to the next scheduling point without asking
-   anything.
+   task ledgers `Task N: complete (commits <BASE7>..<head7>, review clean | K parked)`
+   (`unreviewed` in place of `review clean` when `Task reviews` is off). Then tick the task's
+   checkboxes in the plan file and go to the next scheduling point without asking anything.
 
 **Batching:** tasks the plan marks as one batch of same-shape edits get one dispatch and one review,
 and count as one task in scheduling.
@@ -180,8 +180,8 @@ Only one task integrates at a time. Others queue in the order they became ready 
 3. **Check:** `git rev-list --count <BASE>..amp-wt-<N>` ≥ 1, and
    `git merge-base --is-ancestor <phase branch> amp-wt-<N>`. If either fails, **drop**.
 4. From the main tree: `git merge --ff-only amp-wt-<N>`. A failure is a **drop**. On success, at
-   once ledger `Task N: complete (commits <BASE7>..<head7>, review clean | K parked)`, then clean
-   up.
+   once ledger `Task N: complete (commits <BASE7>..<head7>, review clean | K parked)`
+   (`unreviewed` in place of `review clean` when `Task reviews` is off), then clean up.
 
 **Drop:** clean up, then ledger `Task N: dropped — <why>` and
 `Ruling: Task N dropped and redone alone — <why> — its work is redone`, so the drop reaches the
