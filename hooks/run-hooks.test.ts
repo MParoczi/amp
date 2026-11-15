@@ -6,8 +6,8 @@ import { STEPS, STEP_HELP, setStep } from './steps'
 
 /*
  * The host the run hooks see. The kit has no fs, network or process: these test hooks sit beneath
- * the plugin and answer `$.fs`, `$.process.run`, `$.agent.list`, `$.ui.status`, `$.ui.toast`,
- * `$.ui.open`, `$.audio.play`, plus the bottoms a session start, a command, a prompt (with the
+ * the plugin and answer `$.fs`, `$.process.run`, `$.agent.list`, `$.ui.status` (recorded to prove the
+ * plugin never calls it), `$.ui.toast`, `$.ui.open`, `$.audio.play`, plus the bottoms a session start, a command, a prompt (with the
  * session model), a tool call and a finished turn need.
  */
 type Exit = { exitCode: number; stdout?: string; stderr?: string }
@@ -121,6 +121,22 @@ const PANE = {
   props: { title: 'amp run', isFocused: true, bodyColumns: 80, placement: 'dock' },
 } as const
 
+const BAND = { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 9 }, view: {} } as const
+
+/** The run row's Texts above the prompt; undefined when the plugin draws nothing of its own (it keeps what is beneath). */
+async function rowTexts($: Engine, hasSurvey = false) {
+  const ui = await $.ui.mount({ plugin: 'amp', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, hasSurvey } })
+  const texts = await ui.findAll({ type: 'Text' })
+  const beneath = await ui.keepsBeneath()
+  await ui.unmount()
+  return beneath && texts.length === 0 ? undefined : texts
+}
+
+/** The run row's text, its parts joined; undefined when there is no row. */
+async function rowText($: Engine) {
+  return (await rowTexts($))?.map(t => t.text).join('')
+}
+
 /** A files map holding the given ledger texts (by key, oldest first) and the plan. */
 function files(ledgers: Record<string, string>) {
   const map = new Map([[`${ROOT}/${PLAN}`, { text: PLAN_TEXT, mtimeMs: 1 }]])
@@ -138,11 +154,12 @@ async function sectionIds($: Engine) {
 }
 
 describe('amp run hooks', () => {
-  test('no .amp: no status, /amp-run says so, no resume section', async ($, on) => {
+  test('no .amp: no run row, /amp-run says so, no resume section', async ($, on) => {
     const host = fakeHost(on, { git: GIT })
     await $.session.start(START)
     await $.tool.call({ tool: 'Bash', command: 'ls' })
-    expect(host.status).toEqual([undefined])
+    expect(await rowText($)).toBeUndefined()
+    expect(host.status).toEqual([])
     expect((await $.command.run(RUN)).text).toBe('No amp run in this repository.')
     expect(await sectionIds($)).toEqual([])
   })
@@ -150,11 +167,12 @@ describe('amp run hooks', () => {
   test('a ledger created after session start is picked up at the next tool call', async ($, on) => {
     const host = fakeHost(on, { git: GIT, files: files({}) })
     await $.session.start(START)
-    expect(host.status).toEqual([undefined])
+    expect(await rowText($)).toBeUndefined()
     host.files.set(LEDGER, { text: TEXT, mtimeMs: 200 })
     await $.tool.call({ tool: 'Bash', command: 'ls' })
-    expect(host.status.at(-1)).toBe(statusText(parseLedger('04-x', '.amp/04-x/progress.md', TEXT), 7))
-    expect(host.status.at(-1)).toBe('amp 04-x · build · tasks 3a r2, 4 · 2/7 done')
+    expect(await rowText($)).toBe(statusText(parseLedger('04-x', '.amp/04-x/progress.md', TEXT), 7))
+    expect(await rowText($)).toBe('amp 04-x · build · tasks 3a r2, 4 · 2/7 done')
+    expect(host.status).toEqual([])
   })
 
   test('the resume section needs the run branch to be the current one', async ($, on) => {
@@ -175,11 +193,11 @@ describe('amp run hooks', () => {
     const planning = ['# amp ledger — 04-x', 'Stage: plan', 'Branch: feature/x', `Plan: ${PLAN}`].join('\n')
     const host = fakeHost(on, { git: GIT, files: new Map([[LEDGER, { text: planning, mtimeMs: 100 }]]) })
     await $.session.start(START)
-    expect(host.status.at(-1)).toBe('amp 04-x · plan')
+    expect(await rowText($)).toBe('amp 04-x · plan')
     host.files.set(`${ROOT}/${PLAN}`, { text: PLAN_TEXT, mtimeMs: 150 })
     host.files.set(LEDGER, { text: TEXT, mtimeMs: 200 })
     await $.tool.call({ tool: 'Bash', command: 'ls' })
-    expect(host.status.at(-1)).toBe('amp 04-x · build · tasks 3a r2, 4 · 2/7 done')
+    expect(await rowText($)).toBe('amp 04-x · build · tasks 3a r2, 4 · 2/7 done')
   })
 
   test('a mismatched branch adds no resume section', async ($, on) => {
@@ -218,14 +236,15 @@ describe('amp run hooks', () => {
     const host = fakeHost(on, { git: GIT, files: files({ '04-x': TEXT, '05-big': `Stage: plan\n${'x'.repeat(5 * 1024 * 1024)}` }) })
     host.files.set(`${ROOT}/.amp/06-z/progress.md`, { text: 'Stage: design', mtimeMs: 300, unreadable: true })
     await $.session.start(START)
-    expect(host.status.at(-1)).toBe('amp 04-x · build · tasks 3a r2, 4 · 2/7 done')
+    expect(await rowText($)).toBe('amp 04-x · build · tasks 3a r2, 4 · 2/7 done')
   })
 
   test('outside a git repository the hooks are idle', async ($, on) => {
     const host = fakeHost(on, { git: { ...GIT, 'git rev-parse --show-toplevel': new Error('not a git repository') }, files: files({ '04-x': TEXT }) })
     await $.session.start(START)
     await $.tool.call({ tool: 'Bash', command: 'ls' })
-    expect(host.status).toEqual([undefined])
+    expect(await rowText($)).toBeUndefined()
+    expect(host.status).toEqual([])
     expect(await sectionIds($)).toEqual([])
   })
 
@@ -278,6 +297,44 @@ describe('amp run hooks', () => {
   })
 })
 
+/** Each of the row's Texts as its text, bold, color and dim. */
+const parts = (texts: { text: string; props: Record<string, unknown> }[] | undefined) =>
+  texts?.map(t => [t.text, t.props.bold, t.props.color, t.props.dimColor])
+
+describe('amp run row', () => {
+  test('a build run draws amp, key, stage, detail and the steps off, in their colors; the status line is never set', async ($, on) => {
+    const host = fakeHost(on, { git: GIT, files: files({ '04-x': `${TEXT}\nOff: Tests, CI` }) })
+    await $.session.start(START)
+    await $.tool.call({ tool: 'Bash', command: 'ls' })
+    expect(parts(await rowTexts($))).toEqual([
+      ['amp', true, 'claude', undefined],
+      [' 04-x · ', undefined, undefined, true],
+      ['build', true, undefined, undefined],
+      [' · tasks 3a r2, 4 · 2/7 done', undefined, undefined, true],
+      [' · off: Tests, CI', undefined, undefined, true],
+    ])
+    expect(host.status).toEqual([])
+  })
+
+  for (const [stage, color] of [['gate', 'suggestion'], ['stopped', 'warning']] as const) {
+    test(`a ${stage} run's stage is drawn in ${color}, with no detail`, async ($, on) => {
+      fakeHost(on, { git: GIT, files: files({ '04-x': `${NO_BRANCH}\nStage: ${stage}` }) })
+      await $.session.start(START)
+      expect(parts(await rowTexts($))).toEqual([
+        ['amp', true, 'claude', undefined],
+        [' 04-x · ', undefined, undefined, true],
+        [stage, true, color, undefined],
+      ])
+    })
+  }
+
+  test('the row yields to a survey', async ($, on) => {
+    fakeHost(on, { git: GIT, files: files({ '04-x': TEXT }) })
+    await $.session.start(START)
+    expect(await rowTexts($, true)).toBeUndefined()
+  })
+})
+
 const ALERT = 'hooks/sounds/alert.wav'
 const LS = { tool: 'Bash', command: 'ls' } as const
 const ASK = { tool: 'AskUserQuestion', questions: [{ question: 'Which?', header: 'Pick', options: [{ label: 'a', description: '' }, { label: 'b', description: '' }], multiSelect: false }] } as const
@@ -322,15 +379,18 @@ describe('amp alerts', () => {
     expect(host.toasts).toEqual(['amp stopped'])
   })
 
-  test('a merge toasts once although the ledger then vanishes, and clears the status', async ($, on) => {
+  test('a merge toasts once although the ledger then vanishes, and drops the run row', async ($, on) => {
     const host = fakeHost(on, { git: GIT, files: files({ '04-x': TEXT }) })
     await $.session.start(START)
+    expect(await rowText($)).toBe('amp 04-x · build · tasks 3a r2, 4 · 2/7 done')
     host.files.set(LEDGER, { text: `${TEXT}\nStage: merged — https://x/pr/5`, mtimeMs: 200 })
     await $.tool.call(LS)
+    expect(await rowText($)).toBeUndefined()
     host.files.delete(LEDGER)
     await $.tool.call(LS)
     expect(host.toasts).toEqual(['amp: merged — https://x/pr/5'])
-    expect(host.status.at(-1)).toBeUndefined()
+    expect(await rowText($)).toBeUndefined()
+    expect(host.status).toEqual([])
   })
 
   test('a question during the build toasts; one during the grill or from a subagent does not', async ($, on) => {

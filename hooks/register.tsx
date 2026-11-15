@@ -1,7 +1,7 @@
-import type { EngineInterface, PluginOptions, Register, RenderPropsOf, ToolCallInput } from 'claude-code'
+import type { EngineInterface, PluginOptions, Register, RenderPropsOf, ThemeKey, ToolCallInput } from 'claude-code'
 
 import { guardViolation, readOnlyViolation, roleOf } from './guard'
-import { parseLedger, planTaskCount, resumeText, statusText, type Run, type Stage } from './run'
+import { parseLedger, planTaskCount, resumeText, statusDetail, statusText, type Run, type Stage } from './run'
 import { STEPS, STEP_HELP, hasStepRows, readSteps, setStep, type Step, type Switch } from './steps'
 
 /*
@@ -14,8 +14,9 @@ import { STEPS, STEP_HELP, hasStepRows, readSteps, setStep, type Step, type Swit
  *   ui.render       the `/amp-models` pane: one picker per task type, written through `/config`.
  *
  * The amp run (spec §5.2-5.3): the active run is the newest `.amp/<key>/progress.md` not yet
- * merged. Every tool call and turn re-scans for it; the status line, the `/amp-run` pane, the
- * resume section and the compaction note show it. Outside a git repository all of them are idle.
+ * merged. Every tool call and turn re-scans for it; the run row above the prompt (spec 08 §5.3), the
+ * `/amp-run` pane, the resume section and the compaction note show it. Outside a git repository all
+ * of them are idle.
  *
  * Guards (spec §5.4-5.5, hooks/guard.ts): before a tool call, a reviewer, checker or scout may not
  * edit the repository outside `.amp/` or run a writing git command; while a run is active, every
@@ -191,13 +192,12 @@ async function scan($: EngineInterface): Promise<Run | undefined> {
   return newest?.run
 }
 
-/** Shows the active run: the status line (cleared when there is none) and the pane. */
-async function show($: EngineInterface) {
+/** Shows the active run: redraws the run row (gone when there is none) and the panes. */
+function show($: EngineInterface) {
   try {
-    await $.ui.status(active && statusText(active, await planTotal($, active)))
     $.ui.invalidate('ui.render')
   } catch {
-    // a refused status line leaves the hooks running
+    // a refused redraw leaves the hooks running
   }
 }
 
@@ -210,7 +210,7 @@ async function refresh($: EngineInterface, isMain: boolean): Promise<Run | undef
   if (isMain) checkStages($)
   if (run !== active) {
     active = run
-    await show($)
+    show($)
   }
   return active
 }
@@ -265,6 +265,9 @@ async function dispatchRow($: EngineInterface, options: PluginOptions, row: Rend
   const task = [text(row.input, 'description'), text(row.input, 'prompt')].map(t => t?.match(/Task (\d+[a-z]?)/)?.[1]).find(Boolean)
   return { heading: [`${$.plugin.name} ${role.agent}`, model, ...(task ? [`task ${task}`] : [])].join(' · '), result: firstLine(row.output) }
 }
+
+/** The run row's stage colors: gate and stopped stand out, every other stage takes none. */
+const STAGE_COLORS: Partial<Record<Stage, ThemeKey>> = { gate: 'suggestion', stopped: 'warning' }
 
 /** The `/amp-run` pane's lines, the first its heading. */
 function runLines(run: Run, total: number | undefined): string[] {
@@ -359,7 +362,7 @@ export const register: Register = (on, options) => {
     totals = new Map()
     active = await scan($)
     checkStages($)
-    await show($)
+    show($)
     return next(e)
   })
 
@@ -405,6 +408,22 @@ export const register: Register = (on, options) => {
       <Box flexDirection="column">
         <Text bold>{heading}</Text>
         {rest.map((line, at) => <Text key={`line-${at}`}>{line}</Text>)}
+      </Box>
+    )
+  })
+
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const run = active
+    if (run === undefined || e.props.hasSurvey) return next(e)
+    const detail = statusDetail(run, await planTotal($, run))
+    const { Box, Text } = $.ui.resolve(e)
+    return (
+      <Box>
+        <Text bold color="claude">amp</Text>
+        <Text dimColor>{` ${run.key} · `}</Text>
+        <Text bold color={STAGE_COLORS[run.stage]}>{run.stage}</Text>
+        {detail !== '' && <Text dimColor>{detail}</Text>}
+        {run.off !== undefined && run.off.length > 0 && <Text dimColor>{` · off: ${run.off.join(', ')}`}</Text>}
       </Box>
     )
   })

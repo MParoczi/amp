@@ -30,8 +30,8 @@ works for any language or stack. Everything specific to a project lives in that 
 
 ## Requirements
 
-- **Claude Code.** Tested on 2.1.295. The model routing, the settings pane and the run hooks (status
-  line, `/amp-run`, `/amp-steps`, resume guard, alerts, dispatch rows) use Claude Code's
+- **Claude Code.** Tested on 2.1.325. The model routing, the settings pane and the run hooks (run
+  row, `/amp-run`, `/amp-steps`, resume guard, alerts, dispatch rows) use Claude Code's
   function-hook plugins (early access). On a build without them the skills and agents still work,
   and each agent runs on the default model in its definition (see the defaults below).
 - **git**, and the **GitHub CLI** (`gh`) signed in (`gh auth login`), for the PR, CI and merge
@@ -208,10 +208,15 @@ for it again, so a run started mid-session shows up at once and a merged one dro
 git repository nothing below appears, and with no ledger only the read-only roles apply. A ledger
 over 4 MiB, or one that can't be read, is skipped.
 
-- **Status line.** While a run is active the status line reads `amp <key> · <stage>`. During the
-  build it adds every active task with its fix round, then the done count, for example
+- **Run row.** While a run is active, a row above the prompt reads `amp <key> · <stage>`. During
+  the build it adds every active task with its fix round, then the done count, for example
   `amp 05-parallel-build · build · tasks 2, 3 r2, 5 · 1/7 done`, or
-  `amp 04-workflow-mods · build · task 3 · fix r2/5 · 2/7 done` with one task active.
+  `amp 04-workflow-mods · build · task 3 · fix r2/5 · 2/7 done` with one task active. When the
+  run has steps off, it ends with them, as in `· off: Tests, CI`. `amp` is in the accent color and
+  the stage is bold: in the suggestion color at `gate`, in the warning color when `stopped`. The
+  rest is dim. The row makes way while a survey is shown, and goes when the run merges or its
+  ledger is deleted. Claude Code draws it in the terminal, desktop and mobile apps, not in VS Code,
+  where `/amp-run` still shows the run.
 - **`/amp-run`.** Opens the "amp run" pane: the key and branch, the stage and its note, one row per
   task with its state, fix round and worktree, the parked, rulings and fallback counts, the
   `Parallel:` state, a `Steps off:` line and the ledger's last lines. `Steps off:` names the steps
@@ -361,7 +366,7 @@ or `off` counts as on: the step runs, and amp records that as a ruling.
 | `/amp-models` | command + pane | the model settings |
 | `/amp-run` | command + pane | the active run: stage, tasks, fix rounds, parked items, steps off |
 | `/amp-steps` | command + pane | turns the project's steps on or off in `CLAUDE.md`, and commits that file on request |
-| amp status line | hook | `amp <key> · <stage>`, plus the active tasks and their fix rounds during the build |
+| amp run row | hook | a colored row above the prompt: `amp <key> · <stage>`, the active tasks and their fix rounds during the build, and the steps off |
 | amp resume guard | hook | tells a session on a branch an unfinished run owns to resume it with `amp:phase <key>` |
 | amp guardrails | hook | while a run is active, refuses the git and `gh` commands that skip hooks, rewrite or discard work, or bypass the PR |
 | amp read-only roles | hook | refuses repository edits and writing git commands from the reviewer, checker and scout |

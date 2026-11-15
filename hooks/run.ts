@@ -71,21 +71,25 @@ export function planTaskCount(planText: string): number {
 }
 
 /**
- * The status line: `amp <key> · <stage>`, then during build the active (started or fixing) tasks in
- * first-seen order (spec §5.7): none gives the next task, one its id and fix round, more each id
- * with its round. With active tasks and a known total, the done count follows.
+ * What the run row and `/amp-run` show after the stage: during build the active (started or fixing)
+ * tasks in first-seen order (spec §5.7): none gives the next task, one its id and fix round, more
+ * each id with its round. With active tasks and a known total, the done count follows. Otherwise ''.
  */
-export function statusText(run: Run, total?: number): string {
-  const text = `amp ${run.key} · ${run.stage}`
-  if (run.stage !== 'build') return text
+export function statusDetail(run: Run, total?: number): string {
+  if (run.stage !== 'build') return ''
   const done = run.tasks.filter(t => t.state === 'complete').length
   const active = run.tasks.filter(t => t.state === 'started' || t.state === 'fixing')
-  if (active.length === 0) return `${text} · task ${total === undefined ? done + 1 : `${Math.min(done + 1, total)}/${total}`}`
+  if (active.length === 0) return ` · task ${total === undefined ? done + 1 : `${Math.min(done + 1, total)}/${total}`}`
   const [one] = active
   const tasks = one && active.length === 1
     ? ` · task ${one.id}${one.state === 'fixing' ? ` · fix r${one.round}/5` : ''}`
     : ` · tasks ${active.map(t => (t.state === 'fixing' ? `${t.id} r${t.round}` : t.id)).join(', ')}`
-  return `${text}${tasks}${total === undefined ? '' : ` · ${done}/${total} done`}`
+  return `${tasks}${total === undefined ? '' : ` · ${done}/${total} done`}`
+}
+
+/** The run in one line, `amp <key> · <stage>` and its detail: `/amp-run`'s reply. */
+export function statusText(run: Run, total?: number): string {
+  return `amp ${run.key} · ${run.stage}${statusDetail(run, total)}`
 }
 
 /** The system-prompt section that tells a resumed session this branch has an unfinished run. */

@@ -11,6 +11,11 @@
   commit, a "Commit CLAUDE.md" button commits that file alone on the current branch
   (`chore(amp): update step switches`), without the repository's commit hooks and without
   pushing. While a run is active the pane says the change applies from the next run.
+- The status line, which Claude Code drew as a yellow warning notice, is replaced by a run row amp
+  draws above the prompt: `amp` in the accent color, the key, the stage in bold (the suggestion
+  color at `gate`, the warning color when `stopped`), the active tasks and done count during the
+  build, and the steps the run has off (`· off: Tests, CI`), the rest dim. It makes way for a
+  survey, and is not shown in VS Code, where `/amp-run` still shows the run.
 
 ## 2.0.0 — 2026-11-15
 
