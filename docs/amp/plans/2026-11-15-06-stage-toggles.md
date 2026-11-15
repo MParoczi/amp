@@ -59,7 +59,7 @@
 **Commit:** `feat(phase): let a project turn steps off; Grill off runs without the interview`
 **Depends on:** none
 
-- [ ] **Step 1: Failing test** new case in `scripts/test` after the `parallel` case:
+- [x] **Step 1: Failing test** new case in `scripts/test` after the `parallel` case:
   ```bash
   case=steps-off
   # a project turns steps off in its amp configuration (spec 06 §5)
@@ -74,8 +74,8 @@
   done
   ok
   ```
-- [ ] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: steps-off: skills/phase/SKILL.md lacks '## Steps a project can turn off'`
-- [ ] **Step 3: Implement** in `src/skills/phase/SKILL.md` (spec §5.1–5.4):
+- [x] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: steps-off: skills/phase/SKILL.md lacks '## Steps a project can turn off'`
+- [x] **Step 3: Implement** in `src/skills/phase/SKILL.md` (spec §5.1–5.4):
   - `## Project amp configuration` table: the `Verify` row's default gains "`off` skips amp:ship's verify step"; after it, six rows `| Grill | on |` … `| CI | on |` in the step order, each default cell starting with `on` and pointing at the new section.
   - New section `## Steps a project can turn off`, after the configuration section. It holds: a table with one row per step (the seven names) saying in one line what does not run and which skill owns it (spec §5.4, summarized); the value rule of spec §5.1 including the ruling text `Ruling: <Key> "<value>" read as on — only on and off are valid — the step runs` and that a stage without a ledger states it in its final report; the read rule of spec §5.3 (an `Off:` line "wins over the table"; a ledger without one, or no ledger, reads the table); the Tests line in full, named "the `Tests: off` line"; and the sentence that a step turned off "overrides any sentence" in an amp skill that describes it as always happening.
   - Intake step 3 also reads the switches. Intake step 5: right after creating the ledger, append `Off: <names>` or `Off: none`, and with at least one step off tell the user `Steps off for this project: <names>.`; the line is written once and a resumed run "doesn't repeat the notice".
@@ -83,9 +83,9 @@
   - Autonomy contract: its heading or first sentence says autonomy starts after the grill confirmation, or "from intake when `Grill` is off", with every stop kept (stop 4 extended as above). Red flags row "Small change, skip the grill": add that only the project's `Grill | off` row skips it.
   - Pipeline table and frontmatter description stay unchanged.
   In both templates, add the six `| <Key> | on |` rows after the `Verify` row. Then `bash scripts/render`.
-- [ ] **Step 4: Run, expect PASS** `bash scripts/test` and `bash scripts/render --check`
-- [ ] **Step 5: Docs** none
-- [ ] **Step 6: Commit** with the Commit line's message
+- [x] **Step 4: Run, expect PASS** `bash scripts/test` and `bash scripts/render --check`
+- [x] **Step 5: Docs** none
+- [x] **Step 6: Commit** with the Commit line's message
 
 ### Task 2: Tests off
 
@@ -96,7 +96,7 @@
 **Commit:** `feat(plan): Tests off drops test writing from plans, agents and reviews`
 **Depends on:** Task 1
 
-- [ ] **Step 1: Failing test** add before the `ok` of `steps-off`:
+- [x] **Step 1: Failing test** add before the `ok` of `steps-off`:
   ```bash
   for t in skills codex/skills; do
     holds "$t/plan/SKILL.md" 'When `Tests` is off' 'none cover it'
@@ -111,8 +111,8 @@
   for f in agents/implementer.md agents/reviewer.md codex/agents/amp-implementer.toml codex/agents/amp-reviewer.toml; do holds "$f" 'Tests: off'; done
   holds agents/reviewer.md 'missing tests'
   ```
-- [ ] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: steps-off: skills/plan/SKILL.md lacks 'When `Tests` is off'`
-- [ ] **Step 3: Implement** (spec §5.4 Tests; every clause cites `(amp:phase, Steps a project can turn off)` once per file):
+- [x] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: steps-off: skills/plan/SKILL.md lacks 'When `Tests` is off'`
+- [x] **Step 3: Implement** (spec §5.4 Tests; every clause cites `(amp:phase, Steps a project can turn off)` once per file):
   - `plan/SKILL.md`, after the task template: "When `Tests` is off": Global Constraints carries the `Tests: off` line verbatim; a task has no failing-test steps and no new test file on its Files line; its steps are Implement, "Run the existing tests that cover the change, expect PASS" with the command (when no existing test covers it, the step reads "none cover it" with the reason), Docs, Commit; Review Focus lines carry no pinning test.
   - `design/SKILL.md`, section 7 of "Write the spec": "When `Tests` is off", the Testing strategy section is the `Tests: off` line, verbatim.
   - `lean/SKILL.md`: the opening sentence "Reviews, tests, verification and reading the code are never skipped to save tokens" gains "unless the project turned the step off (amp:phase, Steps a project can turn off)"; `### Tests` gains one sentence: a `Tests: off` line is the project's doctrine (no new tests; an existing test the change breaks is fixed).
@@ -123,9 +123,9 @@
   - `prompts/implement.md`, "Final-review and CI fix variants": when `Tests` is off, both end with the `Tests: off` line.
   - `build/SKILL.md` fix loop: "confirm the fix report has tests, command and output" becomes "confirm the fix report has the tests run, their command and output".
   Then `bash scripts/render`.
-- [ ] **Step 4: Run, expect PASS** `bash scripts/test` and `bash scripts/render --check`
-- [ ] **Step 5: Docs** none
-- [ ] **Step 6: Commit** with the Commit line's message
+- [x] **Step 4: Run, expect PASS** `bash scripts/test` and `bash scripts/render --check`
+- [x] **Step 5: Docs** none
+- [x] **Step 6: Commit** with the Commit line's message
 
 ### Task 3: Document reviews, Task reviews and Final review off
 
@@ -136,7 +136,7 @@
 **Commit:** `feat(build): Document reviews, Task reviews and Final review can be turned off`
 **Depends on:** Task 1, Task 2
 
-- [ ] **Step 1: Failing test** add before the `ok` of `steps-off`:
+- [x] **Step 1: Failing test** add before the `ok` of `steps-off`:
   ```bash
   for t in skills codex/skills; do
     for s in design plan roadmap; do holds "$t/$s/SKILL.md" 'When `Document reviews` is off'; done
@@ -144,17 +144,17 @@
     holds "$t/build/prompts/final-review.md" 'No task was reviewed (Task reviews off)'
   done
   ```
-- [ ] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: steps-off: skills/design/SKILL.md lacks 'When `Document reviews` is off'`
-- [ ] **Step 3: Implement** (spec §5.4; a file that already cites `(amp:phase, Steps a project can turn off)` from Task 2 needs no second citation):
+- [x] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: steps-off: skills/design/SKILL.md lacks 'When `Document reviews` is off'`
+- [x] **Step 3: Implement** (spec §5.4; a file that already cites `(amp:phase, Steps a project can turn off)` from Task 2 needs no second citation):
   - `design/SKILL.md` §4 item 2 and `plan/SKILL.md` "Review and commit": "When `Document reviews` is off", skip the independent review; the self-review stands (amp:plan still commits spec and plan together).
   - `roadmap/SKILL.md` §3: "When `Document reviews` is off" (a revision in a project whose table sets it), skip this review; the final report says the documents were not reviewed.
   - `build/SKILL.md`, task loop, before step 4: "When `Task reviews` is off", skip steps 4 and 5: a `DONE`, or a `DONE_WITH_CONCERNS` whose concerns are resolved, completes the task; no reviewer or checker is dispatched; the completion line ends `unreviewed)`, or `unreviewed | K parked)` when the cap parked findings. Integration: a worktree task integrates as soon as its implementer is done; committing leftovers and a failing re-test remain fix rounds under the fix loop's resume, escalation and 5-round cap rules, with no re-review, and the breaker adjudicates at the cap.
   - `build/SKILL.md`, Final review: "When `Final review` is off", skip steps 1 and 2; steps 3 and 4 run, and deferred minors and parked findings reach the PR untriaged.
   - `prompts/final-review.md`: a note above the template: when `Task reviews` is off, replace the template's sentence "Every task passed its own review; you judge the whole: integration, cross-task consistency, and what a real user meets." with "No task was reviewed (Task reviews off): judge each task's correctness and quality as well as the whole: integration, cross-task consistency, and what a real user meets."
   Then `bash scripts/render`.
-- [ ] **Step 4: Run, expect PASS** `bash scripts/test` and `bash scripts/render --check`
-- [ ] **Step 5: Docs** none
-- [ ] **Step 6: Commit** with the Commit line's message
+- [x] **Step 4: Run, expect PASS** `bash scripts/test` and `bash scripts/render --check`
+- [x] **Step 5: Docs** none
+- [x] **Step 6: Commit** with the Commit line's message
 
 ### Task 4: Verify and CI off in amp:ship; release 1.6.0
 
@@ -165,7 +165,7 @@
 **Commit:** `feat(ship): Verify and CI can be turned off; release 1.6.0`
 **Depends on:** Task 1, Task 3
 
-- [ ] **Step 1: Failing test** add before the `ok` of `steps-off`:
+- [x] **Step 1: Failing test** add before the `ok` of `steps-off`:
   ```bash
   for t in skills codex/skills; do
     holds "$t/ship/SKILL.md" 'When `Verify` is off' 'When `CI` is off' 'Tests: off' 'Grill | off'
@@ -175,14 +175,14 @@
   holds CHANGELOG.md '## 1.6.0'
   ```
   and change `1.5.0` to `1.6.0` in the `install-default` and `manifests` cases (three occurrences on lines 217 and 280).
-- [ ] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: install-default: json: {"version": "1.5.0", …`
-- [ ] **Step 3: Implement** (spec §5.4 Verify, CI; §5.5; §8):
+- [x] **Step 2: Run, expect FAIL** `bash scripts/test` → `FAIL: install-default: json: {"version": "1.5.0", …`
+- [x] **Step 3: Implement** (spec §5.4 Verify, CI; §5.5; §8):
   - `ship/SKILL.md`: the opening paragraph says the pre-authorization comes from the grill confirmation, or from the project's `Grill | off` row. Step 2: "When `Verify` is off", skip this step and every later re-verify. Step 4: "When `CI` is off", skip this step; after a default-branch merge-in, push and merge without re-watching; a protected merge is step 5's stop. Each implementer dispatch amp:ship makes (docs gap, verify fix, merge conflict) ends with the `Tests: off` line when `Tests` is off. One citation of `(amp:phase, Steps a project can turn off)`.
   - `ship/pr-template.md`: Evidence's Verify bullet notes the alternative `Verify: off (project configuration)`; after `## Evidence`, the section of spec §5.5 verbatim; the Parked section's text also covers every deferred minor and parked finding, untriaged, when Final review was off.
   - Both `plugin.json`: `"version": "1.6.0"`.
   - Then `bash scripts/render`.
-- [ ] **Step 4: Run, expect PASS** `bash scripts/test`, `bash scripts/render --check`, `claude plugin validate --strict .`, `claude plugin test .`
-- [ ] **Step 5: Docs**
+- [x] **Step 4: Run, expect PASS** `bash scripts/test`, `bash scripts/render --check`, `claude plugin validate --strict .`, `claude plugin test .`
+- [x] **Step 5: Docs**
   - `README.md`, Project configuration table: the `Verify` row notes `off`; six rows `| Grill | on | … |` in the step order. A new subsection `### Turning steps off` right after the example in that section: a table of the seven steps and what each does when off (spec §5.4 in user terms, including "existing tests stay green" and that `Grill` off makes every assumption a ruling in the PR), then where a run shows it: the intake line `Steps off for this project: …`, the ledger's `Off:` line (a resumed run keeps it; a table edit applies from the next run) and the PR's "Steps turned off" section; and that an invalid value counts as on. In "Run a phase or any change", one sentence that the grill, the reviews, verify and the CI wait run unless the project turned them off, linking the subsection.
   - `CHANGELOG.md`: a `## 1.6.0 — 2026-11-15` entry in the style of 1.5.0: the seven switches and their defaults, what each off does, the notice/ledger/PR visibility, and that nothing changes for a project that sets none.
-- [ ] **Step 6: Commit** with the Commit line's message
+- [x] **Step 6: Commit** with the Commit line's message
