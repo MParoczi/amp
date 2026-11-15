@@ -23,17 +23,17 @@ works for any language or stack. Everything specific to a project lives in that 
 - [Choosing the models](#choosing-the-models)
 - [Using amp](#using-amp)
 - [What the plugin adds to a session](#what-the-plugin-adds-to-a-session)
-- [Project configuration](#project-configuration)
+- [Project configuration](#project-configuration), with the steps you can turn off there or with `/amp-steps`
 - [What runs where](#what-runs-where)
 - [Updating and removing](#updating-and-removing)
 - [Developing the plugin](#developing-the-plugin)
 
 ## Requirements
 
-- **Claude Code.** Tested on 2.1.295. The model routing, the settings pane and the run hooks (status
-  line, `/amp-run`, resume guard, alerts, dispatch rows) use Claude Code's function-hook plugins
-  (early access). On a build without them the skills and agents still work, and each agent runs on
-  the default model in its definition (see the defaults below).
+- **Claude Code.** Tested on 2.1.325. The model routing, the settings pane and the run hooks (run
+  row, `/amp-run`, `/amp-steps`, resume guard, alerts, dispatch rows) use Claude Code's
+  function-hook plugins (early access). On a build without them the skills and agents still work,
+  and each agent runs on the default model in its definition (see the defaults below).
 - **git**, and the **GitHub CLI** (`gh`) signed in (`gh auth login`), for the PR, CI and merge
   stages. Without a remote, amp still runs everything up to the PR, then stops and tells you.
 - **bash**. Git Bash works on Windows. The bundled helper scripts are bash.
@@ -208,16 +208,35 @@ for it again, so a run started mid-session shows up at once and a merged one dro
 git repository nothing below appears, and with no ledger only the read-only roles apply. A ledger
 over 4 MiB, or one that can't be read, is skipped.
 
-- **Status line.** While a run is active the status line reads `amp <key> · <stage>`. During the
-  build it adds every active task with its fix round, then the done count, for example
+- **Run row.** While a run is active, a row above the prompt reads `amp <key> · <stage>`. During
+  the build it adds every active task with its fix round, then the done count, for example
   `amp 05-parallel-build · build · tasks 2, 3 r2, 5 · 1/7 done`, or
-  `amp 04-workflow-mods · build · task 3 · fix r2/5 · 2/7 done` with one task active.
+  `amp 04-workflow-mods · build · task 3 · fix r2/5 · 2/7 done` with one task active. When the
+  run has steps off, it ends with them, as in `· off: Tests, CI`. `amp` is in the accent color and
+  the stage is bold: in the suggestion color at `gate`, in the warning color when `stopped`. The
+  rest is dim. The row makes way while a survey is shown, and goes when the run merges or its
+  ledger is deleted. Claude Code draws it in the terminal, desktop and mobile apps, not in VS Code,
+  where `/amp-run` still shows the run.
 - **`/amp-run`.** Opens the "amp run" pane: the key and branch, the stage and its note, one row per
   task with its state, fix round and worktree, the parked, rulings and fallback counts, the
   `Parallel:` state, a `Steps off:` line and the ledger's last lines. `Steps off:` names the steps
   the ledger's `Off:` line has off (`Steps off: none` when every step is on), or reads
   `Steps off: not recorded (the CLAUDE.md table applies)` for a ledger without that line, such as
   a standalone amp:build's. With no run it replies "No amp run in this repository."
+- **`/amp-steps`.** Opens the "amp steps" pane, where you turn the project's steps on or off (see
+  [Turning steps off](#turning-steps-off)). It shows one `on`/`off` picker per step, each with a
+  line saying what does not run when the step is off, and writes every pick at once to the
+  `## amp configuration` table in the `CLAUDE.md` at the repository's root. The first change adds
+  whatever is missing: the file, the section, the table or the six on/off rows, with the steps you
+  did not change written as `on`. The rest of the file is kept exactly as it was. Turning `Verify`
+  off keeps its command in an HTML comment under the table, and turning it back on restores the
+  command; with no command kept, turning it on removes the row, so the default verify applies.
+  Because `/amp:phase` needs a clean working tree, a **Commit CLAUDE.md** button appears while the
+  file differs from the last commit. It commits that file alone on the current branch, with the
+  message `chore(amp): update step switches`, and never pushes. The repository's commit hooks do
+  not run for this commit. A run that has already started keeps the steps it read at its start,
+  so a change applies from the next run, and the pane says so while a run is active. Outside a
+  git repository the command replies `amp steps: not in a git repository.` and opens nothing.
 - **Resume guard.** Whenever Claude Code builds the system prompt of a conversation that can
   dispatch agents while the current branch is one an unfinished run owns (its `Branch:` line, or
   the default branch while the run has none yet), the prompt tells Claude that the run owns the
@@ -311,7 +330,9 @@ Example:
 ### Turning steps off
 
 Seven steps of a run can be turned off. Each one runs unless its row in the table above says
-`off`. The spec, the plan, the docs sweep, the close-out, the PR and the merge always run.
+`off`. You can change these rows with `/amp-steps` (see
+[What the plugin adds to a session](#what-the-plugin-adds-to-a-session)) or by editing the table
+by hand. The spec, the plan, the docs sweep, the close-out, the PR and the merge always run.
 
 | Step | What happens when it is off |
 |---|---|
@@ -344,7 +365,8 @@ or `off` counts as on: the step runs, and amp records that as a ruling.
 | `amp:scout` | agent | answers one factual question from primary sources, with citations |
 | `/amp-models` | command + pane | the model settings |
 | `/amp-run` | command + pane | the active run: stage, tasks, fix rounds, parked items, steps off |
-| amp status line | hook | `amp <key> · <stage>`, plus the active tasks and their fix rounds during the build |
+| `/amp-steps` | command + pane | turns the project's steps on or off in `CLAUDE.md`, and commits that file on request |
+| amp run row | hook | a colored row above the prompt: `amp <key> · <stage>`, the active tasks and their fix rounds during the build, and the steps off |
 | amp resume guard | hook | tells a session on a branch an unfinished run owns to resume it with `amp:phase <key>` |
 | amp guardrails | hook | while a run is active, refuses the git and `gh` commands that skip hooks, rewrite or discard work, or bypass the PR |
 | amp read-only roles | hook | refuses repository edits and writing git commands from the reviewer, checker and scout |

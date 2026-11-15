@@ -27,7 +27,7 @@ ok
 
 case=manifests
 m=$ROOT/.claude-plugin/plugin.json
-grep -qF '"version": "2.0.0"' "$m" || fail "$m: version is not 2.0.0"
+grep -qF '"version": "2.1.0"' "$m" || fail "$m: version is not 2.1.0"
 ! grep -qi codex "$m" "$ROOT/.claude-plugin/marketplace.json" || fail "a manifest mentions Codex"
 [ ! -e "$ROOT/.codex-plugin" ] || fail ".codex-plugin still exists"
 ok
@@ -120,7 +120,7 @@ tests_off='Tests: off — write no new tests; fix an existing test the change br
 holds skills/phase/SKILL.md '## Steps a project can turn off' '| Grill |' '| Tests |' '| Document reviews |' '| Task reviews |' '| Final review |' '| CI |' \
   'Off: none' 'Steps off for this project:' 'read as on — only on and off are valid — the step runs' "doesn't repeat the notice" \
   'wins over the table' 'overrides any sentence' "$tests_off" 'When `Grill` is off' 'from intake when `Grill` is off' 'every reading is a guess' \
-  'when `Grill` is off, a request so vague'
+  'when `Grill` is off, a request so vague' 'but its row reads `off`, the verify command is the one in the' '`<!-- amp Verify command: … -->` line under the table'
 holds skills/roadmap/templates/CLAUDE.md '| Grill | on |' '| Tests | on |' '| Document reviews | on |' '| Task reviews | on |' '| Final review | on |' '| CI | on |'
 holds skills/plan/SKILL.md 'When `Tests` is off' 'none cover it'
 holds skills/design/SKILL.md 'When `Tests` is off'

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { parseLedger, planTaskCount, resumeText, statusText } from './run'
+import { parseLedger, planTaskCount, resumeText, statusDetail, statusText } from './run'
 
 const LEDGER = '.amp/04-x/progress.md'
 
@@ -92,7 +92,7 @@ describe('amp ledger parser', () => {
     expect(run.parked).toBe(0)
   })
 
-  test('the status line names the active tasks with their fix rounds', async () => {
+  test('the status text names the active tasks with their fix rounds', async () => {
     const run = parseLedger('04-x', LEDGER, FIXTURE)
     expect(statusText(run, 7)).toBe('amp 04-x · build · task 3a · fix r2/5 · 2/7 done')
     expect(statusText(run)).toBe('amp 04-x · build · task 3a · fix r2/5')
@@ -102,6 +102,19 @@ describe('amp ledger parser', () => {
     expect(statusText(parseLedger('k', LEDGER, PARALLEL), 7)).toBe('amp k · build · tasks 1 r2, 4 · 1/7 done')
     expect(statusText(parseLedger('k', LEDGER, PARALLEL))).toBe('amp k · build · tasks 1 r2, 4')
     expect(statusText(parseLedger('04-x', LEDGER, 'Stage: gate'), 7)).toBe('amp 04-x · gate')
+  })
+
+  test('the detail is everything the status text prints after the stage', async () => {
+    const one = ['Stage: build', 'Task 2: complete (…)', 'Task 3: complete (…)', 'Task 1: started (main tree, base a)'].join('\n')
+    const cases = [
+      [parseLedger('04-x', LEDGER, FIXTURE), 7], [parseLedger('04-x', LEDGER, FIXTURE), undefined],
+      [parseLedger('k', LEDGER, one), 7], [parseLedger('k', LEDGER, 'Stage: build\nTask 1: complete (…)'), 7],
+      [parseLedger('k', LEDGER, PARALLEL), 7], [parseLedger('k', LEDGER, PARALLEL), undefined],
+      [parseLedger('04-x', LEDGER, 'Stage: gate'), 7],
+    ] as const
+    for (const [run, total] of cases) expect(statusDetail(run, total)).toBe(statusText(run, total).slice(`amp ${run.key} · ${run.stage}`.length))
+    expect(statusDetail(parseLedger('04-x', LEDGER, FIXTURE), 7)).toBe(' · task 3a · fix r2/5 · 2/7 done')
+    expect(statusDetail(parseLedger('04-x', LEDGER, 'Stage: gate'), 7)).toBe('')
   })
 
   test('plan tasks are counted by their headings', async () => {
