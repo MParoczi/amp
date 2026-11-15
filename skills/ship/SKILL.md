@@ -59,8 +59,9 @@ When `Verify` is off, skip this step and every later re-verify (steps 3 and 5).
 
 ## 4. CI
 
-When `CI` is off, skip this step and go to step 5; if D moved there, merge it in, push and merge
-without re-watching. A merge that branch protection blocks is step 5's stop.
+When `CI` is off, skip this step and go to step 5; if D has moved by step 5, merge it in (step 3),
+re-verify, push and merge without re-watching. A merge that branch protection blocks is step 5's
+stop.
 
 - `gh pr checks <pr> --watch --fail-fast --interval 30`. Run it in the background (or with a long
   timeout) and wait for completion rather than polling in short loops. "No checks reported" after
