@@ -18,12 +18,13 @@ type Host = {
   cwd: string                                               // what $.session.cwd() answers
   runs: string[][]; writes: { path: string; text: string }[]; opened: string[]   // every process.run argv, fs.write and ui.open id, in order
   status: (string | undefined)[]; toasts: string[]; sounds: string[]
+  writeError?: string; garbledReads: number                 // fs.write denies with writeError; the next garbledReads reads answer a number
 }
 
 function fakeHost(on: On, init: Partial<Pick<Host, 'files' | 'git' | 'agents' | 'cwd'>> = {}): Host {
   const host: Host = {
     files: init.files ?? new Map(), git: init.git ?? {}, agents: init.agents ?? [], cwd: init.cwd ?? '/repo',
-    runs: [], writes: [], opened: [], status: [], toasts: [], sounds: [],
+    runs: [], writes: [], opened: [], status: [], toasts: [], sounds: [], garbledReads: 0,
   }
   // The engine hands the hooks an absolute path in the platform's spelling (`C:\repo\.amp` on Windows).
   const norm = (path: string) => path.replace(/\\/g, '/').replace(/^[a-zA-Z]:/, '').replace(/\/+$/, '')
@@ -48,10 +49,12 @@ function fakeHost(on: On, init: Partial<Pick<Host, 'files' | 'git' | 'agents' | 
   on('fs.read', (_, e) => {
     const file = host.files.get(norm(e.path))
     if (file === undefined) return missing(e.path)
+    if (host.garbledReads > 0 && host.garbledReads--) return { value: 42 as never }
     return file.unreadable ? { deny: 'EACCES: permission denied' } : { value: file.text }
   })
   on('fs.exists', (_, e) => ({ value: host.files.has(norm(e.path)) }))
   on('fs.write', (_, e) => {
+    if (host.writeError !== undefined) return { deny: host.writeError }
     host.writes.push({ path: norm(e.path), text: e.text })
     host.files.set(norm(e.path), { text: e.text, mtimeMs: 1000 + host.writes.length })
     return { value: undefined }
@@ -503,6 +506,8 @@ const STEPS_RUN = { ...RUN, command: 'amp-steps' } as const
 const STEPS_PANE = { ...PANE, requestId: 'amp-steps', props: { ...PANE.props, title: 'amp steps' } } as const
 /** The message `$.fs.read` rejects with when the fake denies a read. */
 const READ_ERROR = 'amp: $.fs.read: EACCES: permission denied'
+/** The message `$.fs.write` rejects with when the fake denies a write. */
+const WRITE_ERROR = 'amp: $.fs.write: EROFS: read-only file system'
 
 /** A files map holding only CLAUDE.md with the given text. */
 function claudeMd(text: string, unreadable?: true) {
@@ -575,6 +580,32 @@ describe('amp steps pane', () => {
     await ui.select({ key: 'step-CI', value: 'off' })
     expect(host.toasts).toEqual([`amp steps: CLAUDE.md can't be read: ${READ_ERROR}`])
     expect(host.writes).toEqual([])
+    await ui.unmount()
+  })
+
+  test("a write that fails toasts, and the pane draws the file's values again", async ($, on) => {
+    const host = fakeHost(on, { git: GIT, files: claudeMd(CONFIG) })
+    await $.session.start(START)
+    const ui = await mountSteps($)
+    host.writeError = 'EROFS: read-only file system'
+    host.files.set(CLAUDE, { text: CONFIG.replace('| Task reviews | off |', '| Task reviews | on |'), mtimeMs: 2 })
+    await ui.select({ key: 'step-CI', value: 'off' })
+    expect(host.toasts).toEqual([`amp steps: could not write CLAUDE.md: ${WRITE_ERROR}`])
+    expect((await ui.find({ key: 'step-CI' }))?.props.value).toBe('on')
+    expect((await ui.find({ key: 'step-Task reviews' }))?.props.value).toBe('on')
+    await ui.unmount()
+  })
+
+  test('a pick after a pick that failed still writes', async ($, on) => {
+    const host = fakeHost(on, { git: GIT, files: claudeMd(CONFIG) })
+    await $.session.start(START)
+    const ui = await mountSteps($)
+    host.garbledReads = 1
+    await ui.select({ key: 'step-CI', value: 'off' })
+    expect(host.toasts).toEqual([expect.stringMatching(/^amp steps: could not change CI: ./)])
+    expect(host.writes).toEqual([])
+    await ui.select({ key: 'step-CI', value: 'off' })
+    expect(host.writes).toEqual([{ path: CLAUDE, text: setStep(CONFIG, 'CI', 'off') }])
     await ui.unmount()
   })
 

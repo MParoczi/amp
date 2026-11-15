@@ -306,7 +306,7 @@ async function readClaudeMd($: EngineInterface): Promise<{ text: string | undefi
   }
 }
 
-/** Sets one step in CLAUDE.md from a fresh read; a pick of the current value writes nothing. */
+/** Sets one step in CLAUDE.md from a fresh read; a pick of the current value writes nothing. The caller redraws. */
 async function pickStep($: EngineInterface, step: Step, value: Switch) {
   const file = await readClaudeMd($)
   if ('error' in file) return $.ui.toast(`amp steps: CLAUDE.md can't be read: ${file.error}`)
@@ -315,7 +315,6 @@ async function pickStep($: EngineInterface, step: Step, value: Switch) {
   if (changed === (file.text ?? '')) return $.ui.toast(`amp steps: could not change ${step}; edit CLAUDE.md by hand`)
   try {
     await $.fs.write(`${root}/CLAUDE.md`, changed)
-    $.ui.invalidate('ui.render')
   } catch (error) {
     $.ui.toast(`amp steps: could not write CLAUDE.md: ${reason(error)}`)
   }
@@ -329,10 +328,10 @@ async function commitClaudeMd($: EngineInterface, root: string) {
       if (exitCode !== 0) return $.ui.toast(`amp steps: commit failed: ${(stderr.trim() || stdout.trim()).split(/\r?\n/)[0]}`)
     }
     $.ui.toast('amp steps: committed CLAUDE.md')
-    $.ui.invalidate('ui.render')
   } catch (error) {
     $.ui.toast(`amp steps: commit failed: ${reason(error)}`)
   }
+  show($)
 }
 
 export const register: Register = (on, options) => {
@@ -459,7 +458,10 @@ export const register: Register = (on, options) => {
               value={values[step]}
               autoFocus={at === 0 ? true : undefined}
               onSelect={(value: string) => {
-                picks = picks.then(() => pickStep($, step, value === 'off' ? 'off' : 'on'))
+                picks = picks
+                  .then(() => pickStep($, step, value === 'off' ? 'off' : 'on'))
+                  .catch((error: unknown) => $.ui.toast(`amp steps: could not change ${step}: ${reason(error)}`))
+                  .finally(() => show($))
               }}
             />
             <Text dimColor>  {STEP_HELP[step]}</Text>
