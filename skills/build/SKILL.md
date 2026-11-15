@@ -117,7 +117,8 @@ and count as one task in scheduling.
 - Dispatch the agents of different tasks together (several implementers in one message, or one
   task's reviewer next to another's implementer) and handle each contract as it arrives.
 - While worktree tasks are in flight, the main tree stays on the phase branch. Its only uncommitted
-  edits are the plan's ticked checkboxes, which no task touches. Git writes go only to task
+  edits are the plan's ticked checkboxes, which no task touches, and a `CLAUDE.md` the user changed
+  with `/amp-steps`, which no task stages or commits. Git writes go only to task
   worktrees, their `amp-wt-*` branches and the fast-forward merges.
 
 ## Worktree tasks
