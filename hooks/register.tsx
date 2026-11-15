@@ -467,7 +467,7 @@ export const register: Register = (on, options) => {
             <Text dimColor>  {STEP_HELP[step]}</Text>
           </Box>
         ))}
-        {values !== undefined && active !== undefined && (
+        {values !== undefined && active?.off !== undefined && (
           <Box marginTop={1}>
             <Text>A run is in progress: changes apply from the next run.</Text>
           </Box>

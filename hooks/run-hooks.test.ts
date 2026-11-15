@@ -639,15 +639,17 @@ describe('amp steps pane', () => {
     await ui.unmount()
   })
 
-  test('during an active run the pane says changes apply from the next run', async ($, on) => {
-    const map = files({ '04-x': TEXT })
-    map.set(CLAUDE, { text: CONFIG, mtimeMs: 1 })
-    fakeHost(on, { git: GIT, files: map })
-    await $.session.start(START)
-    const ui = await mountSteps($)
-    expect(await ui.find({ type: 'Text', text: 'A run is in progress: changes apply from the next run.' })).toBeDefined()
-    await ui.unmount()
-  })
+  for (const [off, shown] of [['\nOff: none', true], ['', false]] as const) {
+    test(`during an active run ${shown ? 'with' : 'without'} an Off: line the pane ${shown ? 'says' : 'does not say'} changes apply from the next run`, async ($, on) => {
+      const map = files({ '04-x': `${TEXT}${off}` })
+      map.set(CLAUDE, { text: CONFIG, mtimeMs: 1 })
+      fakeHost(on, { git: GIT, files: map })
+      await $.session.start(START)
+      const ui = await mountSteps($)
+      expect(await ui.find({ type: 'Text', text: 'A run is in progress: changes apply from the next run.' }) !== undefined).toBe(shown)
+      await ui.unmount()
+    })
+  }
 
   test('outside a git repository /amp-steps says so and opens no pane', async ($, on) => {
     const host = fakeHost(on, { git: { ...GIT, 'git rev-parse --show-toplevel': new Error('not a git repository') }, files: claudeMd(CONFIG) })
