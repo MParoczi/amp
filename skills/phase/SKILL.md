@@ -170,7 +170,10 @@ but `off` is the command.
 **Where a stage reads them.** A step is off when the ledger's `Off:` line (intake step 5) names
 it. When the ledger has no `Off:` line, or there is no ledger (a stage skill run on its own), the
 step is off when the table sets it to `off`. An `Off:` line wins over the table, so a table edit
-made during a run takes effect on the next run.
+made during a run takes effect on the next run. When the ledger's `Off:` line leaves `Verify` on
+but its row reads `off`, the verify command is the one in the
+`<!-- amp Verify command: … -->` line under the table; with no such line, the repo's documented
+commands.
 
 **The `Tests: off` line.** With `Tests` off, the plan's Global Constraints and every implementer
 dispatch that carries none end with this line, verbatim:
