@@ -398,7 +398,7 @@ Seven steps of a run can be turned off. Each one runs unless its row in the tabl
 | Tests | Plans carry no test steps and implementers write no new tests. Existing tests stay green: a change that breaks one fixes it in the same commit. Reviewers don't report missing tests. |
 | Verify | amp doesn't run the verify command before opening the PR, or again after merging the default branch in. The PR's evidence reads `Verify: off (project configuration)`. |
 | Document reviews | The spec, the plan and a roadmap revision get no independent review. amp's own self-review of the spec and the plan still runs. |
-| Task reviews | No reviewer checks each task, and there is no fix loop: a task is complete once its implementer reports it done. |
+| Task reviews | No reviewer checks each task, and there is no fix loop: a task is complete once its implementer reports it done. When the final review is on, it then also judges each task's correctness and quality. |
 | Final review | No whole-branch review runs before the PR. Deferred minor findings and parked findings go to the PR untriaged. |
 | CI | amp opens the PR and merges it without waiting for checks. A merge that branch protection blocks still stops the run. |
 
