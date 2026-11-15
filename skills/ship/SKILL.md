@@ -63,9 +63,9 @@ When `CI` is off, skip this step and go to step 5; if D has moved by step 5, mer
 re-verify (unless `Verify` is off), push and merge without re-watching. A merge that branch
 protection blocks is step 5's stop.
 
-- `gh pr checks <pr> --watch --fail-fast --interval 30`. Run it in the background (or with a long
-  timeout) and wait for completion rather than polling in short loops. "No checks reported" after
-  about 60 s means the repo has no CI for PRs, so go to step 5.
+- `gh pr checks <pr> --watch --fail-fast --interval 30`. Run it with the Bash tool's
+  `run_in_background` and wait for the completion notification; never poll in short loops.
+  "No checks reported" after about 60 s means the repo has no CI for PRs, so go to step 5.
 - **Failure:** save logs with
   `gh run view <run-id> --log-failed > $WS/ci-<k>.log` and classify them.
   - Caused by the branch: dispatch `amp:implementer` (CI variant in `${CLAUDE_PLUGIN_ROOT}/skills/build/prompts/implement.md`)

@@ -1,9 +1,9 @@
-# amp for Claude Code and Codex
+# amp for Claude Code
 
-**amp** is a plugin for Claude Code and Codex for building software in phases: you answer one
-requirements interview, then the agent works on its own to a merged pull request. It writes the
-spec and the plan, has subagents build each task with its own review, then opens the PR, waits for
-CI and merges. You choose which model runs each kind of task.
+**amp** is a Claude Code plugin for building software in phases: you answer one requirements
+interview, then the agent works on its own to a merged pull request. It writes the spec and the
+plan, has subagents build each task with its own review, then opens the PR, waits for CI and
+merges. You choose which model runs each kind of task.
 
 ```
 /amp:phase  →  grill (your one approval)  →  branch  →  spec  →  plan
@@ -14,16 +14,12 @@ CI and merges. You choose which model runs each kind of task.
 amp combines three ideas: the relentless *Grill me* interview, the *Superpowers*
 design → plan → subagent-build discipline, and a strict economy doctrine for code and context. It
 works for any language or stack. Everything specific to a project lives in that project's
-`CLAUDE.md` (on Codex, `AGENTS.md`, else `CLAUDE.md`).
-
-On Codex the skills are invoked with `$` instead of `/`: `$amp:phase 04`, `$amp:roadmap` and so on.
-Everything else in this README applies to both tools unless a section says otherwise.
+`CLAUDE.md`.
 
 ## Contents
 
 - [Requirements](#requirements)
-- [Install for Claude Code](#install-for-claude-code)
-- [Install for Codex](#install-for-codex)
+- [Install](#install)
 - [Choosing the models](#choosing-the-models)
 - [Using amp](#using-amp)
 - [What the plugin adds to a session](#what-the-plugin-adds-to-a-session)
@@ -38,14 +34,11 @@ Everything else in this README applies to both tools unless a section says other
   line, `/amp-run`, resume guard, alerts, dispatch rows) use Claude Code's function-hook plugins
   (early access). On a build without them the skills and agents still work, and each agent runs on
   the default model in its definition (see the defaults below).
-- **Or Codex**: the Codex CLI or the desktop app. The IDE extension has no plugins, so it can't
-  run amp. Codex support follows Codex's source and documentation but hasn't yet been tested end
-  to end against a real Codex binary.
 - **git**, and the **GitHub CLI** (`gh`) signed in (`gh auth login`), for the PR, CI and merge
   stages. Without a remote, amp still runs everything up to the PR, then stops and tells you.
 - **bash**. Git Bash works on Windows. The bundled helper scripts are bash.
 
-## Install for Claude Code
+## Install
 
 At a Claude Code prompt:
 
@@ -67,44 +60,7 @@ The one-line form does the same thing:
 Answer `y` to add the marketplace. From a shell, use `claude plugin marketplace add MParoczi/amp`
 and then `claude plugin install amp@amp`.
 
-## Install for Codex
-
-1. Add the marketplace from a shell:
-
-   ```
-   codex plugin marketplace add MParoczi/amp
-   ```
-
-2. Install amp from `/plugins` in the Codex CLI, or from the Plugins tab of the desktop app.
-3. Install amp's agents. Codex plugins can't ship custom agents, so a bundled installer copies the
-   four amp roles (`amp-reviewer`, `amp-implementer`, `amp-checker`, `amp-scout`) into Codex's
-   agents folder. Run it from the installed plugin, which Codex keeps under
-   `~/.codex/plugins/cache/amp/amp/<version>/`, or from a clone of this repository:
-
-   ```
-   bash ~/.codex/plugins/cache/amp/amp/<version>/codex/install [--project] [--reviewer M] [--implementer M] [--checker M] [--scout M]
-   ```
-
-   Without `--project` the agents go to `~/.codex/agents` (or `$CODEX_HOME/agents`), and their
-   model pins apply to every project without its own `--project` install. With `--project` they go
-   to the repository's `.codex/agents`, which you can commit so collaborators get them too. The
-   model flags are described in the next section.
-4. Trust amp's hooks: open `/hooks` in Codex, review amp's two entries and trust them. Codex
-   doesn't run a plugin's hooks until you do. They carry the resume guard, the guardrails and the
-   read-only roles (see [What the plugin adds to a session](#what-the-plugin-adds-to-a-session)). The hooks run
-   `bash`, so on Windows Git Bash's `bash` must come first on PATH, ahead of
-   `C:\Windows\System32\bash.exe`; otherwise Codex reports a hook error.
-5. Start a new Codex session, so it loads the agents.
-
-Every amp skill that spawns agents (`$amp:phase`, `$amp:roadmap`, and `$amp:grill`, `$amp:design`,
-`$amp:plan`, `$amp:build` and `$amp:ship` run on their own) checks the install before its first
-spawn. It stops and tells you what to run when the agents are missing, or when the installed
-version differs from the plugin's.
-
 ## Choosing the models
-
-The settings below are Claude Code's. Codex pins models through its agent installer instead: see
-[Models on Codex](#models-on-codex) at the end of this section.
 
 amp has six task types. Each can run on `inherit` (the session's model), `fable`, `opus`, `sonnet`
 or `haiku`:
@@ -157,30 +113,6 @@ The orchestrator learns those two values from a short *amp model routing* sectio
 adds to the system prompt. Don't set `CLAUDE_CODE_SUBAGENT_MODEL`: it overrides every agent's
 model, so it would also override these settings.
 
-### Models on Codex
-
-`/amp-models`, the settings pane and the routing hook are Claude Code only. On Codex, every amp
-agent runs on the session model (`/model`) unless the agent installer pinned one for its role
-(`<plugin dir>` is the cache folder from [Install for Codex](#install-for-codex), or a clone):
-
-```
-bash <plugin dir>/codex/install --reviewer M --implementer M --checker M --scout M
-```
-
-Each flag is optional. The installer records the pins in `amp-install.json` beside the agents
-(`null` means the session model), and amp passes a pinned role's model on each spawn. The
-reviewer and implementer run at high reasoning effort, the checker and scout at medium. The other
-two task types have no setting on Codex:
-
-- **Escalation** is a fresh implementer at reasoning effort `xhigh`, on the implementer's model.
-- **Fallback**, when a spawn's model is unavailable, re-spawns the agent without a model, so it
-  runs on the session model.
-
-To change the pins, run the installer again with the new flags and start a new session. A role
-whose flag you leave out goes back to the session model. **Re-run the installer after every
-plugin upgrade as well**: every amp skill that spawns agents stops when the version in
-`amp-install.json` differs from the plugin's.
-
 ## Using amp
 
 ### Start a new project: `/amp:roadmap`
@@ -191,15 +123,13 @@ quality bar, delivery, safety rules) and has scouts research the options. It the
 - `docs/roadmap/ROADMAP.md`: the project from A to Z as numbered phases. Each phase is vertical,
   can ship on its own, and fits in one session.
 - `docs/roadmap/prompts/<NN>-<slug>.md`: one self-contained prompt per phase.
-- `CLAUDE.md` with the project's `## amp configuration` (`AGENTS.md` on Codex).
-- `.claude/settings.json`: the session model and high effort (`.codex/config.toml` on Codex,
-  with `model` and `model_reasoning_effort = "high"`). amp's reviewer and implementer also run at
-  high effort, its checker and scout at medium.
+- `CLAUDE.md` with the project's `## amp configuration`.
+- `.claude/settings.json`: the session model and high effort. amp's reviewer and implementer also
+  run at high effort, its checker and scout at medium.
 
 A reviewer checks the result. Then amp makes the initial commit and, if you asked for one, creates
 the GitHub repository. Use `/amp:roadmap revise: <change>` to add, split, reorder or re-scope
-phases later. On Codex, the final report also gives the agent installer command with the models
-you chose in the grill.
+phases later.
 
 ### Run a phase or any change: `/amp:phase`
 
@@ -272,7 +202,7 @@ merge, leaving the PR as the record.
 
 ## What the plugin adds to a session
 
-In Claude Code, amp's hooks module watches the run's ledger. The **active run** is the newest
+amp's hooks module watches the run's ledger. The **active run** is the newest
 `.amp/<key>/progress.md` whose stage isn't `merged`. Every tool call and every finished turn
 checks for it again, so a run started mid-session shows up at once and a merged one drops out.
 Outside a git repository nothing below appears, and with no ledger only the read-only roles apply.
@@ -331,16 +261,6 @@ A ledger over 4 MiB, or one that can't be read, is skipped.
   `diff`, `branch --contains`, `tag -l`) and a temporary worktree outside the repository stay
   allowed. This holds whether or not a run is active.
 
-On Codex, once you trust amp's hooks in `/hooks`, the resume guard, the guardrails and the
-read-only roles apply too, with the same rules and the same refusals. When a session starts,
-resumes or compacts on a branch an unfinished run owns, `codex/hooks/amp-hook` adds the same
-resume note to its context. It checks every shell command the same way, and for `amp-reviewer`,
-`amp-checker` and `amp-scout` every file an `apply_patch` adds, updates, deletes or moves to.
-Codex's shell tool is named `Bash`, and the hook splits commands as Bash does: it doesn't parse
-PowerShell here-strings (`@'…'@`), and one that reaches it can be refused for a git command in its
-text. A hook input it can't parse lets the call through. The status line, `/amp-run`, the alerts
-and the dispatch rows are Claude Code only.
-
 Known gaps: the guardrails match spellings, so a git alias, an `sh -c` wrapper, a command after a
 lone `&` (background) or one inside a `( … )` subshell slips past them; they are defense in depth,
 and the skills remain the contract. The read-only rule doesn't stop
@@ -351,8 +271,7 @@ refusal says; Claude never deletes it itself.
 ## Project configuration
 
 Settings for one project go in its `CLAUDE.md`, under a `## amp configuration` heading, as a
-key → value table. On Codex, amp reads the table from `AGENTS.md`, else from `CLAUDE.md`. Every key
-is optional:
+key → value table. Every key is optional:
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -411,32 +330,29 @@ or `off` counts as on: the step runs, and amp records that as a ruling.
 
 ## What runs where
 
-| Piece (Claude Code) | On Codex | Kind | Role |
-|---|---|---|---|
-| `amp:phase` | the same | skill | entry point: intake, preflight, grill, branch, the autonomy contract |
-| `amp:grill` · `amp:design` · `amp:plan` · `amp:build` · `amp:ship` | the same | skills | the pipeline's stages |
-| `amp:roadmap` | the same | skill | a new project's roadmap, phase prompts and `CLAUDE.md` (Codex: `AGENTS.md` and `.codex/config.toml`) |
-| `amp:lean` · `amp:debug` | the same | skills | the economy doctrine and the root-cause discipline that every stage applies |
-| `amp:implementer` | `amp-implementer` | agent | one task, test first, one atomic commit, a report file, a short status reply |
-| `amp:reviewer` | `amp-reviewer` | agent | read-only reviews of tasks, the whole branch and documents, citing `file:line` for every finding |
-| `amp:checker` | `amp-checker` | agent | fallback re-check when the reviewer can't be resumed: each finding addressed or not, plus any new breakage in the fix |
-| `amp:scout` | `amp-scout` | agent | answers one factual question from primary sources, with citations |
-| `/amp-models` | `codex/install` + `amp-install.json` | command + pane / installer | the model settings |
-| `/amp-run` | — | command + pane | the active run: stage, tasks, fix rounds, parked items |
-| amp status line | — | hook | `amp <key> · <stage>`, plus the active tasks and their fix rounds during the build |
-| amp resume guard | `codex/hooks/amp-hook` | hook | tells a session on a branch an unfinished run owns to resume it with `amp:phase <key>` |
-| amp guardrails | `codex/hooks/amp-hook` | hook | while a run is active, refuses the git and `gh` commands that skip hooks, rewrite or discard work, or bypass the PR |
-| amp read-only roles | `codex/hooks/amp-hook` | hook | refuses repository edits and writing git commands from the reviewer, checker and scout |
-| amp alerts | — | hook | a toast and a sound when the grill summary is ready, a run stops or merges, or a question waits |
-| amp dispatch rows | — | hook | an amp agent's tool row names its role, model and task, then its first report line |
+| Piece | Kind | Role |
+|---|---|---|
+| `amp:phase` | skill | entry point: intake, preflight, grill, branch, the autonomy contract |
+| `amp:grill` · `amp:design` · `amp:plan` · `amp:build` · `amp:ship` | skills | the pipeline's stages |
+| `amp:roadmap` | skill | a new project's roadmap, phase prompts and `CLAUDE.md` |
+| `amp:lean` · `amp:debug` | skills | the economy doctrine and the root-cause discipline that every stage applies |
+| `amp:implementer` | agent | one task, test first, one atomic commit, a report file, a short status reply |
+| `amp:reviewer` | agent | read-only reviews of tasks, the whole branch and documents, citing `file:line` for every finding |
+| `amp:checker` | agent | fallback re-check when the reviewer can't be resumed: each finding addressed or not, plus any new breakage in the fix |
+| `amp:scout` | agent | answers one factual question from primary sources, with citations |
+| `/amp-models` | command + pane | the model settings |
+| `/amp-run` | command + pane | the active run: stage, tasks, fix rounds, parked items |
+| amp status line | hook | `amp <key> · <stage>`, plus the active tasks and their fix rounds during the build |
+| amp resume guard | hook | tells a session on a branch an unfinished run owns to resume it with `amp:phase <key>` |
+| amp guardrails | hook | while a run is active, refuses the git and `gh` commands that skip hooks, rewrite or discard work, or bypass the PR |
+| amp read-only roles | hook | refuses repository edits and writing git commands from the reviewer, checker and scout |
+| amp alerts | hook | a toast and a sound when the grill summary is ready, a run stops or merges, or a question waits |
+| amp dispatch rows | hook | an amp agent's tool row names its role, model and task, then its first report line |
 
-The bundled scripts in `skills/build/scripts/` (`codex/skills/build/scripts/` on Codex) handle the
-run's bookkeeping. `amp-workspace` creates the `.amp/<key>/` folder. `task-brief` extracts one
+The bundled scripts in `skills/build/scripts/` handle the run's bookkeeping. `amp-workspace` creates the `.amp/<key>/` folder. `task-brief` extracts one
 task from the plan. `review-package` writes a commit range as one diff file for a reviewer.
 
 ## Updating and removing
-
-On Claude Code:
 
 ```
 /plugin marketplace update amp
@@ -446,58 +362,28 @@ On Claude Code:
 
 Run `/reload-plugins` (or restart) after an update.
 
-On Codex, to update:
-
-```
-codex plugin marketplace upgrade                        # then update amp from /plugins
-bash <plugin dir>/codex/install [same flags as before]  # after every upgrade
-```
-
-Start a new Codex session after re-running the installer. To remove amp from Codex, remove the
-agents first, then uninstall the plugin from `/plugins`, then remove the marketplace:
-
-```
-bash <plugin dir>/codex/install [--project] --uninstall # removes the amp agents and amp-install.json
-codex plugin marketplace remove amp                     # after uninstalling amp from /plugins
-```
-
-`--uninstall` takes `--project` to remove a repository's agents instead of the global ones.
-
 ## Developing the plugin
 
-The sources live in `src/` (`src/skills/`, `src/agents/`). `skills/`, `agents/`, `codex/skills/`
-and `codex/agents/` are rendered from them: never edit those four trees by hand. Text that differs
-between the tools is marked in the `.md` sources:
-
-- whole lines between `<!-- claude -->` … `<!-- /claude -->` or `<!-- codex -->` … `<!-- /codex -->`
-- inline spans `{{claude: …}}` and `{{codex: …}}`
-- whole files as `NAME.claude.EXT` or `NAME.codex.EXT`, rendered only into that tool's tree as
-  `NAME.EXT`
+`skills/` and `agents/` are the plugin's source: edit them directly. There is no build step, so
+what is committed there is what Claude Code loads.
 
 ```
-bash scripts/render                   # regenerate the four rendered trees from src/
-bash scripts/render --check           # fail if the rendered trees are out of date
-bash scripts/test                     # renderer, installer, manifest and Codex hook tests
+bash scripts/test                     # scripts' executable bits, manifests, skill, agent and docs text
 claude plugin validate --strict .     # manifest, marketplace and hooks module
 claude plugin test .                  # hooks/*.test.ts against the engine
 claude --plugin-dir .                 # a session with this working copy loaded
 ```
 
-On a checkout with `core.filemode=false` (common on Windows), re-apply the scripts' executable bit
-after rendering: `git add -A`, then `git update-index --chmod=+x` on `scripts/render`,
-`scripts/test`, `codex/install`, `codex/hooks/amp-hook` and the files in `src/skills/build/scripts/`,
-`skills/build/scripts/` and `codex/skills/build/scripts/`.
+On a checkout with `core.filemode=false` (common on Windows), git doesn't record a new script's
+executable bit: run `git update-index --chmod=+x` on it after `git add`. `bash scripts/test` fails
+when `scripts/test` or a file in `skills/build/scripts/` isn't executable in the index.
 
-Layout: `.claude-plugin/` (Claude Code manifest, marketplace), `.codex-plugin/` (Codex manifest),
-`src/` (the sources), the rendered `skills/`, `agents/`, `codex/skills/` and `codex/agents/`,
-`codex/install` (the Codex agent installer), `codex/hooks/` (the Codex hooks file `hooks.json` and
-`amp-hook`, the bash port of the guardrails and read-only rules it runs), `scripts/` (render and
-test), and `hooks/` (the
-Claude Code hooks module `register.tsx` for the routing, the panes, the run hooks and the guards;
-`run.ts`, the ledger parser it reads the run with; `guard.ts`, the guardrails and read-only rules
-it checks each command and path with; their tests; and `sounds/`, the alert sound). The editor
-types for the hooks module appear in `.claude-plugin/types/` the first time a session loads the
-folder with `--plugin-dir`. That folder is git-ignored.
+Layout: `.claude-plugin/` (the manifest and marketplace), `skills/` and `agents/`, `scripts/test`,
+and `hooks/` (the hooks module `register.tsx` for the routing, the panes, the run hooks and the
+guards; `run.ts`, the ledger parser it reads the run with; `guard.ts`, the guardrails and
+read-only rules it checks each command and path with; their tests; and `sounds/`, the alert
+sound). The editor types for the hooks module appear in `.claude-plugin/types/` the first time a
+session loads the folder with `--plugin-dir`. That folder is git-ignored.
 
 ## License
 

@@ -13,7 +13,7 @@ can turn off).
 
 ## 1. Code economy: the ladder
 
-amp's agents carry a compact copy of these rules (`src/agents/implementer.md`, `reviewer.md`, `## Lean rules`); edit them together.
+amp's agents carry a compact copy of these rules (`agents/implementer.md`, `reviewer.md`, `## Lean rules`); edit them together.
 
 Three names for one reflex: **DRY** (one place for each behavior), **YAGNI** (only what is asked
 for), **KISS** (the simplest thing that is correct).

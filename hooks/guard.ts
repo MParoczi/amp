@@ -1,7 +1,6 @@
 /*
  * The amp guardrails (spec §5.4) and read-only roles (spec §5.5): pure classifiers over a shell
- * command or a file path. `codex/hooks/amp-hook` ports the same rule tables to bash, so a change
- * here is a change there.
+ * command or a file path.
  *
  * lean: the guard is a deny-list on spellings, so aliases, `sh -c` wrappers, a lone `&` and `( … )`
  * subshells evade it. It is defense in depth, and the skills remain the contract.
