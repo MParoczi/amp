@@ -4,7 +4,7 @@
 
 - **Breaking:** Codex support is removed. The Codex manifest, the rendered Codex skills and
   agents, the agent installer (`codex/install`) and the Codex hooks (`codex/hooks/amp-hook`) are
-  gone, and amp is a Claude Code plugin only. Codex users stay on 1.6.0.
+  gone, and amp is a Claude Code plugin only. Codex users stay on 1.6.0 (commit `655239f`).
 - No build step: the `src/` sources and `scripts/render` are gone. `skills/` and `agents/` are
   edited directly, and what is committed there is what Claude Code loads. `scripts/test` checks
   the skills', agents' and docs' text and fails if a Codex mention or a rendering marker returns.
