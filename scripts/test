@@ -214,7 +214,7 @@ inst
 [ "$rc" -eq 0 ] || fail "exit $rc: $out"
 for r in $roles; do [ -f "$dir/amp-$r.toml" ] || fail "amp-$r.toml missing"; done
 [ "$(ls "$dir" | wc -l)" -eq 5 ] || fail "files: $(ls "$dir")"
-grep -qF '"version": "1.5.0"' "$dir/amp-install.json" || fail "json: $(cat "$dir/amp-install.json")"
+grep -qF '"version": "1.6.0"' "$dir/amp-install.json" || fail "json: $(cat "$dir/amp-install.json")"
 [ "$(grep -oF ': null' "$dir/amp-install.json" | wc -l)" -eq 4 ] || fail "json: $(cat "$dir/amp-install.json")"
 count 'installed: ' 4
 has "wrote: $dir/amp-install.json"
@@ -277,7 +277,7 @@ cx=$ROOT/.codex-plugin/plugin.json
 grep -qF '"skills": "./codex/skills"' "$cx" || fail "no skills path"
 grep -qF '"hooks": "./codex/hooks/hooks.json"' "$cx" || fail "no hooks path"
 for m in "$ROOT/.claude-plugin/plugin.json" "$cx"; do
-  grep -qF '"version": "1.5.0"' "$m" || fail "$m: version is not 1.5.0"
+  grep -qF '"version": "1.6.0"' "$m" || fail "$m: version is not 1.6.0"
 done
 d=$(grep -F '"description":' "$ROOT/.claude-plugin/plugin.json" | head -n 1)
 [ "$d" = "$(grep -F '"description":' "$cx" | head -n 1)" ] || fail "plugin.json descriptions differ"
@@ -461,6 +461,12 @@ for t in skills codex/skills; do
   holds "$t/build/SKILL.md" 'When `Task reviews` is off' 'unreviewed)' 'unreviewed | K parked)' 'When `Final review` is off' 'untriaged'
   holds "$t/build/prompts/final-review.md" 'No task was reviewed (Task reviews off)'
 done
+for t in skills codex/skills; do
+  holds "$t/ship/SKILL.md" 'When `Verify` is off' 'When `CI` is off' 'Tests: off' 'Grill | off'
+  holds "$t/ship/pr-template.md" '## Steps turned off' 'Verify: off (project configuration)' 'untriaged'
+done
+holds README.md '### Turning steps off' '| Grill | on |' '| Tests | on |' '| Document reviews | on |' '| Task reviews | on |' '| Final review | on |' '| CI | on |' 'Steps off for this project:'
+holds CHANGELOG.md '## 1.6.0'
 ok
 
 case=stage-lines

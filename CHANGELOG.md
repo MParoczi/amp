@@ -1,5 +1,38 @@
 # Changelog
 
+## 1.6.0 — 2026-11-15
+
+- A project can turn steps of a run off in its amp configuration. Seven switches, each on by
+  default: `Grill`, `Tests`, `Verify`, `Document reviews`, `Task reviews`, `Final review` and
+  `CI`. `Verify` takes `off` in place of its command; the other six take `on` or `off`. A value
+  other than `on` or `off` counts as on, and amp ledgers that as a ruling. The spec, the plan, the
+  docs sweep, the close-out, the PR and the merge always run.
+- `Grill` off: amp:phase asks nothing. It writes the decisions from the request and the project's
+  docs and settles each open point with a ruling, so the PR lists every assumption; the project's
+  row is the approval, and every stop of the autonomy contract still applies. A bug still gets its
+  root-cause investigation first. amp:grill run on its own and amp:roadmap ignore the switch.
+- `Tests` off: the plan's Global Constraints and every implementer dispatch without them carry the
+  line `Tests: off — write no new tests; …`. Plans have no failing-test steps, implementers write
+  no new tests and report the existing-test run instead, and reviewers never report a missing
+  test; an existing test the change breaks is fixed in the same commit, and a broken or weakened
+  test is still a finding.
+- `Verify` off: amp:ship skips its verify step and every re-verify, and the PR's evidence reads
+  `Verify: off (project configuration)`.
+- `Document reviews` off: the independent spec, plan and roadmap-revision reviews are skipped; the
+  self-reviews of the spec and the plan stay.
+- `Task reviews` off: no per-task review or fix loop; a task completes when its implementer is
+  done (`Task N: complete (commits …, unreviewed)`), and a worktree task integrates at once. With
+  `Final review` still on, the final reviewer also judges each task's correctness and quality.
+- `Final review` off: no whole-branch review; deferred minors and parked findings reach the PR's
+  Parked section untriaged.
+- `CI` off: amp:ship merges without waiting for checks; a merge that branch protection blocks
+  still stops the run.
+- Never silent: intake writes the ledger line `Off: <steps>` (or `Off: none`) once, and with at
+  least one step off tells you `Steps off for this project: …`. A resumed run keeps the line, so a
+  table edit takes effect on the next run. The PR body gains a "Steps turned off" section.
+- A project that sets none of the switches runs exactly as in 1.5.0. New roadmaps write the six
+  on/off rows at `on`.
+
 ## 1.5.0 — 2026-11-12
 
 - amp:build runs plan tasks in parallel. Every plan task carries a `**Depends on:**` line naming
