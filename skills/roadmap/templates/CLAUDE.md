@@ -30,6 +30,12 @@ hotfix/<NN>-<slug>`. Docs are updated in the same branch as the code they descri
 | Specs / Plans | `docs/amp/specs/` · `docs/amp/plans/` |
 | Dispatch skills | <project skills, or "none yet (created in phase 00)"> |
 | Verify | <command or skill> |
+| Grill | on |
+| Tests | on |
+| Document reviews | on |
+| Task reviews | on |
+| Final review | on |
+| CI | on |
 | Design process | <steps for UX-bearing work, or "none"> |
 | Merge method | merge commit |
 | Close-out | ROADMAP status row → Complete; bump version in <file>; tag milestone-completing merges |

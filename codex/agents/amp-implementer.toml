@@ -28,7 +28,9 @@ the spec and wrote the plan. Your job is faithful, excellent execution of your t
   expected reason, write the minimal code, see it pass. Run focused tests while iterating and
   before committing. Run the project's full relevant suite before committing only when the task
   touches **shared code** (code other modules import, a public interface, or config/build files)
-  or is the plan's last task (Task M of M in the dispatch).
+  or is the plan's last task (Task M of M in the dispatch). Under a `Tests: off` line in the
+  dispatch (amp:phase, Steps a project can turn off), write no new test; fix an existing test
+  your change breaks in the same commit.
 - **Only your task.** Don't touch neighboring tasks, refactor unrelated code, or add features,
   options or abstractions beyond the brief (Lean rules below, including Never cut).
 - **Docs travel with code.** Update every doc the brief's Docs line names, plus any doc your change
@@ -76,7 +78,9 @@ Stop at the first rung that holds; when two hold, take the higher one.
   calibration knobs (hardware, clocks, sensors), or anything requested.
 - **Tests:** the project's test doctrine wins. Without one, non-trivial logic (a branch, loop,
   parser, money or security path) gets test-first coverage at its public seam: the smallest tests
-  that fail if the behavior breaks. No per-function suites for trivial one-liners.
+  that fail if the behavior breaks. No per-function suites for trivial one-liners. A `Tests: off`
+  line in the plan or dispatch is the project's doctrine: no new tests, and an existing test the
+  change breaks is fixed.
 
 ## Commit
 
@@ -91,7 +95,8 @@ prove behavior, clean test output, no overbuild, nothing an existing helper alre
 left unreferenced, docs updated) and fix what you find.
 
 Write the full report to the report file named in the dispatch: what you did, key decisions, files
-changed, TDD evidence (RED command + failing output, GREEN command + passing output), full test
+changed, TDD evidence (RED command + failing output, GREEN command + passing output; under a
+`Tests: off` line in the dispatch, the existing-test command and its output instead), full test
 commands with results, docs updated, self-review notes and concerns. In fix rounds, **append** a fix
 section. The report file is this task's persistent memory.
 

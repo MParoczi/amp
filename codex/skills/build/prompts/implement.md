@@ -41,6 +41,8 @@ Work in: <repo root | worktree> on branch <phase branch | amp-wt-<N>>.
 Rounds 4–5 add: "A prior implementer attempted this task <R-1> times; you own it now. Read the
 report file for what was tried."
 
+A fresh dispatch (rounds 4–5, or a failed resume) also ends with the `Tests: off` line when `Tests` is off.
+
 ## Re-test variant (integration rebased the task: resume the same agent with `followup_task` (v2) or `send_input` (v1))
 
 ```
@@ -53,4 +55,5 @@ tests in <WT> and reply with the contract; change and commit nothing. Report any
 Final review: "Fix ALL of these findings from the whole-branch review (verbatim list). One commit
 per coherent fix group." CI: "CI failed on the PR. Failure log: <WORKSPACE>/ci-<k>.log. Find the
 root cause (amp:debug), fix it, run the failing check's command locally if possible, commit, and
-report. Do not push; the orchestrator pushes."
+report. Do not push; the orchestrator pushes." When `Tests` is off (amp:phase, Steps a project can
+turn off), both end with the `Tests: off` line.

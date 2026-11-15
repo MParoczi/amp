@@ -16,7 +16,13 @@ component tree, a shallow file tree, a diff-sketch or a small mermaid diagram.>
 ## Evidence
 
 - Verify: `<command>` → <observed result: counts, coverage, lint/type/build status>
+  <With Verify off, this bullet is `Verify: off (project configuration)`.>
 - <e2e / emulator / screenshot evidence with paths, before → after where it applies>
+
+## Steps turned off
+
+<Each step the run had off (the ledger's `Off:` line, else the amp configuration), one bullet
+with what did not run. Delete the section when every step was on.>
 
 ## Decisions
 
@@ -35,7 +41,8 @@ Grill decisions and spec: `<spec path>` · plan: `<plan path>`
 ## Parked / follow-ups
 
 <Deferred minors and parked findings the final review ruled fine-to-merge, and where each was
-written (a later phase prompt, the roadmap's parked list, an issue).>
+written (a later phase prompt, the roadmap's parked list, an issue). When Final review was off:
+every deferred minor and parked finding, marked untriaged, and where each was written.>
 
 ## Merge danger
 

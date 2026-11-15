@@ -214,7 +214,7 @@ inst
 [ "$rc" -eq 0 ] || fail "exit $rc: $out"
 for r in $roles; do [ -f "$dir/amp-$r.toml" ] || fail "amp-$r.toml missing"; done
 [ "$(ls "$dir" | wc -l)" -eq 5 ] || fail "files: $(ls "$dir")"
-grep -qF '"version": "1.5.0"' "$dir/amp-install.json" || fail "json: $(cat "$dir/amp-install.json")"
+grep -qF '"version": "1.6.0"' "$dir/amp-install.json" || fail "json: $(cat "$dir/amp-install.json")"
 [ "$(grep -oF ': null' "$dir/amp-install.json" | wc -l)" -eq 4 ] || fail "json: $(cat "$dir/amp-install.json")"
 count 'installed: ' 4
 has "wrote: $dir/amp-install.json"
@@ -277,7 +277,7 @@ cx=$ROOT/.codex-plugin/plugin.json
 grep -qF '"skills": "./codex/skills"' "$cx" || fail "no skills path"
 grep -qF '"hooks": "./codex/hooks/hooks.json"' "$cx" || fail "no hooks path"
 for m in "$ROOT/.claude-plugin/plugin.json" "$cx"; do
-  grep -qF '"version": "1.5.0"' "$m" || fail "$m: version is not 1.5.0"
+  grep -qF '"version": "1.6.0"' "$m" || fail "$m: version is not 1.6.0"
 done
 d=$(grep -F '"description":' "$ROOT/.claude-plugin/plugin.json" | head -n 1)
 [ "$d" = "$(grep -F '"description":' "$cx" | head -n 1)" ] || fail "plugin.json descriptions differ"
@@ -431,6 +431,43 @@ for f in skills/build/SKILL.md codex/skills/build/SKILL.md; do lacks "$f" 'Pipel
 lacks skills/build/SKILL.md 'never two implementers at once'
 for a in implementer reviewer checker; do holds "agents/$a.md" 'git grep' '.amp/'; lacks "agents/$a.md" 'pipelined worktree'; done
 holds agents/implementer.md 'git -C'
+ok
+
+case=steps-off
+# a project turns steps off in its amp configuration (spec 06 §5)
+tests_off='Tests: off — write no new tests; fix an existing test the change breaks in the same commit; missing tests are not a finding.'
+for t in skills codex/skills; do
+  holds "$t/phase/SKILL.md" '## Steps a project can turn off' '| Grill |' '| Tests |' '| Document reviews |' '| Task reviews |' '| Final review |' '| CI |' \
+    'Off: none' 'Steps off for this project:' 'read as on — only on and off are valid — the step runs' "doesn't repeat the notice" \
+    'wins over the table' 'overrides any sentence' "$tests_off" 'When `Grill` is off' 'from intake when `Grill` is off' 'every reading is a guess' \
+    'when `Grill` is off, a request so vague'
+done
+for f in skills/roadmap/templates/CLAUDE.md codex/skills/roadmap/templates/AGENTS.md; do
+  holds "$f" '| Grill | on |' '| Tests | on |' '| Document reviews | on |' '| Task reviews | on |' '| Final review | on |' '| CI | on |'
+done
+for t in skills codex/skills; do
+  holds "$t/plan/SKILL.md" 'When `Tests` is off' 'none cover it'
+  holds "$t/design/SKILL.md" 'When `Tests` is off'
+  holds "$t/lean/SKILL.md" 'unless the project turned the step off' 'Tests: off'
+  holds "$t/debug/SKILL.md" 'Tests: off'
+  holds "$t/build/SKILL.md" 'the tests run'
+  holds "$t/build/prompts/implement.md" 'Tests: off' 'A fresh dispatch (rounds 4–5, or a failed resume) also ends with the `Tests: off` line'
+  holds "$t/build/prompts/document-review.md" 'Tests: off'
+  lacks "$t/plan/SKILL.md" "$tests_off"
+done
+for f in agents/implementer.md agents/reviewer.md codex/agents/amp-implementer.toml codex/agents/amp-reviewer.toml; do holds "$f" 'Tests: off'; done
+holds agents/reviewer.md 'missing tests'
+for t in skills codex/skills; do
+  for s in design plan roadmap; do holds "$t/$s/SKILL.md" 'When `Document reviews` is off'; done
+  holds "$t/build/SKILL.md" 'When `Task reviews` is off' 'unreviewed)' 'unreviewed | K parked)' 'When `Final review` is off' 'untriaged'
+  holds "$t/build/prompts/final-review.md" 'No task was reviewed (Task reviews off)'
+done
+for t in skills codex/skills; do
+  holds "$t/ship/SKILL.md" 'When `Verify` is off' 'When `CI` is off' 'Tests: off' 'Grill | off'
+  holds "$t/ship/pr-template.md" '## Steps turned off' 'Verify: off (project configuration)' 'untriaged'
+done
+holds README.md '### Turning steps off' '| Grill | on |' '| Tests | on |' '| Document reviews | on |' '| Task reviews | on |' '| Final review | on |' '| CI | on |' 'Steps off for this project:'
+holds CHANGELOG.md '## 1.6.0'
 ok
 
 case=stage-lines

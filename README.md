@@ -235,6 +235,9 @@ you chose in the grill.
 3. **Rulings, not questions.** When amp meets an ambiguity, it decides against the spec and writes
    down the decision with its cost if wrong. The PR lists every ruling.
 
+The grill, new tests, the reviews, verify and the CI wait each run unless your project turned
+them off; see [Turning steps off](#turning-steps-off).
+
 amp stops and asks only for:
 
 - input only you can give: a visual or physical judgment, a login, a secret, a paid action
@@ -357,7 +360,13 @@ is optional:
 | Phase prompts | `docs/roadmap/prompts/` | where `/amp:phase NN` finds phase `NN` |
 | Specs / Plans | `docs/amp/specs/` · `docs/amp/plans/` | where specs and plans are committed |
 | Dispatch skills | none | your project's skills that every implementer, reviewer and checker loads (may be conditional: "`ui-rules` when touching screens") |
-| Verify | the repo's documented test, lint, typecheck and build | the command or skill that proves a change |
+| Grill | on | the requirements interview; `off` turns it off (see [Turning steps off](#turning-steps-off)) |
+| Tests | on | new tests in plans and tasks; `off` turns them off |
+| Verify | the repo's documented test, lint, typecheck and build | the command or skill that proves a change; `off` skips the verify run |
+| Document reviews | on | the independent spec, plan and roadmap reviews; `off` turns them off |
+| Task reviews | on | the review of each task and its fix loop; `off` turns them off |
+| Final review | on | the whole-branch review before the PR; `off` turns it off |
+| CI | on | waiting for green CI before the merge; `off` turns it off |
 | Design process | none | steps `amp:design` runs for UX work |
 | Parallel tasks | 3 | how many plan tasks `amp:build` runs at once; use 1 for test suites that hold fixed shared resources (ports, a database, fixed temp paths) |
 | Merge method | merge commit | or squash or rebase |
@@ -377,6 +386,28 @@ Example:
 | Close-out | ROADMAP status → Complete; bump `version` in package.json; CHANGELOG entry |
 | Stop rules | never run migrations against a shared database |
 ```
+
+### Turning steps off
+
+Seven steps of a run can be turned off. Each one runs unless its row in the table above says
+`off`. The spec, the plan, the docs sweep, the close-out, the PR and the merge always run.
+
+| Step | What happens when it is off |
+|---|---|
+| Grill | amp asks you nothing. It writes the decisions itself from your request and the project's docs, and settles each open point with a ruling, so every assumption it made is listed among the PR's rulings. The run is autonomous from the start, and amp still stops for the usual reasons, including a request so vague that every reading is a guess. For a bug it still investigates the root cause first. `/amp:grill` on its own and `/amp:roadmap` always interview you. |
+| Tests | Plans carry no test steps and implementers write no new tests. Existing tests stay green: a change that breaks one fixes it in the same commit. Reviewers don't report missing tests. |
+| Verify | amp doesn't run the verify command before opening the PR, or again after merging the default branch in. The PR's evidence reads `Verify: off (project configuration)`. |
+| Document reviews | The spec, the plan and a roadmap revision get no independent review. amp's own self-review of the spec and the plan still runs. |
+| Task reviews | No reviewer checks each task, and there is no fix loop: a task is complete once its implementer reports it done. When the final review is on, it then also judges each task's correctness and quality. |
+| Final review | No whole-branch review runs before the PR. Deferred minor findings and parked findings go to the PR untriaged. |
+| CI | amp opens the PR and merges it without waiting for checks. A merge that branch protection blocks still stops the run. |
+
+A step never turns off silently. When at least one is off, amp says so in one line as the run
+starts, for example `Steps off for this project: Tests, Task reviews.` The run's ledger records
+the same list in an `Off:` line (`Off: none` when every step is on). A resumed run keeps that
+line, so a change to the table during a run applies from the next run. The PR lists every step
+that was off, and what did not run, in its "Steps turned off" section. A value other than `on`
+or `off` counts as on: the step runs, and amp records that as a ruling.
 
 ## What runs where
 

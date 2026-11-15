@@ -61,6 +61,11 @@ Dispatch templates: `${CLAUDE_SKILL_DIR}/prompts/`.
    - `NEEDS_CONTEXT`: answer precisely and resume.
    - `BLOCKED`: change something before retrying (more context, split the task, the escalation
      model (amp:phase, Model routing), or a ledgered ruling that corrects the plan). Never retry unchanged.
+
+   When `Task reviews` is off (amp:phase, Steps a project can turn off), skip steps 4 and 5: a
+   `DONE`, or a `DONE_WITH_CONCERNS` whose concerns are resolved, completes the task, and no
+   reviewer or checker is dispatched for it. Its completion line ends `unreviewed)`, or
+   `unreviewed | K parked)` when the cap parked findings.
 4. **Review:** `bash "$S/review-package" $WS <BASE> <task head>`, then dispatch `amp:reviewer` with
    `prompts/task-review.md`, `Tree:` naming its tree. Record the reviewer's agent id (fix-round
    re-reviews resume it). Don't read the package yourself. Resolve each ⚠️ item yourself (you hold
@@ -72,7 +77,7 @@ Dispatch templates: `${CLAUDE_SKILL_DIR}/prompts/`.
    - Rounds 1–3 resume the same implementer. Rounds 4–5 dispatch a **fresh** implementer with
      the escalation model (amp:phase, Model routing) ("you own it now; read the report for what was tried").
    - Before each round, `FIX_BASE=$(git rev-parse <task head>)`. After it, confirm the fix report
-     has tests, command and output, run `review-package $WS $FIX_BASE <task head>`, and resume the
+     has the tests run, their command and output, run `review-package $WS $FIX_BASE <task head>`, and resume the
      task's reviewer with `prompts/re-review.md` (as its header says). Only if the resume fails,
      dispatch `amp:checker` with the full template and ledger
      `Re-review: checker (reviewer not resumable: <why>)`. New Critical/Important breakage joins
@@ -84,9 +89,9 @@ Dispatch templates: `${CLAUDE_SKILL_DIR}/prompts/`.
      Adjudicate only at the cap; every adjudication is a ledger line and nothing is discarded
      silently.
 6. **Complete:** a worktree task goes through **Integration**, which writes its line. A main-tree
-   task ledgers `Task N: complete (commits <BASE7>..<head7>, review clean | K parked)`. Then tick
-   the task's checkboxes in the plan file and go to the next scheduling point without asking
-   anything.
+   task ledgers `Task N: complete (commits <BASE7>..<head7>, review clean | K parked)`
+   (`unreviewed` in place of `review clean` when `Task reviews` is off). Then tick the task's
+   checkboxes in the plan file and go to the next scheduling point without asking anything.
 
 **Batching:** tasks the plan marks as one batch of same-shape edits get one dispatch and one review,
 and count as one task in scheduling.
@@ -132,7 +137,10 @@ and count as one task in scheduling.
 
 ## Integration
 
-A worktree task integrates once its review is clean or its breaker has ruled.
+A worktree task integrates once its review is clean or its breaker has ruled. When `Task reviews`
+is off, it integrates as soon as its implementer is done; the fix rounds of steps 1 and 2 follow
+the fix loop's resume, escalation and 5-round cap rules with no re-review, and at the cap the
+breaker adjudicates.
 Only one task integrates at a time. Others queue in the order they became ready to integrate.
 
 1. `git -C "$WT" status --porcelain` must be empty. If it isn't, resume the implementer to commit
@@ -149,8 +157,8 @@ Only one task integrates at a time. Others queue in the order they became ready 
 3. **Check:** `git rev-list --count <BASE>..amp-wt-<N>` ≥ 1, and
    `git merge-base --is-ancestor <phase branch> amp-wt-<N>`. If either fails, **drop**.
 4. From the main tree: `git merge --ff-only amp-wt-<N>`. A failure is a **drop**. On success, at
-   once ledger `Task N: complete (commits <BASE7>..<head7>, review clean | K parked)`, then clean
-   up.
+   once ledger `Task N: complete (commits <BASE7>..<head7>, review clean | K parked)`
+   (`unreviewed` in place of `review clean` when `Task reviews` is off), then clean up.
 
 **Drop:** clean up, then ledger `Task N: dropped — <why>` and
 `Ruling: Task N dropped and redone alone — <why> — its work is redone`, so the drop reaches the
@@ -182,6 +190,9 @@ Then clean up any `$WS/wt-*` worktree or `amp-wt-*` branch whose task is not in 
 a scheduling point.
 
 ## Final review
+
+When `Final review` is off, skip steps 1 and 2; steps 3 and 4 run, and deferred minors and parked
+findings reach the PR untriaged.
 
 1. `MB=$(git merge-base origin/<default> HEAD)`, then `review-package $WS $MB HEAD`. Dispatch
    `amp:reviewer` with `prompts/final-review.md`.

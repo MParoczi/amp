@@ -60,7 +60,8 @@ it). Sections, each scaled to the work (a sentence is fine where a sentence suff
 6. **States and errors**: empty, loading, offline, partial and failure; what the user sees; what is
    logged; what never happens silently.
 7. **Testing strategy**: the seams under test, the test levels, and the fixtures and emulators the
-   project's test doctrine requires.
+   project's test doctrine requires. When `Tests` is off (amp:phase, Steps a project can turn
+   off), this section is the `Tests: off` line, verbatim.
 8. **Docs impact**: every document that must change (README, AGENTS.md (else CLAUDE.md), roadmap, user docs, ADRs,
    project skills) and what changes in it.
 9. **Review Focus**: the ≤ 5 input classes or failure modes the spec implies but tests might miss,
@@ -82,4 +83,5 @@ requirement readable two ways. YAGNI ruthlessly.
    is resolved and flag only new Critical/Important problems in the changes." If the resume fails,
    spawn a fresh reviewer with the document-review template.
    If issues remain after that, rule on each (`Ruling:` line in the ledger) and continue. The spec
-   isn't committed yet; amp:plan commits spec and plan together.
+   isn't committed yet; amp:plan commits spec and plan together. When `Document reviews` is off,
+   skip this review; the self-review stands.
