@@ -112,6 +112,22 @@ describe('amp step switches', () => {
     expect(setStep(BLOCK.replace('| Grill | on |', '| Grill |  maybe  |'), 'Grill', 'off')).toBe(BLOCK.replace('| Grill | on |', '| Grill | off |'))
   })
 
+  test('setStep leaves a section whose first pipe run is a single line unchanged', async () => {
+    const header = '## amp configuration\n| Key | Value |\n'
+    const note = '## amp configuration\n\n| a note starting with a pipe\n\n## Next\n'
+    expect(setStep(header, 'Grill', 'off')).toBe(header)
+    expect(setStep(note, 'Grill', 'off')).toBe(note)
+    expect(setStep(note, 'CI', 'off')).toBe(note)
+    expect(setStep(note, 'Verify', 'off')).toBe(note)
+  })
+
+  test('setStep Verify: an empty value is no command', async () => {
+    expect(setStep(BLOCK + '| Verify | |\n', 'Verify', 'off')).toBe(BLOCK + '| Verify | off |\n')
+    expect(setStep(BLOCK + '| Verify |\n', 'Verify', 'off')).toBe(BLOCK + '| Verify | off |\n')
+    expect(setStep(BLOCK + '| Verify |\n\nTail\n', 'Verify', 'off')).toBe(BLOCK + '| Verify | off |\n\nTail\n')
+    expect(setStep(setStep(BLOCK + '| Verify | |\n', 'Verify', 'off'), 'Verify', 'on')).toBe(BLOCK)
+  })
+
   test('setStep Verify: off remembers the command, on restores it', async () => {
     // Verify round trip, with backticks and an escaped pipe
     const withCmd = BLOCK + '| Verify | `a \\| b` && c |\n\nTail\n'

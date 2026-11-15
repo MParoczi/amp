@@ -135,9 +135,13 @@ function ensureRows(doc: Doc): void {
   locate(doc)
 }
 
-/** Sets a row's value cell: one space each side, or the leading space only when the row has no closing pipe. */
+/**
+ * Sets a row's value cell: one space each side, or the leading space only when the row has no
+ * closing pipe. A row whose closing pipe follows its key (`| Verify |`) gets a value cell before it.
+ */
 function setCell(line: Line, value: string): void {
   const row = cells(line)
+  if (row.length === 3 && row[2]!.trim() === '') row.splice(2, 0, '')
   row[2] = row.length > 3 ? ` ${value} ` : ` ${value}`
   line.text = row.join('|')
 }
@@ -150,6 +154,7 @@ export function setStep(text: string | undefined, step: Step, value: Switch): st
   const verifyRow = step === 'Verify' ? rowOf(doc, step) : undefined
   const command = verifyRow === undefined ? undefined : cells(doc.lines[verifyRow]!)[2]?.trim() ?? ''
   if (command?.includes('-->')) return original
+  if (doc.table && doc.table.end - doc.table.start < 2) return original   // no header and delimiter: not a table to edit
   ensureRows(doc)
   const table = doc.table!
   const row = rowOf(doc, step)
@@ -158,6 +163,7 @@ export function setStep(text: string | undefined, step: Step, value: Switch): st
     const after = doc.lines[table.end]
     const remembered = after ? COMMENT.exec(after.text)?.[1] : undefined
     if (value === 'off' && row === undefined) insert(doc, table.end, ['| Verify | off |'])
+    else if (value === 'off' && !command) setCell(doc.lines[row!]!, 'off')
     else if (value === 'off') {
       setCell(doc.lines[row!]!, 'off')
       const comment = `<!-- amp Verify command: ${command} -->`
