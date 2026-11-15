@@ -439,7 +439,8 @@ tests_off='Tests: off — write no new tests; fix an existing test the change br
 for t in skills codex/skills; do
   holds "$t/phase/SKILL.md" '## Steps a project can turn off' '| Grill |' '| Tests |' '| Document reviews |' '| Task reviews |' '| Final review |' '| CI |' \
     'Off: none' 'Steps off for this project:' 'read as on — only on and off are valid — the step runs' "doesn't repeat the notice" \
-    'wins over the table' 'overrides any sentence' "$tests_off" 'When `Grill` is off' 'from intake when `Grill` is off' 'every reading is a guess'
+    'wins over the table' 'overrides any sentence' "$tests_off" 'When `Grill` is off' 'from intake when `Grill` is off' 'every reading is a guess' \
+    'when `Grill` is off, a request so vague'
 done
 for f in skills/roadmap/templates/CLAUDE.md codex/skills/roadmap/templates/AGENTS.md; do
   holds "$f" '| Grill | on |' '| Tests | on |' '| Document reviews | on |' '| Task reviews | on |' '| Final review | on |' '| CI | on |'

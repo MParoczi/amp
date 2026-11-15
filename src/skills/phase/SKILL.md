@@ -94,8 +94,9 @@ conflicts, ambiguities and plan defects yourself, with the spec as the authority
    action, or a paid or external-account action.
 2. A destructive or irreversible operation **outside** the pre-authorized set. Pre-authorized:
    create the phase branch, commit, push the phase branch, open the PR, re-run CI, merge after
-   green, tag per project config, delete the merged phase branch, and rebase, remove and delete
-   amp:build's own task worktrees (`$WS/wt-*`) and `amp-wt-*` branches.
+   green (with `CI` off, after opening the PR), tag per project config, delete the merged phase
+   branch, and rebase, remove and delete amp:build's own task worktrees (`$WS/wt-*`) and
+   `amp-wt-*` branches.
 3. A security-sensitive action, or a project-specific stop rule from the amp configuration.
 4. A plan so broken that every path forward is a guess; when `Grill` is off, a request so vague
    that every reading is a guess; or a cap tripped in amp:ship (verify, CI, merge protection).
@@ -259,6 +260,6 @@ A step turned off overrides any sentence in an amp skill that describes it as al
 | "Small change, skip the grill" | Grill what is open, even if it's one round. The summary gate always happens. Only the project's `Grill` row at `off` skips it. |
 | "I'll write this bit of code myself" | Product code comes from amp:implementer, reviewed. |
 | "CI is slow, merge anyway" | Merge only after green, or stop at the cap. |
-| "Better ask before merging" | The grill confirmation pre-authorized it. Merge on green. |
+| "Better ask before merging" | The grill confirmation (or the `Grill` row at `off`) pre-authorized it. Merge on green. |
 | "The model failed, I'll ask what to do" | {{claude: Fall back to the fallback model}}{{codex: Re-spawn without `model`}} automatically and ledger it. |
 | "Dirty tree, I'll stash it" | Never touch the user's uncommitted work. Stop and ask. |

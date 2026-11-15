@@ -8,10 +8,10 @@ effort: high
 
 Everything here is **pre-authorized** by the grill confirmation, or by the project's `Grill | off`
 row (amp:phase, Steps a project can turn off): push the phase branch, open the PR, re-run CI,
-merge after green, tag per project config, and delete the merged branch. Stop only for the reasons
-in amp:phase's autonomy contract, and follow it at every stop below (gh auth, verify cap, CI cap,
-merge protection): first append `Stage: stopped — <what is needed>` to the ledger, only when
-$WS/progress.md exists.
+merge after green (with `CI` off, after opening the PR), tag per project config, and delete the
+merged branch. Stop only for the reasons in amp:phase's autonomy contract, and follow it at every
+stop below (gh auth, verify cap, CI cap, merge protection): first append
+`Stage: stopped — <what is needed>` to the ledger, only when $WS/progress.md exists.
 
 When `Tests` is off, each `amp:implementer` dispatch below (docs gap, verify fix, merge conflict)
 ends with the `Tests: off` line.
@@ -60,8 +60,8 @@ When `Verify` is off, skip this step and every later re-verify (steps 3 and 5).
 ## 4. CI
 
 When `CI` is off, skip this step and go to step 5; if D has moved by step 5, merge it in (step 3),
-re-verify, push and merge without re-watching. A merge that branch protection blocks is step 5's
-stop.
+re-verify (unless `Verify` is off), push and merge without re-watching. A merge that branch
+protection blocks is step 5's stop.
 
 - `gh pr checks <pr> --watch --fail-fast --interval 30`. Run it in the background (or with a long
   timeout) and wait for completion rather than polling in short loops. "No checks reported" after
