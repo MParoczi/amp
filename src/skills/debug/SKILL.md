@@ -21,7 +21,9 @@ effort: high
    smallest probe (a log line, an assert, a focused test), and keep or discard it. Don't change two
    things at once.
 6. **Pin it.** Write the failing test that reproduces the bug at the highest seam that shows it,
-   and watch it fail for the expected reason.
+   and watch it fail for the expected reason. Under a `Tests: off` line (amp:phase, Steps a
+   project can turn off), write no pinning test: keep the reproduction command and its failing
+   output for the report, and step 8 re-runs that command.
 7. **Fix once, at the root.** Make the smallest change where all callers route through (amp:lean).
    Add a guard at another layer only where bad data genuinely enters from outside (a trust
    boundary).

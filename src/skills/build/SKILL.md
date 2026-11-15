@@ -95,7 +95,7 @@ Dispatch templates: `${CLAUDE_SKILL_DIR}/prompts/`.
    - Rounds 1–3 resume the same implementer. Rounds 4–5 dispatch a **fresh** implementer with
      the escalation {{claude: model}}{{codex: effort}} (amp:phase, Model routing) ("you own it now; read the report for what was tried").
    - Before each round, `FIX_BASE=$(git rev-parse <task head>)`. After it, confirm the fix report
-     has tests, command and output, run `review-package $WS $FIX_BASE <task head>`, and resume the
+     has the tests run, their command and output, run `review-package $WS $FIX_BASE <task head>`, and resume the
      task's reviewer with `prompts/re-review.md` (as its header says). Only if the resume fails,
      dispatch `amp:checker` with the full template and ledger
      `Re-review: checker (reviewer not resumable: <why>)`. New Critical/Important breakage joins

@@ -75,6 +75,12 @@ tracer-bullet vertical slices. Each task ends green and committable.
 - [ ] **Step 6: Commit** with the Commit line's message (the task's atomic commit)
 ````
 
+When `Tests` is off (amp:phase, Steps a project can turn off), Global Constraints carries the
+`Tests: off` line verbatim, and a task has no failing-test steps and no new test file on its Files
+line. Its steps are **Implement**, **Run the existing tests that cover the change, expect PASS**
+`<command>` (when no existing test covers it, the step reads "none cover it", with the reason),
+**Docs** and **Commit**. Review Focus lines carry no pinning test.
+
 Commit types: `feat`, `fix`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `perf`, `style`,
 or the project's own convention if it defines one. **One task, one atomic commit.** A task that
 genuinely needs two commits (e.g. an expand–contract step) names both.

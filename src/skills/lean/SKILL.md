@@ -8,7 +8,8 @@ effort: high
 
 Spend only what the result needs, and never less. Lean cuts waste. It never cuts rigor: when
 lean and quality conflict, **quality wins**. Reviews, tests, verification and reading the code are
-never skipped to save tokens.
+never skipped to save tokens, unless the project turned the step off (amp:phase, Steps a project
+can turn off).
 
 ## 1. Code economy: the ladder
 
@@ -77,7 +78,8 @@ the user or spec asks for the full version, build it without re-arguing. Physica
 it exactly. Without one, non-trivial logic (a branch, loop, parser, money or security path) gets
 test-first coverage at its public seam: the smallest tests that fail if the behavior breaks. Don't
 write per-function suites for trivial one-liners. YAGNI applies to tests, but never to the one test
-that proves the logic.
+that proves the logic. A `Tests: off` line in the plan or dispatch is the project's doctrine: no
+new tests, and an existing test the change breaks is fixed.
 
 ### Review tags (the lean axis of every review)
 

@@ -24,6 +24,8 @@ Flag only what would cause real problems downstream:
 - Mode roadmap: covers the whole vision A→Z; phases are vertical, shippable, one-session-sized;
   dependencies and order sound (risk early); each prompt self-contained and runnable by
   $amp:phase in a fresh session; branch types correct; verification gates concrete
+- A document that carries the `Tests: off` line (amp:phase, Steps a project can turn off) is not
+  missing test seams or test steps
 
 Return:
 **Status:** Approved | Issues found

@@ -444,6 +444,18 @@ done
 for f in skills/roadmap/templates/CLAUDE.md codex/skills/roadmap/templates/AGENTS.md; do
   holds "$f" '| Grill | on |' '| Tests | on |' '| Document reviews | on |' '| Task reviews | on |' '| Final review | on |' '| CI | on |'
 done
+for t in skills codex/skills; do
+  holds "$t/plan/SKILL.md" 'When `Tests` is off' 'none cover it'
+  holds "$t/design/SKILL.md" 'When `Tests` is off'
+  holds "$t/lean/SKILL.md" 'unless the project turned the step off' 'Tests: off'
+  holds "$t/debug/SKILL.md" 'Tests: off'
+  holds "$t/build/SKILL.md" 'the tests run'
+  holds "$t/build/prompts/implement.md" 'Tests: off'
+  holds "$t/build/prompts/document-review.md" 'Tests: off'
+  lacks "$t/plan/SKILL.md" "$tests_off"
+done
+for f in agents/implementer.md agents/reviewer.md codex/agents/amp-implementer.toml codex/agents/amp-reviewer.toml; do holds "$f" 'Tests: off'; done
+holds agents/reviewer.md 'missing tests'
 ok
 
 case=stage-lines

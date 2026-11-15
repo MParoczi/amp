@@ -53,4 +53,5 @@ tests in <WT> and reply with the contract; change and commit nothing. Report any
 Final review: "Fix ALL of these findings from the whole-branch review (verbatim list). One commit
 per coherent fix group." CI: "CI failed on the PR. Failure log: <WORKSPACE>/ci-<k>.log. Find the
 root cause (amp:debug), fix it, run the failing check's command locally if possible, commit, and
-report. Do not push; the orchestrator pushes."
+report. Do not push; the orchestrator pushes." When `Tests` is off (amp:phase, Steps a project can
+turn off), both end with the `Tests: off` line.
