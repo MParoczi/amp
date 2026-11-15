@@ -107,6 +107,9 @@ every file.
 
 ## Review and commit
 
+When `Document reviews` is off, skip the review below; the self-review stands, and spec and plan
+are still committed together.
+
 Spawn `amp-reviewer` (`spawn_agent`, `agent_type: "amp-reviewer"`, as amp:phase, Model routing says) with `<skills>/build/prompts/document-review.md` (mode: plan), passing the plan
 and spec paths. Fix Critical/Important issues and run at most one confirmation re-review: resume the same reviewer with `followup_task` (v2) or `send_input` (v1)
 with "Confirmation re-review: the document changed; verify each Critical/Important issue you raised

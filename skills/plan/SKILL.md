@@ -104,6 +104,9 @@ every file.
 
 ## Review and commit
 
+When `Document reviews` is off, skip the review below; the self-review stands, and spec and plan
+are still committed together.
+
 Dispatch `amp:reviewer` with `${CLAUDE_PLUGIN_ROOT}/skills/build/prompts/document-review.md` (mode: plan), passing the plan
 and spec paths. Fix Critical/Important issues and run at most one confirmation re-review: resume the same reviewer via SendMessage
 with "Confirmation re-review: the document changed; verify each Critical/Important issue you raised

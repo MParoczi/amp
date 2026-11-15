@@ -81,6 +81,11 @@ Dispatch templates: `prompts/`.
    - `NEEDS_CONTEXT`: answer precisely and resume.
    - `BLOCKED`: change something before retrying (more context, split the task, the escalation
      spawn (amp:phase, Model routing), or a ledgered ruling that corrects the plan). Never retry unchanged.
+
+   When `Task reviews` is off (amp:phase, Steps a project can turn off), skip steps 4 and 5: a
+   `DONE`, or a `DONE_WITH_CONCERNS` whose concerns are resolved, completes the task, and no
+   reviewer or checker is dispatched for it. Its completion line ends `unreviewed)`, or
+   `unreviewed | K parked)` when the cap parked findings.
 4. **Review:** `bash "$S/review-package" $WS <BASE> <task head>`, then dispatch `amp-reviewer` with
    `prompts/task-review.md`, `Tree:` naming its tree. Record the reviewer's agent id (fix-round
    re-reviews resume it). Don't read the package yourself. Resolve each ⚠️ item yourself (you hold
@@ -152,7 +157,10 @@ and count as one task in scheduling.
 
 ## Integration
 
-A worktree task integrates once its review is clean or its breaker has ruled.
+A worktree task integrates once its review is clean or its breaker has ruled. When `Task reviews`
+is off, it integrates as soon as its implementer is done; the fix rounds of steps 1 and 2 follow
+the fix loop's resume, escalation and 5-round cap rules with no re-review, and at the cap the
+breaker adjudicates.
 Only one task integrates at a time. Others queue in the order they became ready to integrate.
 
 1. `git -C "$WT" status --porcelain` must be empty. If it isn't, resume the implementer to commit
@@ -202,6 +210,9 @@ Then clean up any `$WS/wt-*` worktree or `amp-wt-*` branch whose task is not in 
 a scheduling point.
 
 ## Final review
+
+When `Final review` is off, skip steps 1 and 2; steps 3 and 4 run, and deferred minors and parked
+findings reach the PR untriaged.
 
 1. `MB=$(git merge-base origin/<default> HEAD)`, then `review-package $WS $MB HEAD`. Dispatch
    `amp-reviewer` with `prompts/final-review.md`.

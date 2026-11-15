@@ -456,6 +456,11 @@ for t in skills codex/skills; do
 done
 for f in agents/implementer.md agents/reviewer.md codex/agents/amp-implementer.toml codex/agents/amp-reviewer.toml; do holds "$f" 'Tests: off'; done
 holds agents/reviewer.md 'missing tests'
+for t in skills codex/skills; do
+  for s in design plan roadmap; do holds "$t/$s/SKILL.md" 'When `Document reviews` is off'; done
+  holds "$t/build/SKILL.md" 'When `Task reviews` is off' 'unreviewed)' 'unreviewed | K parked)' 'When `Final review` is off' 'untriaged'
+  holds "$t/build/prompts/final-review.md" 'No task was reviewed (Task reviews off)'
+done
 ok
 
 case=stage-lines

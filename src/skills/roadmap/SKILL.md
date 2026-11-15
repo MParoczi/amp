@@ -116,6 +116,10 @@ is resolved and flag only new Critical/Important problems in the changes." If th
 {{claude: dispatch}}{{codex: spawn}} a fresh reviewer with the document-review template.
 Record residual rulings in the final report.
 
+When `Document reviews` is off (amp:phase, Steps a project can turn off; only a revision in a
+project whose table sets it), skip this review; the final report says the documents were not
+reviewed.
+
 ## 4. Commit and publish
 
 - `git init -b main` if needed. The roadmap commit is the **one exception** to branch-first: there

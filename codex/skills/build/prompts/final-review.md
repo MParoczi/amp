@@ -2,6 +2,12 @@
 
 Agent: `amp-reviewer` (on a model-unavailable error re-spawn without `model`).
 
+When `Task reviews` is off (amp:phase, Steps a project can turn off), replace the template's
+sentence "Every task passed its own review; you judge the whole: integration, cross-task
+consistency, and what a real user meets." with "No task was reviewed (Task reviews off): judge
+each task's correctness and quality as well as the whole: integration, cross-task consistency, and
+what a real user meets."
+
 ```
 Final whole-branch review — Phase <NN>: <title>, branch <branch>. Every task passed its own
 review; you judge the whole: integration, cross-task consistency, and what a real user meets.

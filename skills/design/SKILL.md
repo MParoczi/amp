@@ -80,4 +80,5 @@ requirement readable two ways. YAGNI ruthlessly.
    is resolved and flag only new Critical/Important problems in the changes." If the resume fails,
    dispatch a fresh reviewer with the document-review template.
    If issues remain after that, rule on each (`Ruling:` line in the ledger) and continue. The spec
-   isn't committed yet; amp:plan commits spec and plan together.
+   isn't committed yet; amp:plan commits spec and plan together. When `Document reviews` is off,
+   skip this review; the self-review stands.
